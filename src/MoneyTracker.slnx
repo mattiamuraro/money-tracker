@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="MoneyTracker.ApiService/MoneyTracker.ApiService.csproj" />
+  <Project Path="MoneyTracker.AppHost/MoneyTracker.AppHost.csproj" />
+  <Project Path="MoneyTracker.ServiceDefaults/MoneyTracker.ServiceDefaults.csproj" />
+  <Project Path="MoneyTracker.Tests/MoneyTracker.Tests.csproj" />
+  <Project Path="MoneyTracker.Web/MoneyTracker.Web.csproj" />
+</Solution>

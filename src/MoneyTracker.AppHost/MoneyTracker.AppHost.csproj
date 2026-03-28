@@ -1,0 +1,16 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.1.0">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>b3f09247-3ead-42f4-9338-4a84c3c12549</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MoneyTracker.ApiService\MoneyTracker.ApiService.csproj" />
+    <ProjectReference Include="..\MoneyTracker.Web\MoneyTracker.Web.csproj" />
+  </ItemGroup>
+
+</Project>
