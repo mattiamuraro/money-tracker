@@ -9,6 +9,7 @@ public class RequestResponseLoggingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<RequestResponseLoggingMiddleware> _logger;
+    private const int MaxLoggableBodySizeBytes = 65536; // 64 KB
 
     public RequestResponseLoggingMiddleware(
         RequestDelegate next,
@@ -68,6 +69,9 @@ public class RequestResponseLoggingMiddleware
 
     private async Task<string> ReadRequestBody(HttpRequest request)
     {
+        if (request.ContentLength.HasValue && request.ContentLength > MaxLoggableBodySizeBytes)
+            return "[Body too large to log]";
+
         request.EnableBuffering();
         var body = await new StreamReader(request.Body).ReadToEndAsync();
         request.Body.Position = 0;
@@ -76,6 +80,12 @@ public class RequestResponseLoggingMiddleware
 
     private async Task<string> ReadResponseBody(MemoryStream responseBody)
     {
+        if (responseBody.Length > MaxLoggableBodySizeBytes)
+        {
+            responseBody.Seek(0, SeekOrigin.Begin);
+            return "[Body too large to log]";
+        }
+
         responseBody.Seek(0, SeekOrigin.Begin);
         var body = await new StreamReader(responseBody).ReadToEndAsync();
         responseBody.Seek(0, SeekOrigin.Begin);

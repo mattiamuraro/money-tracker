@@ -43,5 +43,10 @@ public class CreatePaymentCommandValidator : AbstractValidator<CreatePaymentComm
         RuleFor(x => x.IsOneShot)
             .NotNull()
             .WithMessage("IsOneShot must be specified");
+
+        RuleFor(x => x.IdempotencyKey)
+            .MaximumLength(256)
+            .WithMessage("Idempotency key must not exceed 256 characters")
+            .When(x => !string.IsNullOrEmpty(x.IdempotencyKey));
     }
 }

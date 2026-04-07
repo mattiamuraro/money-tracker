@@ -19,6 +19,12 @@ namespace MoneyTracker.Api.Endpoints
                 var start = startDate ?? DateOnly.FromDateTime(DateTime.Today);
                 var end = endDate ?? DateOnly.FromDateTime(DateTime.Today.AddMonths(1));
 
+                if (end < start)
+                    return Results.BadRequest(new { message = "End date must be greater than or equal to start date." });
+
+                if ((end.ToDateTime(TimeOnly.MinValue) - start.ToDateTime(TimeOnly.MinValue)).TotalDays > 366)
+                    return Results.BadRequest(new { message = "Date range cannot exceed 366 days." });
+
                 var forecasts = forecastService.GetForecastRow(start, end);
                 return Results.Ok(forecasts);
             })

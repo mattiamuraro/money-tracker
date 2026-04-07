@@ -66,7 +66,6 @@ namespace MoneyTracker.BusinessLogic.Services
             {
                 _logger.LogError(ex, "Error retrieving forecast definitions");
                 return Results.Problem(
-                    detail: ex.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error retrieving forecast definitions");
             }
@@ -96,7 +95,6 @@ namespace MoneyTracker.BusinessLogic.Services
             {
                 _logger.LogError(ex, "Error retrieving forecast definition with ID: {ForecastId}", id);
                 return Results.Problem(
-                    detail: ex.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error retrieving forecast definition");
             }
@@ -127,7 +125,6 @@ namespace MoneyTracker.BusinessLogic.Services
             {
                 _logger.LogError(ex, "Error creating forecast definition");
                 return Results.Problem(
-                    detail: ex.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error creating forecast definition");
             }
@@ -166,7 +163,6 @@ namespace MoneyTracker.BusinessLogic.Services
             {
                 _logger.LogError(ex, "Error updating forecast definition with ID: {ForecastId}", id);
                 return Results.Problem(
-                    detail: ex.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error updating forecast definition");
             }
@@ -206,7 +202,6 @@ namespace MoneyTracker.BusinessLogic.Services
             {
                 _logger.LogError(ex, "Error deleting forecast definition with ID: {ForecastId}", id);
                 return Results.Problem(
-                    detail: ex.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error deleting forecast definition");
             }

@@ -15,6 +15,12 @@ namespace MoneyTracker.Data
         public DateTime Date { get; set; }
         public bool IsOneShot { get; set; } = false;
 
+        /// <summary>
+        /// Optional client-supplied key used to prevent duplicate payment creation on retries.
+        /// </summary>
+        [MaxLength(256)]
+        public string? IdempotencyKey { get; set; }
+
         public PaymentCategory PaymentCategory { get; set; } = null!;
     }
 }

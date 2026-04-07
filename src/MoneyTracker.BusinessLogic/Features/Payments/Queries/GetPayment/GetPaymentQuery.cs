@@ -9,6 +9,11 @@ namespace MoneyTracker.BusinessLogic.Features.Payments.Queries.GetPaymentHistory
 /// </summary>
 public class GetPaymentQuery : IRequest<PaginatedResponse<PaymentRow>>
 {
+    /// <summary>
+    /// When set, returns only the payment with this ID.
+    /// </summary>
+    public Guid? Id { get; set; }
+
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public string? CategoryFilter { get; set; }

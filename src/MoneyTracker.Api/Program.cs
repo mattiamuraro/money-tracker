@@ -53,6 +53,7 @@ var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 // Add custom middleware (order matters!)
+app.UseHttpsRedirection();
 app.UseCorrelationId();
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 app.UseMiddleware<RequestResponseLoggingMiddleware>();

@@ -66,6 +66,9 @@ namespace MoneyTracker.Data.EntityFramework
                 entity.HasIndex(e => e.Date);
                 entity.HasIndex(e => e.PaymentCategoryId);
                 entity.HasIndex(e => e.DeletedAt);
+                entity.HasIndex(e => e.IdempotencyKey)
+                    .IsUnique()
+                    .HasFilter("[IdempotencyKey] IS NOT NULL");
 
                 // Global query filter for soft deletes
                 entity.HasQueryFilter(p => !p.IsDeleted);

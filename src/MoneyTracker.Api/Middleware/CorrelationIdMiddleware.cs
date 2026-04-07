@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace MoneyTracker.ApiService.Middleware;
 
 /// <summary>
@@ -9,6 +11,8 @@ public class CorrelationIdMiddleware
     private readonly ILogger<CorrelationIdMiddleware> _logger;
     private const string CorrelationIdHeader = "X-Correlation-ID";
     private const string CorrelationIdLogProperty = "CorrelationId";
+    private const int MaxCorrelationIdLength = 128;
+    private static readonly Regex SafeCorrelationIdPattern = new(@"^[a-zA-Z0-9\-_]+$", RegexOptions.Compiled);
 
     public CorrelationIdMiddleware(RequestDelegate next, ILogger<CorrelationIdMiddleware> logger)
     {
@@ -53,11 +57,15 @@ public class CorrelationIdMiddleware
         if (context.Request.Headers.TryGetValue(CorrelationIdHeader, out var correlationIdHeader))
         {
             var correlationId = correlationIdHeader.ToString();
-            if (!string.IsNullOrWhiteSpace(correlationId))
+            if (!string.IsNullOrWhiteSpace(correlationId)
+                && correlationId.Length <= MaxCorrelationIdLength
+                && SafeCorrelationIdPattern.IsMatch(correlationId))
             {
                 _logger.LogDebug("Correlation ID from header: {CorrelationId}", correlationId);
                 return correlationId;
             }
+
+            _logger.LogWarning("Invalid correlation ID received in header; generating a new one.");
         }
 
         // Generate new correlation ID

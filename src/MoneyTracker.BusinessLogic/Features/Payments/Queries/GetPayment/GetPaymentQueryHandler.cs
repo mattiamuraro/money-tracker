@@ -20,6 +20,9 @@ public class GetPaymentQueryHandler : IRequestHandler<GetPaymentQuery, Paginated
     {
         var query = _dbContext.Payments.Include(p => p.PaymentCategory).AsQueryable();
 
+        if (request.Id.HasValue)
+            query = query.Where(p => p.Id == request.Id.Value);
+
         if (request.StartDate.HasValue)
             query = query.Where(p => p.Date >= request.StartDate.Value);
 

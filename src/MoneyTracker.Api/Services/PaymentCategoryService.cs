@@ -41,7 +41,6 @@ namespace MoneyTracker.Api.Services
             {
                 _logger.LogError(ex, "Error retrieving payment categories");
                 return Results.Problem(
-                    detail: ex.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error retrieving payment categories");
             }
@@ -67,7 +66,6 @@ namespace MoneyTracker.Api.Services
             {
                 _logger.LogError(ex, "Error retrieving payment category with ID: {CategoryId}", id);
                 return Results.Problem(
-                    detail: ex.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error retrieving payment category");
             }
@@ -97,13 +95,12 @@ namespace MoneyTracker.Api.Services
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning(ex, "Invalid operation while creating category");
-                return Results.BadRequest(new { message = ex.Message });
+                return Results.BadRequest(new { message = "A category with this code already exists." });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating payment category");
                 return Results.Problem(
-                    detail: ex.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error creating payment category");
             }
@@ -137,13 +134,12 @@ namespace MoneyTracker.Api.Services
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning(ex, "Invalid operation while updating category");
-                return Results.BadRequest(new { message = ex.Message });
+                return Results.BadRequest(new { message = "A category with this code already exists." });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating payment category with ID: {CategoryId}", id);
                 return Results.Problem(
-                    detail: ex.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error updating payment category");
             }
@@ -170,13 +166,12 @@ namespace MoneyTracker.Api.Services
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning(ex, "Cannot delete category with associated payments");
-                return Results.BadRequest(new { message = ex.Message });
+                return Results.BadRequest(new { message = "Cannot delete a category that has associated payments." });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting payment category with ID: {CategoryId}", id);
                 return Results.Problem(
-                    detail: ex.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error deleting payment category");
             }

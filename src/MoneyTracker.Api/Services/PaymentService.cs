@@ -54,7 +54,6 @@ namespace MoneyTracker.Api.Services
             {
                 _logger.LogError(ex, "Error retrieving payments");
                 return Results.Problem(
-                    detail: ex.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error retrieving payments");
             }
@@ -68,9 +67,9 @@ namespace MoneyTracker.Api.Services
             try
             {
                 _logger.LogInformation("Fetching payment with ID: {PaymentId}", id);
-                var query = new GetPaymentQuery { PageSize = 1000 };
+                var query = new GetPaymentQuery { Id = id, PageSize = 1 };
                 var result = await _mediator.Send(query, cancellationToken);
-                var payment = result.Items.FirstOrDefault(p => p.Id == id);
+                var payment = result.Items.FirstOrDefault();
 
                 if (payment == null)
                     return Results.NotFound();
@@ -81,7 +80,6 @@ namespace MoneyTracker.Api.Services
             {
                 _logger.LogError(ex, "Error retrieving payment with ID: {PaymentId}", id);
                 return Results.Problem(
-                    detail: ex.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error retrieving payment");
             }
@@ -95,6 +93,8 @@ namespace MoneyTracker.Api.Services
             try
             {
                 _logger.LogInformation("Creating new payment");
+                command.CreatedBy = _httpContext.User?.FindFirst("sub")?.Value ?? "System";
+
                 // Extract idempotency key from header if present
                 var idempotencyKey = _httpContext.Request.Headers["X-Idempotency-Key"].ToString();
                 if (!string.IsNullOrEmpty(idempotencyKey))
@@ -109,13 +109,12 @@ namespace MoneyTracker.Api.Services
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning(ex, "Invalid operation while creating payment");
-                return Results.BadRequest(new { message = ex.Message });
+                return Results.BadRequest(new { message = "The requested payment category does not exist." });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating payment");
                 return Results.Problem(
-                    detail: ex.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error creating payment");
             }
@@ -130,6 +129,7 @@ namespace MoneyTracker.Api.Services
             {
                 _logger.LogInformation("Updating payment with ID: {PaymentId}", id);
                 command.PaymentId = id;
+                command.ModifiedBy = _httpContext.User?.FindFirst("sub")?.Value ?? "System";
                 var result = await _mediator.Send(command, cancellationToken);
 
                 if (!result)
@@ -142,7 +142,6 @@ namespace MoneyTracker.Api.Services
             {
                 _logger.LogError(ex, "Error updating payment with ID: {PaymentId}", id);
                 return Results.Problem(
-                    detail: ex.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error updating payment");
             }
@@ -169,7 +168,6 @@ namespace MoneyTracker.Api.Services
             {
                 _logger.LogError(ex, "Error deleting payment with ID: {PaymentId}", id);
                 return Results.Problem(
-                    detail: ex.Message,
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error deleting payment");
             }

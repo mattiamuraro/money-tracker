@@ -1,6 +1,7 @@
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace MoneyTracker.BusinessLogic.Features.Payments.Commands.CreatePayment;
 
@@ -18,6 +19,17 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
 
     public async Task<Guid> Handle(CreatePaymentCommand request, CancellationToken cancellationToken)
     {
+        // If an idempotency key is present, return the existing payment ID without creating a duplicate
+        if (!string.IsNullOrEmpty(request.IdempotencyKey))
+        {
+            var existing = await _dbContext.Payments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.IdempotencyKey == request.IdempotencyKey, cancellationToken);
+
+            if (existing != null)
+                return existing.Id;
+        }
+
         // Verificare che la categoria esista
         var category = await _dbContext.PaymentCategories.FindAsync(
             new object[] { request.PaymentCategoryId },
@@ -34,6 +46,7 @@ public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand,
             Amount = request.Amount,
             Date = request.Date,
             IsOneShot = request.IsOneShot,
+            IdempotencyKey = string.IsNullOrEmpty(request.IdempotencyKey) ? null : request.IdempotencyKey,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = request.CreatedBy,
             ModifiedAt = DateTime.UtcNow,
