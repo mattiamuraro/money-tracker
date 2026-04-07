@@ -1,7 +1,16 @@
 <Solution>
-  <Project Path="MoneyTracker.ApiService/MoneyTracker.ApiService.csproj" />
+  <Project Path="MoneyTracker.Api/MoneyTracker.Api.csproj" />
   <Project Path="MoneyTracker.AppHost/MoneyTracker.AppHost.csproj" />
+  <Project Path="MoneyTracker.BusinessLogic/MoneyTracker.BusinessLogic.csproj" />
+  <Project Path="MoneyTracker.Data.EntityFramework.Tests/MoneyTracker.Data.EntityFramework.Tests.csproj" />
+  <Project Path="MoneyTracker.Data.EntityFramework/MoneyTracker.Data.EntityFramework.csproj" Id="2206f31d-5708-4794-a96a-5a3bd87b7c6b" />
+  <Project Path="MoneyTracker.Data.MigrationService/MoneyTracker.Data.MigrationService.csproj" />
+  <Project Path="MoneyTracker.Data.Tests/MoneyTracker.Data.Tests.csproj" />
+  <Project Path="MoneyTracker.Data/MoneyTracker.Data.csproj" />
+  <Project Path="MoneyTracker.Frontend/MoneyTracker.Frontend.esproj">
+    <Build />
+    <Deploy />
+  </Project>
   <Project Path="MoneyTracker.ServiceDefaults/MoneyTracker.ServiceDefaults.csproj" />
   <Project Path="MoneyTracker.Tests/MoneyTracker.Tests.csproj" />
-  <Project Path="MoneyTracker.Web/MoneyTracker.Web.csproj" />
 </Solution>

@@ -1,0 +1,12 @@
+namespace MoneyTracker.BusinessLogic.Features.Payments.Models;
+
+public class PaymentRow
+{
+    public Guid Id { get; set; }
+    public required string Description { get; set; }
+    public Guid PaymentCategoryId { get; set; }
+    public required string Category { get; set; }
+    public decimal Amount { get; set; }
+    public DateTime Date { get; set; }
+    public bool IsOneShot { get; set; }
+}

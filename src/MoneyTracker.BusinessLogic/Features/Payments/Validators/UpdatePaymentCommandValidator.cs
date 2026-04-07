@@ -1,0 +1,45 @@
+using FluentValidation;
+using MoneyTracker.BusinessLogic.Features.Payments.Commands.UpdatePayment;
+
+namespace MoneyTracker.BusinessLogic.Features.Payments.Validators;
+
+/// <summary>
+/// Validator for UpdatePaymentCommand
+/// </summary>
+public class UpdatePaymentCommandValidator : AbstractValidator<UpdatePaymentCommand>
+{
+    public UpdatePaymentCommandValidator()
+    {
+        RuleFor(x => x.PaymentId)
+            .NotEmpty()
+            .WithMessage("Payment ID is required");
+
+        RuleFor(x => x.Description)
+            .MaximumLength(100)
+            .WithMessage("Description must not exceed 100 characters")
+            .When(x => !string.IsNullOrEmpty(x.Description));
+
+        RuleFor(x => x.PaymentCategoryId)
+            .NotEmpty()
+            .WithMessage("Payment category is required")
+            .When(x => x.PaymentCategoryId.HasValue);
+
+        RuleFor(x => x.Amount)
+            .GreaterThan(0)
+            .WithMessage("Amount must be greater than 0")
+            .PrecisionScale(18, 2, true)
+            .WithMessage("Amount must have maximum 2 decimal places")
+            .When(x => x.Amount.HasValue);
+
+        RuleFor(x => x.Date)
+            .LessThanOrEqualTo(DateTime.UtcNow)
+            .WithMessage("Date cannot be in the future")
+            .When(x => x.Date.HasValue);
+
+        RuleFor(x => x.ModifiedBy)
+            .NotEmpty()
+            .WithMessage("ModifiedBy is required")
+            .MaximumLength(100)
+            .WithMessage("ModifiedBy must not exceed 100 characters");
+    }
+}

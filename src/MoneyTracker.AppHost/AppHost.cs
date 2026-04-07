@@ -1,12 +1,23 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var apiService = builder.AddProject<Projects.MoneyTracker_ApiService>("apiservice")
-    .WithHttpHealthCheck("/health");
+var sqlDatabse = builder.AddSqlServer("moneytracker-sqlserver")
+                     .WithDataVolume("moneyTrackerSqlDataVolume")
+                     .AddDatabase("moneytacker-db");
 
-builder.AddProject<Projects.MoneyTracker_Web>("webfrontend")
-    .WithExternalHttpEndpoints()
-    .WithHttpHealthCheck("/health")
-    .WithReference(apiService)
-    .WaitFor(apiService);
+var migrationService = builder.AddProject<Projects.MoneyTracker_Data_MigrationService>("moneytracker-data-migrationservice")
+                            .WithReference(sqlDatabse)
+                            .WaitFor(sqlDatabse);
+
+var api = builder.AddProject<Projects.MoneyTracker_Api>("moneytracker-api")
+                 .WithReference(sqlDatabse)
+                 .WithHttpHealthCheck("/health")
+                 .WaitFor(migrationService);
+
+var frontend = builder.AddExecutable("moneytracker-frontend", "node", "../MoneyTracker.Frontend", "./start.mjs")
+                      .WithReference(api)
+                      .WithEnvironment("MONEYTRACKER_API_URL", api.GetEndpoint("http"))
+                      .WithHttpEndpoint(env: "PORT")
+                      .WithExternalHttpEndpoints()
+                      .WaitFor(api);
 
 builder.Build().Run();
