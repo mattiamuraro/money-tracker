@@ -1,0 +1,76 @@
+<main class="content-stack">
+  <section class="widget-grid">
+    <article class="widget-card accent-violet">
+      <span class="widget-label">Payments tracked</span>
+      <strong class="widget-value">{{ app.payments.length }}</strong>
+      <span class="widget-footnote">
+        {{ app.latestPayment ? ('Latest: ' + app.latestPayment.description) : 'No payments loaded yet' }}
+      </span>
+    </article>
+
+    <article class="widget-card accent-blue">
+      <span class="widget-label">Payment volume</span>
+      <strong class="widget-value">{{ app.paymentTotal | currency:'EUR':'symbol':'1.2-2' }}</strong>
+      <span class="widget-footnote">
+        {{ app.latestPayment ? (app.latestPayment.date | date:'dd MMM yyyy') : 'Waiting for data' }}
+      </span>
+    </article>
+
+    <article class="widget-card accent-green">
+      <span class="widget-label">Forecast income</span>
+      <strong class="widget-value">{{ app.forecastIncomeTotal | currency:'EUR':'symbol':'1.2-2' }}</strong>
+      <span class="widget-footnote">Next 30 days</span>
+    </article>
+
+    <article class="widget-card accent-rose">
+      <span class="widget-label">Forecast balance</span>
+      <strong class="widget-value">{{ app.forecastBalance | currency:'EUR':'symbol':'1.2-2' }}</strong>
+      <span class="widget-footnote">
+        {{ app.nextForecast ? ('Next event: ' + app.nextForecast.description) : 'No upcoming forecasts' }}
+      </span>
+    </article>
+  </section>
+
+  <section class="management-panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Insights</p>
+        <h2>Quick charts</h2>
+        <p>Visual snapshot of current payment and forecast distribution.</p>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <article class="list-card">
+        <div class="card-heading">
+          <h3>Forecast mix</h3>
+          <span class="muted-copy">Income vs expense</span>
+        </div>
+
+        <div class="chart-bar-shell">
+          <div class="chart-segment chart-income" [style.width.%]="incomeChartWidth"></div>
+          <div class="chart-segment chart-expense" [style.width.%]="expenseChartWidth"></div>
+        </div>
+
+        <div class="chart-legend">
+          <span><i class="legend-dot income-dot"></i> Income {{ app.forecastIncomeTotal | currency:'EUR':'symbol':'1.2-2' }}</span>
+          <span><i class="legend-dot expense-dot"></i> Expense {{ app.forecastExpenseTotal | currency:'EUR':'symbol':'1.2-2' }}</span>
+        </div>
+      </article>
+
+      <article class="list-card">
+        <div class="card-heading">
+          <h3>Payment type ratio</h3>
+          <span class="muted-copy">Latest page of payments</span>
+        </div>
+
+        <div class="chart-ring-shell">
+          <div class="chart-ring" [style.--oneShot]="oneShotPaymentRatio + '%'">
+            <strong>{{ oneShotPaymentRatio | number:'1.0-0' }}%</strong>
+            <span class="muted-copy">One-time</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+</main>

@@ -1,0 +1,135 @@
+<main class="content-stack">
+  <section class="management-panel" id="payments">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Entity</p>
+        <h2>Payments</h2>
+        <p>Track expenses with category, amount, date, and quick edit or delete actions.</p>
+      </div>
+      <span class="pill">{{ app.payments.length }} records</span>
+    </div>
+
+    <div class="panel-grid">
+      <form class="editor-card" (ngSubmit)="app.submitPayment()">
+        <div class="card-heading">
+          <h3>{{ app.editingPaymentId ? 'Edit payment' : 'Create payment' }}</h3>
+          <button *ngIf="app.editingPaymentId" class="text-button" type="button" (click)="app.cancelPaymentEdit()">
+            Cancel edit
+          </button>
+        </div>
+
+        <label class="field-label" for="payment-description">Description</label>
+        <input
+          id="payment-description"
+          class="field-input"
+          type="text"
+          name="paymentDescription"
+          [(ngModel)]="app.paymentForm.description"
+          maxlength="100"
+          placeholder="Groceries, rent, coffee..."
+          required />
+
+        <div class="field-row">
+          <div>
+            <label class="field-label" for="payment-category">Category</label>
+            <select
+              id="payment-category"
+              class="field-input"
+              name="paymentCategory"
+              [(ngModel)]="app.paymentForm.paymentCategoryId"
+              [disabled]="!app.hasCategories"
+              required>
+              <option value="">{{ app.hasCategories ? 'Select a category' : 'No categories available' }}</option>
+              <option *ngFor="let category of app.categories; trackBy: app.trackById" [value]="category.id">
+                {{ category.name }} · {{ category.code }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label" for="payment-amount">Amount</label>
+            <input
+              id="payment-amount"
+              class="field-input"
+              type="number"
+              name="paymentAmount"
+              [(ngModel)]="app.paymentForm.amount"
+              min="0.01"
+              step="0.01"
+              placeholder="0.00"
+              required />
+          </div>
+        </div>
+
+        <div class="field-row compact-row">
+          <div>
+            <label class="field-label" for="payment-date">Date</label>
+            <input
+              id="payment-date"
+              class="field-input"
+              type="date"
+              name="paymentDate"
+              [(ngModel)]="app.paymentForm.date"
+              required />
+          </div>
+
+          <label class="switch-field">
+            <input type="checkbox" name="paymentOneShot" [(ngModel)]="app.paymentForm.isOneShot" />
+            <span>One-time payment</span>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button class="primary-button" type="submit" [disabled]="app.isSavingPayment || !app.hasCategories">
+            {{ app.isSavingPayment ? 'Saving...' : (app.editingPaymentId ? 'Update payment' : 'Create payment') }}
+          </button>
+          <button class="secondary-button" type="button" (click)="app.resetPaymentForm()">Reset</button>
+        </div>
+      </form>
+
+      <article class="list-card">
+        <div class="card-heading">
+          <h3>Recent payments</h3>
+          <span class="muted-copy">Latest 12 records</span>
+        </div>
+
+        <div *ngIf="app.payments.length; else paymentsEmpty" class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Category</th>
+                <th>Date</th>
+                <th class="align-right">Amount</th>
+                <th class="align-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let payment of app.payments; trackBy: app.trackById">
+                <td>
+                  <strong>{{ payment.description }}</strong>
+                </td>
+                <td>
+                  <span class="tag">{{ payment.category }}</span>
+                </td>
+                <td>{{ payment.date | date:'dd MMM yyyy' }}</td>
+                <td class="align-right">{{ payment.amount | currency:'EUR':'symbol':'1.2-2' }}</td>
+                <td class="align-right action-group">
+                  <button class="icon-button" type="button" (click)="app.startPaymentEdit(payment)">Edit</button>
+                  <button class="icon-button danger" type="button" (click)="app.deletePayment(payment)">Delete</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ng-template #paymentsEmpty>
+          <div class="empty-state">
+            <h4>No payments yet</h4>
+            <p>Create the first payment to populate the dashboard.</p>
+          </div>
+        </ng-template>
+      </article>
+    </div>
+  </section>
+</main>
