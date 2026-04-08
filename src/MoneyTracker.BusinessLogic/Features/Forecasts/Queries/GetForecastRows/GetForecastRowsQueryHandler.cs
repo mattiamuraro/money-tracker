@@ -3,14 +3,13 @@ using MoneyTracker.BusinessLogic.Features.Forecasts.Models;
 using MoneyTracker.Data;
 using MoneyTracker.Data.Base;
 using MoneyTracker.Data.EntityFramework;
-using MediatR;
 
 namespace MoneyTracker.BusinessLogic.Features.Forecasts.Queries.GetForecastRows;
 
 /// <summary>
 /// Handler for the GetForecastRowsQuery query
 /// </summary>
-public class GetForecastRowsQueryHandler : IRequestHandler<GetForecastRowsQuery, List<ForecastRow>>
+public class GetForecastRowsQueryHandler
 {
     private readonly MoneyTrackerDbContext _dbContext;
 
@@ -19,7 +18,7 @@ public class GetForecastRowsQueryHandler : IRequestHandler<GetForecastRowsQuery,
         _dbContext = dbContext;
     }
 
-    public async Task<List<ForecastRow>> Handle(GetForecastRowsQuery request, CancellationToken cancellationToken)
+    public Task<List<ForecastRow>> Handle(GetForecastRowsQuery request, CancellationToken cancellationToken)
     {
         var forecastRows = new List<ForecastRow>();
 
@@ -36,7 +35,7 @@ public class GetForecastRowsQueryHandler : IRequestHandler<GetForecastRowsQuery,
         forecastRows.AddRange(GetForecastRow(forecastExpenses, request.StartDate, request.EndDate));
         forecastRows.AddRange(GetForecastRow(forecastIncomes, request.StartDate, request.EndDate, true));
 
-        return await Task.FromResult(forecastRows);
+        return Task.FromResult(forecastRows);
     }
 
     private List<ForecastRow> GetForecastRow<T>(List<T> forecasts, DateOnly startDate, DateOnly endDate, bool isIncome = false)

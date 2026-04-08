@@ -1,4 +1,3 @@
-using MediatR;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.UpdateCategory
@@ -6,7 +5,7 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.UpdateC
     /// <summary>
     /// Handler for updating an existing payment category
     /// </summary>
-    public class UpdateCategoryCommandHandler : IRequestHandler<UpdateCategoryCommand, bool>
+    public class UpdateCategoryCommandHandler
     {
         private readonly MoneyTrackerDbContext _dbContext;
 

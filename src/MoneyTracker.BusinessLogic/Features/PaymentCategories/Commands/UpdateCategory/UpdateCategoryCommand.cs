@@ -1,11 +1,9 @@
-using MediatR;
-
 namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.UpdateCategory
 {
     /// <summary>
     /// Command to update an existing payment category
     /// </summary>
-    public class UpdateCategoryCommand : IRequest<bool>
+    public class UpdateCategoryCommand
     {
         public Guid Id { get; set; }
         public required string Name { get; set; }

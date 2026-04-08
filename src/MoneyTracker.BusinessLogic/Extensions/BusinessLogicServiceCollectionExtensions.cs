@@ -1,11 +1,17 @@
-using MediatR;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using MoneyTracker.BusinessLogic.Features.Forecasts.Queries.GetForecastRows;
-using MoneyTracker.BusinessLogic.Shared.Behaviors;
-using FluentValidation;
-using MoneyTracker.BusinessLogic.Features.Payments.Validators;
+using MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.CreateCategory;
+using MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.DeleteCategory;
+using MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.UpdateCategory;
+using MoneyTracker.BusinessLogic.Features.PaymentCategories.Queries.GetAllCategories;
+using MoneyTracker.BusinessLogic.Features.PaymentCategories.Queries.GetCategoryById;
+using MoneyTracker.BusinessLogic.Features.PaymentCategories.Validators;
 using MoneyTracker.BusinessLogic.Features.Payments.Commands.CreatePayment;
+using MoneyTracker.BusinessLogic.Features.Payments.Commands.DeletePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.Commands.UpdatePayment;
+using MoneyTracker.BusinessLogic.Features.Payments.Queries.GetPaymentHistory;
+using MoneyTracker.BusinessLogic.Features.Payments.Validators;
 
 namespace MoneyTracker.BusinessLogic.Extensions;
 
@@ -15,26 +21,29 @@ namespace MoneyTracker.BusinessLogic.Extensions;
 public static class BusinessLogicServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers CQRS services with MediatR following the Vertical Slice Architecture pattern
+    /// Registers business logic handlers and validators.
     /// </summary>
     /// <param name="services">Service collection</param>
     /// <returns>Service collection for chaining</returns>
     public static IServiceCollection AddBusinessLogicServices(this IServiceCollection services)
     {
-        // Register MediatR with the BusinessLogic assembly
-        // Uses GetForecastRowsQueryHandler as a marker type to locate the assembly
-        services.AddMediatR(cfg =>
-        {
-            cfg.RegisterServicesFromAssemblyContaining<GetForecastRowsQueryHandler>();
+        services.AddScoped<CreatePaymentCommandHandler>();
+        services.AddScoped<UpdatePaymentCommandHandler>();
+        services.AddScoped<DeletePaymentCommandHandler>();
+        services.AddScoped<GetPaymentQueryHandler>();
 
-            // Register pipeline behaviors
-            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
-            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-        });
+        services.AddScoped<CreateCategoryCommandHandler>();
+        services.AddScoped<UpdateCategoryCommandHandler>();
+        services.AddScoped<DeleteCategoryCommandHandler>();
+        services.AddScoped<GetAllCategoriesQueryHandler>();
+        services.AddScoped<GetCategoryByIdQueryHandler>();
 
-        // Manually register FluentValidation validators
+        services.AddScoped<GetForecastRowsQueryHandler>();
+
         services.AddScoped<IValidator<CreatePaymentCommand>, CreatePaymentCommandValidator>();
         services.AddScoped<IValidator<UpdatePaymentCommand>, UpdatePaymentCommandValidator>();
+        services.AddScoped<IValidator<CreateCategoryCommand>, CreateCategoryCommandValidator>();
+        services.AddScoped<IValidator<UpdateCategoryCommand>, UpdateCategoryCommandValidator>();
 
         return services;
     }

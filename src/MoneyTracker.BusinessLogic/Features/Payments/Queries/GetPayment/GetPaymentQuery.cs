@@ -1,4 +1,3 @@
-using MediatR;
 using MoneyTracker.BusinessLogic.Features.Payments.Models;
 using MoneyTracker.BusinessLogic.Shared.Models;
 
@@ -7,7 +6,7 @@ namespace MoneyTracker.BusinessLogic.Features.Payments.Queries.GetPaymentHistory
 /// <summary>
 /// Query to retrieve payment history with pagination and filters
 /// </summary>
-public class GetPaymentQuery : IRequest<PaginatedResponse<PaymentRow>>
+public class GetPaymentQuery
 {
     /// <summary>
     /// When set, returns only the payment with this ID.

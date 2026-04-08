@@ -1,11 +1,9 @@
-using MediatR;
-
 namespace MoneyTracker.BusinessLogic.Features.Payments.Commands.DeletePayment;
 
 /// <summary>
 /// Command per soft-delete un pagamento
 /// </summary>
-public class DeletePaymentCommand : IRequest<bool>
+public class DeletePaymentCommand
 {
     public Guid PaymentId { get; set; }
     public string? DeletedBy { get; set; }

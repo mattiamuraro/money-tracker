@@ -1,4 +1,3 @@
-using MediatR;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.Models;
 using MoneyTracker.Data.EntityFramework;
 
@@ -7,7 +6,7 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Queries.GetCateg
     /// <summary>
     /// Handler for retrieving a specific payment category by ID
     /// </summary>
-    public class GetCategoryByIdQueryHandler : IRequestHandler<GetCategoryByIdQuery, PaymentCategoryDto?>
+    public class GetCategoryByIdQueryHandler
     {
         private readonly MoneyTrackerDbContext _dbContext;
 

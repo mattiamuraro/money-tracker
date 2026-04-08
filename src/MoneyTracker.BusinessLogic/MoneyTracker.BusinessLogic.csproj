@@ -8,13 +8,16 @@
 
   <ItemGroup>
     <PackageReference Include="FluentValidation" Version="12.1.1" />
-    <PackageReference Include="MediatR" Version="14.1.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.5" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\MoneyTracker.Data.EntityFramework\MoneyTracker.Data.EntityFramework.csproj" />
     <ProjectReference Include="..\MoneyTracker.Data\MoneyTracker.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Shared\Behaviors\" />
   </ItemGroup>
 
 </Project>

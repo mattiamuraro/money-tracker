@@ -1,14 +1,13 @@
+using Microsoft.EntityFrameworkCore;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
-using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace MoneyTracker.BusinessLogic.Features.Payments.Commands.CreatePayment;
 
 /// <summary>
 /// Handler per il command CreatePaymentCommand
 /// </summary>
-public class CreatePaymentCommandHandler : IRequestHandler<CreatePaymentCommand, Guid>
+public class CreatePaymentCommandHandler
 {
     private readonly MoneyTrackerDbContext _dbContext;
 

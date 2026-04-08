@@ -1,4 +1,3 @@
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using MoneyTracker.Data.EntityFramework;
 
@@ -7,7 +6,7 @@ namespace MoneyTracker.BusinessLogic.Features.Payments.Commands.UpdatePayment;
 /// <summary>
 /// Handler per il command UpdatePaymentCommand
 /// </summary>
-public class UpdatePaymentCommandHandler : IRequestHandler<UpdatePaymentCommand, bool>
+public class UpdatePaymentCommandHandler
 {
     private readonly MoneyTrackerDbContext _dbContext;
 

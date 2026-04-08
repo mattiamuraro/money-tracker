@@ -6,6 +6,23 @@ using MoneyTracker.Data.EntityFramework;
 
 var builder = WebApplication.CreateBuilder(args);
 
+static bool IsAllowedDevelopmentOrigin(string? origin)
+{
+    if (string.IsNullOrWhiteSpace(origin) || !Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+    {
+        return false;
+    }
+
+    if (uri.Scheme is not ("http" or "https"))
+    {
+        return false;
+    }
+
+    return uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+        || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)
+        || uri.Host.EndsWith(".dev.localhost", StringComparison.OrdinalIgnoreCase);
+}
+
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
 
@@ -26,14 +43,23 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("default", policy =>
     {
-        policy.WithOrigins(
-                "https://localhost:7001",
-                "http://localhost:5001",
-                "http://localhost:58100",
-                "http://127.0.0.1:58100",
-                "https://localhost:58100",
-                "https://127.0.0.1:58100")
-            .AllowAnyMethod()
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.SetIsOriginAllowed(IsAllowedDevelopmentOrigin);
+        }
+        else
+        {
+            policy.WithOrigins(
+                    "https://localhost:7001",
+                    "http://localhost:5001",
+                    "http://localhost:58100",
+                    "http://127.0.0.1:58100",
+                    "https://localhost:58100",
+                    "https://127.0.0.1:58100")
+                .SetIsOriginAllowedToAllowWildcardSubdomains();
+        }
+
+        policy.AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();
     });
@@ -46,7 +72,7 @@ builder.AddServices();
 
 builder.AddSqlServerDbContext<MoneyTrackerDbContext>("moneytacker-db");
 
-// Register business logic services including MediatR
+// Register business logic services and handlers
 builder.Services.AddBusinessLogicServices();
 
 var app = builder.Build();

@@ -1,13 +1,12 @@
-using MediatR;
-using MoneyTracker.Data.EntityFramework;
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.DeleteCategory
 {
     /// <summary>
     /// Handler for deleting a payment category
     /// </summary>
-    public class DeleteCategoryCommandHandler : IRequestHandler<DeleteCategoryCommand, bool>
+    public class DeleteCategoryCommandHandler
     {
         private readonly MoneyTrackerDbContext _dbContext;
 

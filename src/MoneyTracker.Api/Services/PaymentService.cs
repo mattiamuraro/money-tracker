@@ -1,9 +1,9 @@
-﻿using MoneyTracker.Api.Endpoints.Payments.Contracts;
+﻿using FluentValidation;
+using MoneyTracker.Api.Endpoints.Payments.Contracts;
 using MoneyTracker.BusinessLogic.Features.Payments.Commands.CreatePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.Commands.DeletePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.Commands.UpdatePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.Queries.GetPaymentHistory;
-using MediatR;
 
 namespace MoneyTracker.Api.Services
 {
@@ -13,16 +13,34 @@ namespace MoneyTracker.Api.Services
     public class PaymentService
     {
         private readonly HttpContext _httpContext;
-        private readonly IMediator _mediator;
+        private readonly GetPaymentQueryHandler _getPaymentQueryHandler;
+        private readonly CreatePaymentCommandHandler _createPaymentCommandHandler;
+        private readonly UpdatePaymentCommandHandler _updatePaymentCommandHandler;
+        private readonly DeletePaymentCommandHandler _deletePaymentCommandHandler;
+        private readonly IValidator<CreatePaymentCommand> _createPaymentCommandValidator;
+        private readonly IValidator<UpdatePaymentCommand> _updatePaymentCommandValidator;
         private readonly ILogger<PaymentService> _logger;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PaymentService"/> class.
         /// </summary>
-        public PaymentService(IHttpContextAccessor httpContextAccessor, IMediator mediator, ILogger<PaymentService> logger)
+        public PaymentService(
+            IHttpContextAccessor httpContextAccessor,
+            GetPaymentQueryHandler getPaymentQueryHandler,
+            CreatePaymentCommandHandler createPaymentCommandHandler,
+            UpdatePaymentCommandHandler updatePaymentCommandHandler,
+            DeletePaymentCommandHandler deletePaymentCommandHandler,
+            IValidator<CreatePaymentCommand> createPaymentCommandValidator,
+            IValidator<UpdatePaymentCommand> updatePaymentCommandValidator,
+            ILogger<PaymentService> logger)
         {
             _httpContext = httpContextAccessor.HttpContext!;
-            _mediator = mediator;
+            _getPaymentQueryHandler = getPaymentQueryHandler;
+            _createPaymentCommandHandler = createPaymentCommandHandler;
+            _updatePaymentCommandHandler = updatePaymentCommandHandler;
+            _deletePaymentCommandHandler = deletePaymentCommandHandler;
+            _createPaymentCommandValidator = createPaymentCommandValidator;
+            _updatePaymentCommandValidator = updatePaymentCommandValidator;
             _logger = logger;
         }
 
@@ -46,7 +64,7 @@ namespace MoneyTracker.Api.Services
                     filterQuery.PageSize ?? 20,
                     filterQuery.SortBy,
                     filterQuery.SortOrder);
-                var result = await _mediator.Send(query, cancellationToken);
+                var result = await _getPaymentQueryHandler.Handle(query, cancellationToken);
 
                 return Results.Ok(result);
             }
@@ -68,7 +86,7 @@ namespace MoneyTracker.Api.Services
             {
                 _logger.LogInformation("Fetching payment with ID: {PaymentId}", id);
                 var query = new GetPaymentQuery { Id = id, PageSize = 1 };
-                var result = await _mediator.Send(query, cancellationToken);
+                var result = await _getPaymentQueryHandler.Handle(query, cancellationToken);
                 var payment = result.Items.FirstOrDefault();
 
                 if (payment == null)
@@ -102,9 +120,16 @@ namespace MoneyTracker.Api.Services
                     command.IdempotencyKey = idempotencyKey;
                 }
 
-                var id = await _mediator.Send(command, cancellationToken);
+                await _createPaymentCommandValidator.ValidateAndThrowAsync(command, cancellationToken);
+
+                var id = await _createPaymentCommandHandler.Handle(command, cancellationToken);
                 _logger.LogInformation("Payment created successfully with ID: {PaymentId}", id);
                 return Results.Created($"/api/v1/payments/{id}", id);
+            }
+            catch (ValidationException ex)
+            {
+                _logger.LogWarning(ex, "Validation failed while creating payment");
+                return Results.ValidationProblem(ToValidationErrors(ex));
             }
             catch (InvalidOperationException ex)
             {
@@ -130,13 +155,21 @@ namespace MoneyTracker.Api.Services
                 _logger.LogInformation("Updating payment with ID: {PaymentId}", id);
                 command.PaymentId = id;
                 command.ModifiedBy = _httpContext.User?.FindFirst("sub")?.Value ?? "System";
-                var result = await _mediator.Send(command, cancellationToken);
+
+                await _updatePaymentCommandValidator.ValidateAndThrowAsync(command, cancellationToken);
+
+                var result = await _updatePaymentCommandHandler.Handle(command, cancellationToken);
 
                 if (!result)
                     return Results.NotFound();
 
                 _logger.LogInformation("Payment updated successfully with ID: {PaymentId}", id);
                 return Results.NoContent();
+            }
+            catch (ValidationException ex)
+            {
+                _logger.LogWarning(ex, "Validation failed while updating payment with ID: {PaymentId}", id);
+                return Results.ValidationProblem(ToValidationErrors(ex));
             }
             catch (Exception ex)
             {
@@ -156,7 +189,7 @@ namespace MoneyTracker.Api.Services
             {
                 _logger.LogInformation("Deleting payment with ID: {PaymentId}", id);
                 var command = new DeletePaymentCommand { PaymentId = id };
-                var result = await _mediator.Send(command, cancellationToken);
+                var result = await _deletePaymentCommandHandler.Handle(command, cancellationToken);
 
                 if (!result)
                     return Results.NotFound();
@@ -171,6 +204,15 @@ namespace MoneyTracker.Api.Services
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error deleting payment");
             }
+        }
+
+        private static Dictionary<string, string[]> ToValidationErrors(ValidationException exception)
+        {
+            return exception.Errors
+                .GroupBy(error => error.PropertyName)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Select(error => error.ErrorMessage).ToArray());
         }
     }
 }

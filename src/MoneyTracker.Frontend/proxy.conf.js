@@ -1,4 +1,4 @@
-const target = process.env.MONEYTRACKER_API_URL ?? 'http://localhost:5001';
+const target = process.env.MONEYTRACKER_API_URL ?? 'https://localhost:7088';
 
 module.exports = {
   '/api': {

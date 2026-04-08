@@ -1,4 +1,3 @@
-using MediatR;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.Models;
 using MoneyTracker.Data.EntityFramework;
 
@@ -7,7 +6,7 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Queries.GetAllCa
     /// <summary>
     /// Handler for retrieving all payment categories
     /// </summary>
-    public class GetAllCategoriesQueryHandler : IRequestHandler<GetAllCategoriesQuery, IEnumerable<PaymentCategoryDto>>
+    public class GetAllCategoriesQueryHandler
     {
         private readonly MoneyTrackerDbContext _dbContext;
 
@@ -16,11 +15,11 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Queries.GetAllCa
             _dbContext = dbContext;
         }
 
-        public async Task<IEnumerable<PaymentCategoryDto>> Handle(GetAllCategoriesQuery request, CancellationToken cancellationToken)
+        public Task<IEnumerable<PaymentCategoryDto>> Handle(GetAllCategoriesQuery request, CancellationToken cancellationToken)
         {
             var categories = _dbContext.PaymentCategories.ToList();
 
-            return categories.Select(c => new PaymentCategoryDto
+            IEnumerable<PaymentCategoryDto> result = categories.Select(c => new PaymentCategoryDto
             {
                 Id = c.Id,
                 Name = c.Name,
@@ -30,6 +29,8 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Queries.GetAllCa
                 ModifiedAt = c.ModifiedAt,
                 ModifiedBy = c.ModifiedBy
             });
+
+            return Task.FromResult(result);
         }
     }
 }

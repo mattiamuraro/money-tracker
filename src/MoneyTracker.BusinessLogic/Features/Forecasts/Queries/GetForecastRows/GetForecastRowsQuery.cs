@@ -1,4 +1,3 @@
-using MediatR;
 using MoneyTracker.BusinessLogic.Features.Forecasts.Models;
 
 namespace MoneyTracker.BusinessLogic.Features.Forecasts.Queries.GetForecastRows;
@@ -6,7 +5,7 @@ namespace MoneyTracker.BusinessLogic.Features.Forecasts.Queries.GetForecastRows;
 /// <summary>
 /// Query to retrieve expense/income forecasts within a date range
 /// </summary>
-public class GetForecastRowsQuery : IRequest<List<ForecastRow>>
+public class GetForecastRowsQuery
 {
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }

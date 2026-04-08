@@ -1,10 +1,10 @@
+using FluentValidation;
 using MoneyTracker.Api.Endpoints.PaymentCategories.Contracts;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.CreateCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.DeleteCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.UpdateCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.Queries.GetAllCategories;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.Queries.GetCategoryById;
-using MediatR;
 
 namespace MoneyTracker.Api.Services
 {
@@ -14,13 +14,34 @@ namespace MoneyTracker.Api.Services
     public class PaymentCategoryService
     {
         private readonly HttpContext _httpContext;
-        private readonly IMediator _mediator;
+        private readonly GetAllCategoriesQueryHandler _getAllCategoriesQueryHandler;
+        private readonly GetCategoryByIdQueryHandler _getCategoryByIdQueryHandler;
+        private readonly CreateCategoryCommandHandler _createCategoryCommandHandler;
+        private readonly UpdateCategoryCommandHandler _updateCategoryCommandHandler;
+        private readonly DeleteCategoryCommandHandler _deleteCategoryCommandHandler;
+        private readonly IValidator<CreateCategoryCommand> _createCategoryCommandValidator;
+        private readonly IValidator<UpdateCategoryCommand> _updateCategoryCommandValidator;
         private readonly ILogger<PaymentCategoryService> _logger;
 
-        public PaymentCategoryService(IHttpContextAccessor httpContextAccessor, IMediator mediator, ILogger<PaymentCategoryService> logger)
+        public PaymentCategoryService(
+            IHttpContextAccessor httpContextAccessor,
+            GetAllCategoriesQueryHandler getAllCategoriesQueryHandler,
+            GetCategoryByIdQueryHandler getCategoryByIdQueryHandler,
+            CreateCategoryCommandHandler createCategoryCommandHandler,
+            UpdateCategoryCommandHandler updateCategoryCommandHandler,
+            DeleteCategoryCommandHandler deleteCategoryCommandHandler,
+            IValidator<CreateCategoryCommand> createCategoryCommandValidator,
+            IValidator<UpdateCategoryCommand> updateCategoryCommandValidator,
+            ILogger<PaymentCategoryService> logger)
         {
             _httpContext = httpContextAccessor.HttpContext!;
-            _mediator = mediator;
+            _getAllCategoriesQueryHandler = getAllCategoriesQueryHandler;
+            _getCategoryByIdQueryHandler = getCategoryByIdQueryHandler;
+            _createCategoryCommandHandler = createCategoryCommandHandler;
+            _updateCategoryCommandHandler = updateCategoryCommandHandler;
+            _deleteCategoryCommandHandler = deleteCategoryCommandHandler;
+            _createCategoryCommandValidator = createCategoryCommandValidator;
+            _updateCategoryCommandValidator = updateCategoryCommandValidator;
             _logger = logger;
         }
 
@@ -33,7 +54,7 @@ namespace MoneyTracker.Api.Services
             {
                 _logger.LogInformation("Fetching all payment categories");
                 var query = new GetAllCategoriesQuery();
-                var result = await _mediator.Send(query, cancellationToken);
+                var result = await _getAllCategoriesQueryHandler.Handle(query, cancellationToken);
 
                 return Results.Ok(result);
             }
@@ -55,7 +76,7 @@ namespace MoneyTracker.Api.Services
             {
                 _logger.LogInformation("Fetching payment category with ID: {CategoryId}", id);
                 var query = new GetCategoryByIdQuery(id);
-                var result = await _mediator.Send(query, cancellationToken);
+                var result = await _getCategoryByIdQueryHandler.Handle(query, cancellationToken);
 
                 if (result == null)
                     return Results.NotFound();
@@ -87,10 +108,17 @@ namespace MoneyTracker.Api.Services
                     CreatedBy = _httpContext.User?.FindFirst("sub")?.Value ?? "System"
                 };
 
-                var categoryId = await _mediator.Send(command, cancellationToken);
+                await _createCategoryCommandValidator.ValidateAndThrowAsync(command, cancellationToken);
+
+                var categoryId = await _createCategoryCommandHandler.Handle(command, cancellationToken);
 
                 _logger.LogInformation("Payment category created successfully with ID: {CategoryId}", categoryId);
                 return Results.Created($"/api/v1/categories/{categoryId}", categoryId);
+            }
+            catch (ValidationException ex)
+            {
+                _logger.LogWarning(ex, "Validation failed while creating category");
+                return Results.ValidationProblem(ToValidationErrors(ex));
             }
             catch (InvalidOperationException ex)
             {
@@ -123,13 +151,20 @@ namespace MoneyTracker.Api.Services
                     ModifiedBy = _httpContext.User?.FindFirst("sub")?.Value ?? "System"
                 };
 
-                var result = await _mediator.Send(command, cancellationToken);
+                await _updateCategoryCommandValidator.ValidateAndThrowAsync(command, cancellationToken);
+
+                var result = await _updateCategoryCommandHandler.Handle(command, cancellationToken);
 
                 if (!result)
                     return Results.NotFound();
 
                 _logger.LogInformation("Payment category updated successfully with ID: {CategoryId}", id);
                 return Results.NoContent();
+            }
+            catch (ValidationException ex)
+            {
+                _logger.LogWarning(ex, "Validation failed while updating category with ID: {CategoryId}", id);
+                return Results.ValidationProblem(ToValidationErrors(ex));
             }
             catch (InvalidOperationException ex)
             {
@@ -155,7 +190,7 @@ namespace MoneyTracker.Api.Services
                 _logger.LogInformation("Deleting payment category with ID: {CategoryId}", id);
 
                 var command = new DeleteCategoryCommand(id);
-                var result = await _mediator.Send(command, cancellationToken);
+                var result = await _deleteCategoryCommandHandler.Handle(command, cancellationToken);
 
                 if (!result)
                     return Results.NotFound();
@@ -175,6 +210,15 @@ namespace MoneyTracker.Api.Services
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error deleting payment category");
             }
+        }
+
+        private static Dictionary<string, string[]> ToValidationErrors(ValidationException exception)
+        {
+            return exception.Errors
+                .GroupBy(error => error.PropertyName)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Select(error => error.ErrorMessage).ToArray());
         }
     }
 }

@@ -1,13 +1,12 @@
+using Microsoft.EntityFrameworkCore;
 using MoneyTracker.BusinessLogic.Features.Payments.Models;
 using MoneyTracker.BusinessLogic.Shared.Models;
-using MoneyTracker.Data.EntityFramework;
-using MediatR;
-using Microsoft.EntityFrameworkCore;
 using MoneyTracker.Data;
+using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.Payments.Queries.GetPaymentHistory;
 
-public class GetPaymentQueryHandler : IRequestHandler<GetPaymentQuery, PaginatedResponse<PaymentRow>>
+public class GetPaymentQueryHandler
 {
     private readonly MoneyTrackerDbContext _dbContext;
 

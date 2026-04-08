@@ -15,7 +15,7 @@ var api = builder.AddProject<Projects.MoneyTracker_Api>("moneytracker-api")
 
 var frontend = builder.AddExecutable("moneytracker-frontend", "node", "../MoneyTracker.Frontend", "./start.mjs")
                       .WithReference(api)
-                      .WithEnvironment("MONEYTRACKER_API_URL", api.GetEndpoint("http"))
+                      .WithEnvironment("MONEYTRACKER_API_URL", api.GetEndpoint("https"))
                       .WithHttpEndpoint(env: "PORT")
                       .WithExternalHttpEndpoints()
                       .WaitFor(api);

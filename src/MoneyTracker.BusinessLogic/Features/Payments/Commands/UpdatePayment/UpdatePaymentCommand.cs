@@ -1,11 +1,9 @@
-using MediatR;
-
 namespace MoneyTracker.BusinessLogic.Features.Payments.Commands.UpdatePayment;
 
 /// <summary>
 /// Command per aggiornare un pagamento
 /// </summary>
-public class UpdatePaymentCommand : IRequest<bool>
+public class UpdatePaymentCommand
 {
     public Guid PaymentId { get; set; }
     public string? Description { get; set; }

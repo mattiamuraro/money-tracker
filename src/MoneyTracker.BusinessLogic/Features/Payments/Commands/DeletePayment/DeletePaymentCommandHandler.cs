@@ -1,5 +1,4 @@
 using MoneyTracker.Data.EntityFramework;
-using MediatR;
 
 namespace MoneyTracker.BusinessLogic.Features.Payments.Commands.DeletePayment;
 
@@ -7,7 +6,7 @@ namespace MoneyTracker.BusinessLogic.Features.Payments.Commands.DeletePayment;
 /// Handler per il command DeletePaymentCommand
 /// Implements soft delete - marks payment as deleted without removing from database
 /// </summary>
-public class DeletePaymentCommandHandler : IRequestHandler<DeletePaymentCommand, bool>
+public class DeletePaymentCommandHandler
 {
     private readonly MoneyTrackerDbContext _dbContext;
 

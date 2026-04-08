@@ -1,4 +1,3 @@
-using MediatR;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 
@@ -7,7 +6,7 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.CreateC
     /// <summary>
     /// Handler for creating a new payment category
     /// </summary>
-    public class CreateCategoryCommandHandler : IRequestHandler<CreateCategoryCommand, Guid>
+    public class CreateCategoryCommandHandler
     {
         private readonly MoneyTrackerDbContext _dbContext;
 

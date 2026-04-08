@@ -1,11 +1,9 @@
-using MediatR;
-
 namespace MoneyTracker.BusinessLogic.Features.Payments.Commands.CreatePayment;
 
 /// <summary>
 /// Command per creare un nuovo pagamento
 /// </summary>
-public class CreatePaymentCommand : IRequest<Guid>
+public class CreatePaymentCommand
 {
     public string Description { get; set; } = string.Empty;
     public Guid PaymentCategoryId { get; set; }
