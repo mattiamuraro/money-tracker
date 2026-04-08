@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, NgZone, OnInit } from '@angular/core';
 import { MoneyTrackerApiService } from './money-tracker-api.service';
 import {
   ForecastDefinition,
@@ -46,7 +46,9 @@ export class App implements OnInit {
     endDate: this.toInputDate(this.addDays(new Date(), 30)),
   };
 
-  constructor(private readonly moneyTrackerApiService: MoneyTrackerApiService) {}
+  constructor(
+    private readonly moneyTrackerApiService: MoneyTrackerApiService,
+    private readonly ngZone: NgZone) {}
 
   async ngOnInit(): Promise<void> {
     await this.reloadDashboard();
@@ -67,13 +69,15 @@ export class App implements OnInit {
       (result): result is PromiseRejectedResult => result.status === 'rejected'
     );
 
-    if (failures.length > 0) {
-      this.errorMessage = failures
-        .map((failure) => this.getErrorMessage(failure.reason, 'Unable to load dashboard data.'))
-        .join(' ');
-    }
+    this.ngZone.run(() => {
+      if (failures.length > 0) {
+        this.errorMessage = failures
+          .map((failure) => this.getErrorMessage(failure.reason, 'Unable to load dashboard data.'))
+          .join(' ');
+      }
 
-    this.isLoading = false;
+      this.isLoading = false;
+    });
   }
 
   public async submitPayment(): Promise<void> {
@@ -94,18 +98,28 @@ export class App implements OnInit {
     try {
       if (this.editingPaymentId) {
         await this.moneyTrackerApiService.updatePayment(this.editingPaymentId, model);
-        this.successMessage = 'Payment updated successfully.';
+        this.ngZone.run(() => {
+          this.successMessage = 'Payment updated successfully.';
+        });
       } else {
         await this.moneyTrackerApiService.createPayment(model);
-        this.successMessage = 'Payment created successfully.';
+        this.ngZone.run(() => {
+          this.successMessage = 'Payment created successfully.';
+        });
       }
 
       await this.loadPayments();
-      this.resetPaymentForm();
+      this.ngZone.run(() => {
+        this.resetPaymentForm();
+      });
     } catch (error) {
-      this.errorMessage = this.getErrorMessage(error, 'Unable to save the payment.');
+      this.ngZone.run(() => {
+        this.errorMessage = this.getErrorMessage(error, 'Unable to save the payment.');
+      });
     } finally {
-      this.isSavingPayment = false;
+      this.ngZone.run(() => {
+        this.isSavingPayment = false;
+      });
     }
   }
 
@@ -271,19 +285,25 @@ export class App implements OnInit {
 
   private async loadCategories(): Promise<void> {
     const categories = await this.moneyTrackerApiService.getCategories();
-    this.categories = [...categories].sort((left, right) => left.name.localeCompare(right.name));
+    this.ngZone.run(() => {
+      this.categories = [...categories].sort((left, right) => left.name.localeCompare(right.name));
+    });
   }
 
   private async loadPayments(): Promise<void> {
     const response = await this.moneyTrackerApiService.getPayments(this.paymentQuery);
-    this.payments = [...response.items].sort((left, right) => right.date.localeCompare(left.date));
+    this.ngZone.run(() => {
+      this.payments = [...response.items].sort((left, right) => right.date.localeCompare(left.date));
+    });
   }
 
   private async loadForecastDefinitions(): Promise<void> {
     const definitions = await this.moneyTrackerApiService.getForecastDefinitions();
-    this.forecastDefinitions = [...definitions].sort((left, right) => {
-      const dateComparison = left.recurrenceStart.localeCompare(right.recurrenceStart);
-      return dateComparison !== 0 ? dateComparison : left.description.localeCompare(right.description);
+    this.ngZone.run(() => {
+      this.forecastDefinitions = [...definitions].sort((left, right) => {
+        const dateComparison = left.recurrenceStart.localeCompare(right.recurrenceStart);
+        return dateComparison !== 0 ? dateComparison : left.description.localeCompare(right.description);
+      });
     });
   }
 
@@ -293,7 +313,9 @@ export class App implements OnInit {
       this.forecastRange.endDate
     );
 
-    this.forecastRows = [...rows].sort((left, right) => left.date.localeCompare(right.date));
+    this.ngZone.run(() => {
+      this.forecastRows = [...rows].sort((left, right) => left.date.localeCompare(right.date));
+    });
   }
 
   private clearMessages(): void {

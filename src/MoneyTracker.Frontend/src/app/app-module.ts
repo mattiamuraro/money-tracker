@@ -1,5 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
-import { NgModule, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { NgModule, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 
@@ -17,6 +17,7 @@ import { App } from './app';
   ],
   providers: [
     provideBrowserGlobalErrorListeners(),
+    provideZoneChangeDetection(),
     provideHttpClient(),
   ],
   bootstrap: [App]
