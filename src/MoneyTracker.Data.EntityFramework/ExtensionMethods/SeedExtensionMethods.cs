@@ -27,11 +27,11 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
 
             var defaults = new[]
             {
-            new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "One Time", Code = ForecastRecurrenceRuleType.OneTime, CreatedAt = now, CreatedBy = actor, ModifiedAt = now, ModifiedBy = actor },
-            new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Day", Code = ForecastRecurrenceRuleType.Day, CreatedAt = now, CreatedBy = actor, ModifiedAt = now, ModifiedBy = actor },
-            new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Week", Code = ForecastRecurrenceRuleType.Week, CreatedAt = now, CreatedBy = actor, ModifiedAt = now, ModifiedBy = actor },
-            new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Month", Code = ForecastRecurrenceRuleType.Month, CreatedAt = now, CreatedBy = actor, ModifiedAt = now, ModifiedBy = actor },
-            new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Year", Code = ForecastRecurrenceRuleType.Year, CreatedAt = now, CreatedBy = actor, ModifiedAt = now, ModifiedBy = actor }
+            new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "One Time", Code = ForecastRecurrenceRuleType.OneTime, CreatedAt = now, CreatedBy = actor, ModifiedAt = now, ModifiedBy = actor, OrderIndex = 1 },
+            new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Day", Code = ForecastRecurrenceRuleType.Day, CreatedAt = now, CreatedBy = actor, ModifiedAt = now, ModifiedBy = actor, OrderIndex = 2 },
+            new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Week", Code = ForecastRecurrenceRuleType.Week, CreatedAt = now, CreatedBy = actor, ModifiedAt = now, ModifiedBy = actor, OrderIndex = 3 },
+            new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Month", Code = ForecastRecurrenceRuleType.Month, CreatedAt = now, CreatedBy = actor, ModifiedAt = now, ModifiedBy = actor, OrderIndex = 4 },
+            new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Year", Code = ForecastRecurrenceRuleType.Year, CreatedAt = now, CreatedBy = actor, ModifiedAt = now, ModifiedBy = actor, OrderIndex = 5 }
         };
 
             var missingDefaults = defaults

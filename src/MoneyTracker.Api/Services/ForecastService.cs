@@ -48,7 +48,7 @@ namespace MoneyTracker.BusinessLogic.Services
             try
             {
                 var types = await _dbContext.ForecastRecurrenceRuleTypes
-                    .OrderBy(x => x.Name)
+                    .OrderBy(x => x.OrderIndex)
                     .Select(x => new ForecastRecurrenceRuleTypeDto
                     {
                         Id = x.Id,

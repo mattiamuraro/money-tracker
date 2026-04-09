@@ -9,5 +9,7 @@ namespace MoneyTracker.Data.Base
 
         [MaxLength(5)]
         public string Code { get; set; }
+
+        public int? OrderIndex { get; set; } = default(int?);
     }
 }
