@@ -122,8 +122,20 @@ describe('MoneyTrackerApiService', () => {
     await expect(requestPromise).resolves.toEqual([]);
   });
 
+  it('should call recurrence rule types endpoint', async () => {
+    const requestPromise = service.getForecastRecurrenceRuleTypes();
+
+    const req = httpMock.expectOne('/api/v1/forecasts/recurrence-rule-types');
+    expect(req.request.method).toBe('GET');
+
+    req.flush([{ id: 'type-id', name: 'Day', code: 'D' }]);
+
+    await expect(requestPromise).resolves.toEqual([{ id: 'type-id', name: 'Day', code: 'D' }]);
+  });
+
   it('should send create forecast definition payload and map empty recurrenceEnd to null', async () => {
     const model: ForecastFormModel = {
+      forecastRecurrenceRuleTypeId: '11111111-1111-1111-1111-111111111111',
       description: 'Salary',
       amount: 2500,
       recurrenceStart: '2026-04-01',
@@ -137,6 +149,7 @@ describe('MoneyTrackerApiService', () => {
     const req = httpMock.expectOne('/api/v1/forecasts/definitions');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({
+      forecastRecurrenceRuleTypeId: '11111111-1111-1111-1111-111111111111',
       description: 'Salary',
       amount: 2500,
       recurrenceStart: '2026-04-01',
@@ -152,6 +165,7 @@ describe('MoneyTrackerApiService', () => {
 
   it('should send update forecast definition payload and preserve recurrenceEnd value', async () => {
     const model: ForecastFormModel = {
+      forecastRecurrenceRuleTypeId: '22222222-2222-2222-2222-222222222222',
       description: 'Rent',
       amount: 900,
       recurrenceStart: '2026-04-01',
@@ -165,6 +179,7 @@ describe('MoneyTrackerApiService', () => {
     const req = httpMock.expectOne('/api/v1/forecasts/definitions/forecast-id');
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual({
+      forecastRecurrenceRuleTypeId: '22222222-2222-2222-2222-222222222222',
       description: 'Rent',
       amount: 900,
       recurrenceStart: '2026-04-01',

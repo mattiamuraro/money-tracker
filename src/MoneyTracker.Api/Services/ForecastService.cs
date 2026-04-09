@@ -26,11 +26,11 @@ namespace MoneyTracker.BusinessLogic.Services
             var forecastRows = new List<ForecastRow>();
 
             var forecastExpenses = _dbContext.ForecastExpenses
-                .Include(x => x.ForecastRecurrenceRule)
+                .Include(x => x.ForecastRecurrenceRuleType)
                 .Where(w => w.RecurrenceStart <= endDate && (w.RecurrenceEnd == null || w.RecurrenceEnd >= startDate))
                 .ToList();
             var forecastIncomes = _dbContext.ForecastIncomes
-                .Include(x => x.ForecastRecurrenceRule)
+                .Include(x => x.ForecastRecurrenceRuleType)
                 .Where(w => w.RecurrenceStart <= endDate && (w.RecurrenceEnd == null || w.RecurrenceEnd >= startDate))
                 .ToList();
 
@@ -43,15 +43,40 @@ namespace MoneyTracker.BusinessLogic.Services
                 .ToList();
         }
 
+        public async Task<IResult> GetForecastRecurrenceRuleTypesAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var types = await _dbContext.ForecastRecurrenceRuleTypes
+                    .OrderBy(x => x.Name)
+                    .Select(x => new ForecastRecurrenceRuleTypeDto
+                    {
+                        Id = x.Id,
+                        Name = x.Name,
+                        Code = x.Code
+                    })
+                    .ToListAsync(cancellationToken);
+
+                return Results.Ok(types);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving forecast recurrence rule types");
+                return Results.Problem(
+                    statusCode: StatusCodes.Status500InternalServerError,
+                    title: "Error retrieving forecast recurrence rule types");
+            }
+        }
+
         public async Task<IResult> GetForecastDefinitionsAsync(CancellationToken cancellationToken)
         {
             try
             {
                 var expenses = await _dbContext.ForecastExpenses
-                    .Include(x => x.ForecastRecurrenceRule)
+                    .Include(x => x.ForecastRecurrenceRuleType)
                     .ToListAsync(cancellationToken);
                 var incomes = await _dbContext.ForecastIncomes
-                    .Include(x => x.ForecastRecurrenceRule)
+                    .Include(x => x.ForecastRecurrenceRuleType)
                     .ToListAsync(cancellationToken);
 
                 var definitions = expenses.Select(x => ToDefinitionDto(x, false))
@@ -76,14 +101,14 @@ namespace MoneyTracker.BusinessLogic.Services
             try
             {
                 var expense = await _dbContext.ForecastExpenses
-                    .Include(x => x.ForecastRecurrenceRule)
+                    .Include(x => x.ForecastRecurrenceRuleType)
                     .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
                 if (expense != null)
                     return Results.Ok(ToDefinitionDto(expense, false));
 
                 var income = await _dbContext.ForecastIncomes
-                    .Include(x => x.ForecastRecurrenceRule)
+                    .Include(x => x.ForecastRecurrenceRuleType)
                     .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
                 if (income != null)
@@ -109,10 +134,9 @@ namespace MoneyTracker.BusinessLogic.Services
 
                 var actor = GetActor();
                 var now = DateTime.UtcNow;
-                var recurrenceRule = CreateRecurrenceRule(request.DayInterval, actor, now);
-                var forecast = CreateForecastEntity(request, recurrenceRule, actor, now);
+                var recurrenceRuleType = await GetRecurrenceRuleTypeAsync(request.ForecastRecurrenceRuleTypeId, cancellationToken);
+                var forecast = CreateForecastEntity(request, recurrenceRuleType, actor, now);
 
-                _dbContext.ForecastRecurrenceRules.Add(recurrenceRule);
                 if (request.IsIncome)
                     _dbContext.ForecastIncomes.Add((ForecastIncome)forecast);
                 else
@@ -137,23 +161,25 @@ namespace MoneyTracker.BusinessLogic.Services
                 if (request.RecurrenceEnd.HasValue && request.RecurrenceEnd.Value < request.RecurrenceStart)
                     return Results.BadRequest(new { message = "Recurrence end date cannot be earlier than recurrence start date." });
 
+                var recurrenceRuleType = await GetRecurrenceRuleTypeAsync(request.ForecastRecurrenceRuleTypeId, cancellationToken);
+
                 var expense = await _dbContext.ForecastExpenses
-                    .Include(x => x.ForecastRecurrenceRule)
+                    .Include(x => x.ForecastRecurrenceRuleType)
                     .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
                 if (expense != null)
                 {
-                    await UpdateForecastAsync(id, expense, request, false, cancellationToken);
+                    await UpdateForecastAsync(id, expense, request, recurrenceRuleType, false, cancellationToken);
                     return Results.NoContent();
                 }
 
                 var income = await _dbContext.ForecastIncomes
-                    .Include(x => x.ForecastRecurrenceRule)
+                    .Include(x => x.ForecastRecurrenceRuleType)
                     .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
                 if (income != null)
                 {
-                    await UpdateForecastAsync(id, income, request, true, cancellationToken);
+                    await UpdateForecastAsync(id, income, request, recurrenceRuleType, true, cancellationToken);
                     return Results.NoContent();
                 }
 
@@ -173,25 +199,21 @@ namespace MoneyTracker.BusinessLogic.Services
             try
             {
                 var expense = await _dbContext.ForecastExpenses
-                    .Include(x => x.ForecastRecurrenceRule)
                     .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
                 if (expense != null)
                 {
                     _dbContext.ForecastExpenses.Remove(expense);
-                    _dbContext.ForecastRecurrenceRules.Remove(expense.ForecastRecurrenceRule);
                     await _dbContext.SaveChangesAsync(cancellationToken);
                     return Results.NoContent();
                 }
 
                 var income = await _dbContext.ForecastIncomes
-                    .Include(x => x.ForecastRecurrenceRule)
                     .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
                 if (income != null)
                 {
                     _dbContext.ForecastIncomes.Remove(income);
-                    _dbContext.ForecastRecurrenceRules.Remove(income.ForecastRecurrenceRule);
                     await _dbContext.SaveChangesAsync(cancellationToken);
                     return Results.NoContent();
                 }
@@ -207,20 +229,14 @@ namespace MoneyTracker.BusinessLogic.Services
             }
         }
 
-        private async Task UpdateForecastAsync(Guid id, BaseForecast existingForecast, UpdateForecastRequest request, bool isIncome, CancellationToken cancellationToken)
+        private async Task UpdateForecastAsync(Guid id, BaseForecast existingForecast, UpdateForecastRequest request, ForecastRecurrenceRuleType recurrenceRuleType, bool isIncome, CancellationToken cancellationToken)
         {
             var actor = GetActor();
             var now = DateTime.UtcNow;
 
-            existingForecast.ForecastRecurrenceRule.DayInterval = request.DayInterval;
-            existingForecast.ForecastRecurrenceRule.Name = GetRecurrenceRuleName(request.DayInterval);
-            existingForecast.ForecastRecurrenceRule.Code = GetRecurrenceRuleCode(request.DayInterval);
-            existingForecast.ForecastRecurrenceRule.ModifiedAt = now;
-            existingForecast.ForecastRecurrenceRule.ModifiedBy = actor;
-
             if (isIncome == request.IsIncome)
             {
-                ApplyForecastValues(existingForecast, request, actor, now);
+                ApplyForecastValues(existingForecast, request, recurrenceRuleType, actor, now);
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 return;
             }
@@ -242,10 +258,8 @@ namespace MoneyTracker.BusinessLogic.Services
             replacement.Id = id;
             replacement.CreatedAt = existingForecast.CreatedAt;
             replacement.CreatedBy = existingForecast.CreatedBy;
-            replacement.ForecastRecurrenceRuleId = existingForecast.ForecastRecurrenceRuleId;
-            replacement.ForecastRecurrenceRule = existingForecast.ForecastRecurrenceRule;
 
-            ApplyForecastValues(replacement, request, actor, now);
+            ApplyForecastValues(replacement, request, recurrenceRuleType, actor, now);
 
             if (isIncome)
             {
@@ -261,17 +275,20 @@ namespace MoneyTracker.BusinessLogic.Services
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        private static void ApplyForecastValues(BaseForecast forecast, UpdateForecastRequest request, string actor, DateTime now)
+        private static void ApplyForecastValues(BaseForecast forecast, UpdateForecastRequest request, ForecastRecurrenceRuleType recurrenceRuleType, string actor, DateTime now)
         {
             forecast.Description = request.Description;
             forecast.Amount = request.Amount;
             forecast.RecurrenceStart = request.RecurrenceStart;
             forecast.RecurrenceEnd = request.RecurrenceEnd;
+            forecast.Interval = request.DayInterval;
+            forecast.ForecastRecurrenceRuleTypeId = recurrenceRuleType.Id;
+            forecast.ForecastRecurrenceRuleType = recurrenceRuleType;
             forecast.ModifiedAt = now;
             forecast.ModifiedBy = actor;
         }
 
-        private BaseForecast CreateForecastEntity(CreateForecastRequest request, ForecastRecurrenceRule recurrenceRule, string actor, DateTime now)
+        private static BaseForecast CreateForecastEntity(CreateForecastRequest request, ForecastRecurrenceRuleType recurrenceRuleType, string actor, DateTime now)
         {
             BaseForecast forecast = request.IsIncome
                 ? new ForecastIncome
@@ -292,8 +309,9 @@ namespace MoneyTracker.BusinessLogic.Services
             forecast.Amount = request.Amount;
             forecast.RecurrenceStart = request.RecurrenceStart;
             forecast.RecurrenceEnd = request.RecurrenceEnd;
-            forecast.ForecastRecurrenceRuleId = recurrenceRule.Id;
-            forecast.ForecastRecurrenceRule = recurrenceRule;
+            forecast.Interval = request.DayInterval;
+            forecast.ForecastRecurrenceRuleTypeId = recurrenceRuleType.Id;
+            forecast.ForecastRecurrenceRuleType = recurrenceRuleType;
             forecast.CreatedAt = now;
             forecast.CreatedBy = actor;
             forecast.ModifiedAt = now;
@@ -302,38 +320,40 @@ namespace MoneyTracker.BusinessLogic.Services
             return forecast;
         }
 
-        private static ForecastRecurrenceRule CreateRecurrenceRule(int dayInterval, string actor, DateTime now)
-        {
-            return new ForecastRecurrenceRule
-            {
-                Id = Guid.NewGuid(),
-                DayInterval = dayInterval,
-                Name = GetRecurrenceRuleName(dayInterval),
-                Code = GetRecurrenceRuleCode(dayInterval),
-                CreatedAt = now,
-                CreatedBy = actor,
-                ModifiedAt = now,
-                ModifiedBy = actor
-            };
-        }
-
         private static ForecastDefinitionDto ToDefinitionDto(BaseForecast forecast, bool isIncome)
         {
             return new ForecastDefinitionDto
             {
                 Id = forecast.Id,
+                ForecastRecurrenceRuleTypeId = forecast.ForecastRecurrenceRuleTypeId,
                 Description = forecast.Description,
                 Amount = forecast.Amount,
                 RecurrenceStart = forecast.RecurrenceStart,
                 RecurrenceEnd = forecast.RecurrenceEnd,
-                DayInterval = forecast.ForecastRecurrenceRule.DayInterval ?? 1,
+                DayInterval = forecast.Interval ?? 1,
                 IsIncome = isIncome
             };
         }
 
-        private static string GetRecurrenceRuleName(int dayInterval) => $"Every {dayInterval} day{(dayInterval == 1 ? string.Empty : "s")}";
+        private async Task<ForecastRecurrenceRuleType> GetRecurrenceRuleTypeAsync(Guid forecastRecurrenceRuleTypeId, CancellationToken cancellationToken)
+        {
+            var requestedId = forecastRecurrenceRuleTypeId;
 
-        private static string GetRecurrenceRuleCode(int dayInterval) => $"D{dayInterval}";
+            if (requestedId == Guid.Empty)
+            {
+                var dayRuleType = await _dbContext.ForecastRecurrenceRuleTypes
+                    .FirstOrDefaultAsync(x => x.Code == ForecastRecurrenceRuleType.Day, cancellationToken);
+
+                return dayRuleType
+                    ?? throw new InvalidOperationException("Default recurrence rule type 'Day' was not found.");
+            }
+
+            var recurrenceRuleType = await _dbContext.ForecastRecurrenceRuleTypes
+                .FirstOrDefaultAsync(x => x.Id == requestedId, cancellationToken);
+
+            return recurrenceRuleType
+                ?? throw new InvalidOperationException($"Forecast recurrence rule type '{requestedId}' was not found.");
+        }
 
         private string GetActor() => _httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value ?? "System";
 

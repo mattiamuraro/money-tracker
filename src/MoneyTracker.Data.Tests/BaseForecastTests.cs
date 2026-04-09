@@ -6,24 +6,26 @@ public class BaseForecastTests
     [Test]
     public void GetRecurrences_Should_Return_Expected_Dates_In_Range()
     {
+        var ruleType = new ForecastRecurrenceRuleType
+        {
+            Id = Guid.NewGuid(),
+            Name = "Week",
+            Code = ForecastRecurrenceRuleType.Week,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "tester",
+            ModifiedAt = DateTime.UtcNow,
+            ModifiedBy = "tester"
+        };
+
         var forecast = new ForecastExpense
         {
             Id = Guid.NewGuid(),
             Description = "Subscription",
             Amount = 10m,
             RecurrenceStart = new DateOnly(2026, 4, 1),
-            ForecastRecurrenceRuleId = Guid.NewGuid(),
-            ForecastRecurrenceRule = new ForecastRecurrenceRule
-            {
-                Id = Guid.NewGuid(),
-                Name = "Weekly",
-                Code = "WEEK",
-                DayInterval = 7,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = "tester",
-                ModifiedAt = DateTime.UtcNow,
-                ModifiedBy = "tester"
-            },
+            Interval = 1,
+            ForecastRecurrenceRuleTypeId = ruleType.Id,
+            ForecastRecurrenceRuleType = ruleType,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "tester",
             ModifiedAt = DateTime.UtcNow,
@@ -43,24 +45,26 @@ public class BaseForecastTests
     [Test]
     public void GetRecurrences_Should_Stop_When_No_Next_Occurrence()
     {
+        var ruleType = new ForecastRecurrenceRuleType
+        {
+            Id = Guid.NewGuid(),
+            Name = "One Time",
+            Code = ForecastRecurrenceRuleType.OneTime,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "tester",
+            ModifiedAt = DateTime.UtcNow,
+            ModifiedBy = "tester"
+        };
+
         var forecast = new ForecastIncome
         {
             Id = Guid.NewGuid(),
             Description = "One time",
             Amount = 100m,
             RecurrenceStart = new DateOnly(2026, 4, 1),
-            ForecastRecurrenceRuleId = Guid.NewGuid(),
-            ForecastRecurrenceRule = new ForecastRecurrenceRule
-            {
-                Id = Guid.NewGuid(),
-                Name = "None",
-                Code = "NONE",
-                DayInterval = null,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = "tester",
-                ModifiedAt = DateTime.UtcNow,
-                ModifiedBy = "tester"
-            },
+            Interval = 1,
+            ForecastRecurrenceRuleTypeId = ruleType.Id,
+            ForecastRecurrenceRuleType = ruleType,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "tester",
             ModifiedAt = DateTime.UtcNow,

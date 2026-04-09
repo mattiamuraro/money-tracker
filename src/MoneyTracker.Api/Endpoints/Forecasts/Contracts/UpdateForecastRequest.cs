@@ -4,6 +4,8 @@ namespace MoneyTracker.Api.Endpoints.Forecasts.Contracts;
 
 public class UpdateForecastRequest
 {
+    public Guid ForecastRecurrenceRuleTypeId { get; set; }
+
     [Required]
     [MaxLength(100)]
     public required string Description { get; set; }

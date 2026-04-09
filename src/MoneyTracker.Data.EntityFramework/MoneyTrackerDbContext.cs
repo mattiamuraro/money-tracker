@@ -7,9 +7,10 @@ namespace MoneyTracker.Data.EntityFramework
         public DbSet<Payment> Payments { get; set; }
         public DbSet<PaymentCategory> PaymentCategories { get; set; }
 
-        public DbSet<ForecastRecurrenceRule> ForecastRecurrenceRules { get; set; }
         public DbSet<ForecastExpense> ForecastExpenses { get; set; }
         public DbSet<ForecastIncome> ForecastIncomes { get; set; }
+        public DbSet<ForecastRecurrenceRuleType> ForecastRecurrenceRuleTypes { get; set; }
+        
 
 
         public MoneyTrackerDbContext(DbContextOptions<MoneyTrackerDbContext> options)
@@ -103,6 +104,22 @@ namespace MoneyTracker.Data.EntityFramework
 
                 entity.HasIndex(e => e.Code)
                     .IsUnique();
+            });
+
+            modelBuilder.Entity<ForecastExpense>(entity =>
+            {
+                entity.HasOne(e => e.ForecastRecurrenceRuleType)
+                    .WithMany()
+                    .HasForeignKey(e => e.ForecastRecurrenceRuleTypeId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<ForecastIncome>(entity =>
+            {
+                entity.HasOne(e => e.ForecastRecurrenceRuleType)
+                    .WithMany()
+                    .HasForeignKey(e => e.ForecastRecurrenceRuleTypeId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }

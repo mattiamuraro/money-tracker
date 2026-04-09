@@ -3,6 +3,7 @@ import { MoneyTrackerApiService } from './money-tracker-api.service';
 import {
   ForecastDefinition,
   ForecastFormModel,
+  ForecastRecurrenceRuleTypeOption,
   ForecastRow,
   PaymentCategory,
   PaymentFormModel,
@@ -25,6 +26,7 @@ export class App implements OnInit {
 
   public categories: PaymentCategory[] = [];
   public payments: PaymentRow[] = [];
+  public forecastRecurrenceRuleTypes: ForecastRecurrenceRuleTypeOption[] = [];
   public forecastDefinitions: ForecastDefinition[] = [];
   public forecastRows: ForecastRow[] = [];
 
@@ -61,6 +63,7 @@ export class App implements OnInit {
     const results = await Promise.allSettled([
       this.loadCategories(),
       this.loadPayments(),
+      this.loadForecastRecurrenceRuleTypes(),
       this.loadForecastDefinitions(),
       this.loadForecastRows(),
     ]);
@@ -162,7 +165,10 @@ export class App implements OnInit {
   }
 
   public async submitForecast(): Promise<void> {
-    if (!this.forecastForm.description.trim() || !this.forecastForm.amount || !this.forecastForm.recurrenceStart || this.forecastForm.dayInterval < 1) {
+    const selectedRecurrenceTypeId = this.forecastForm.forecastRecurrenceRuleTypeId.trim();
+    const isOneTime = this.isOneTimeRecurrenceTypeId(selectedRecurrenceTypeId);
+
+    if (!selectedRecurrenceTypeId || !this.forecastForm.description.trim() || !this.forecastForm.amount || !this.forecastForm.recurrenceStart || (!isOneTime && this.forecastForm.dayInterval < 1)) {
       this.errorMessage = 'Complete all required forecast fields before saving.';
       this.successMessage = '';
       return;
@@ -173,6 +179,8 @@ export class App implements OnInit {
 
     const model: ForecastFormModel = {
       ...this.forecastForm,
+      forecastRecurrenceRuleTypeId: selectedRecurrenceTypeId,
+      dayInterval: isOneTime ? 1 : this.forecastForm.dayInterval,
       description: this.forecastForm.description.trim(),
     };
 
@@ -197,6 +205,7 @@ export class App implements OnInit {
   public startForecastEdit(definition: ForecastDefinition): void {
     this.editingForecastId = definition.id;
     this.forecastForm = {
+      forecastRecurrenceRuleTypeId: definition.forecastRecurrenceRuleTypeId,
       description: definition.description,
       amount: definition.amount,
       recurrenceStart: this.toInputDate(definition.recurrenceStart),
@@ -231,6 +240,27 @@ export class App implements OnInit {
     } catch (error) {
       this.errorMessage = this.getErrorMessage(error, 'Unable to delete the forecast.');
     }
+  }
+
+  public getForecastRecurrenceRuleTypeLabel(forecastRecurrenceRuleTypeId: string): string {
+    const type = this.forecastRecurrenceRuleTypes.find((x) => x.id === forecastRecurrenceRuleTypeId);
+    return type ? `${type.name} (${type.code})` : forecastRecurrenceRuleTypeId;
+  }
+
+  public isOneTimeRecurrenceTypeSelected(): boolean {
+    return this.isOneTimeRecurrenceTypeId(this.forecastForm.forecastRecurrenceRuleTypeId);
+  }
+
+  public onForecastRecurrenceTypeChanged(): void {
+    if (this.isOneTimeRecurrenceTypeSelected()) {
+      this.forecastForm.dayInterval = 1;
+    }
+  }
+
+  public getRecurrenceSummary(definition: ForecastDefinition): string {
+    return this.isOneTimeRecurrenceTypeId(definition.forecastRecurrenceRuleTypeId)
+      ? 'One time'
+      : `Every ${definition.dayInterval} day${definition.dayInterval > 1 ? 's' : ''}`;
   }
 
   public get paymentTotal(): number {
@@ -269,7 +299,7 @@ export class App implements OnInit {
     return this.categories.length > 0;
   }
 
-  public trackById(_: number, item: PaymentRow | ForecastDefinition | ForecastRow | PaymentCategory): string {
+  public trackById(_: number, item: { id: string }): string {
     return item.id;
   }
 
@@ -294,6 +324,20 @@ export class App implements OnInit {
     const response = await this.moneyTrackerApiService.getPayments(this.paymentQuery);
     this.ngZone.run(() => {
       this.payments = [...response.items].sort((left, right) => right.date.localeCompare(left.date));
+    });
+  }
+
+  private async loadForecastRecurrenceRuleTypes(): Promise<void> {
+    const types = await this.moneyTrackerApiService.getForecastRecurrenceRuleTypes();
+
+    this.ngZone.run(() => {
+      this.forecastRecurrenceRuleTypes = [...types].sort((left, right) => left.name.localeCompare(right.name));
+
+      if (!this.forecastForm.forecastRecurrenceRuleTypeId) {
+        const oneTimeType = this.forecastRecurrenceRuleTypes.find((x) => x.code === 'O');
+        this.forecastForm.forecastRecurrenceRuleTypeId = oneTimeType?.id ?? this.forecastRecurrenceRuleTypes[0]?.id ?? '';
+        this.onForecastRecurrenceTypeChanged();
+      }
     });
   }
 
@@ -335,13 +379,19 @@ export class App implements OnInit {
 
   private createEmptyForecastForm(): ForecastFormModel {
     return {
+      forecastRecurrenceRuleTypeId: '',
       description: '',
       amount: null,
       recurrenceStart: this.toInputDate(new Date()),
       recurrenceEnd: '',
-      dayInterval: 30,
+      dayInterval: 1,
       isIncome: false,
     };
+  }
+
+  private isOneTimeRecurrenceTypeId(forecastRecurrenceRuleTypeId: string): boolean {
+    const type = this.forecastRecurrenceRuleTypes.find((x) => x.id === forecastRecurrenceRuleTypeId);
+    return type?.code === 'O';
   }
 
   private addDays(date: Date, days: number): Date {

@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import {
   ForecastDefinition,
   ForecastFormModel,
+  ForecastRecurrenceRuleTypeOption,
   ForecastRow,
   PaginatedResponse,
   PaymentCategory,
@@ -73,6 +74,12 @@ export class MoneyTrackerApiService {
     return firstValueFrom(this.httpClient.get<ForecastRow[]>(`${this.apiBaseUrl}/forecasts`, { params }));
   }
 
+  getForecastRecurrenceRuleTypes(): Promise<ForecastRecurrenceRuleTypeOption[]> {
+    return firstValueFrom(
+      this.httpClient.get<ForecastRecurrenceRuleTypeOption[]>(`${this.apiBaseUrl}/forecasts/recurrence-rule-types`)
+    );
+  }
+
   getForecastDefinitions(): Promise<ForecastDefinition[]> {
     return firstValueFrom(
       this.httpClient.get<ForecastDefinition[]>(`${this.apiBaseUrl}/forecasts/definitions`)
@@ -82,6 +89,7 @@ export class MoneyTrackerApiService {
   createForecastDefinition(model: ForecastFormModel): Promise<string> {
     return firstValueFrom(
       this.httpClient.post<string>(`${this.apiBaseUrl}/forecasts/definitions`, {
+        forecastRecurrenceRuleTypeId: model.forecastRecurrenceRuleTypeId,
         description: model.description,
         amount: model.amount,
         recurrenceStart: model.recurrenceStart,
@@ -95,6 +103,7 @@ export class MoneyTrackerApiService {
   updateForecastDefinition(id: string, model: ForecastFormModel): Promise<void> {
     return firstValueFrom(
       this.httpClient.put<void>(`${this.apiBaseUrl}/forecasts/definitions/${id}`, {
+        forecastRecurrenceRuleTypeId: model.forecastRecurrenceRuleTypeId,
         description: model.description,
         amount: model.amount,
         recurrenceStart: model.recurrenceStart,

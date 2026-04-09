@@ -9,6 +9,7 @@ describe('App', () => {
   let apiServiceSpy: {
     getCategories: ReturnType<typeof vi.fn>;
     getPayments: ReturnType<typeof vi.fn>;
+    getForecastRecurrenceRuleTypes: ReturnType<typeof vi.fn>;
     getForecastDefinitions: ReturnType<typeof vi.fn>;
     getForecastRows: ReturnType<typeof vi.fn>;
     createPayment: ReturnType<typeof vi.fn>;
@@ -33,12 +34,17 @@ describe('App', () => {
     apiServiceSpy = {
       getCategories: vi.fn().mockResolvedValue([]),
       getPayments: vi.fn().mockResolvedValue(getDefaultPaginatedPayments()),
+      getForecastRecurrenceRuleTypes: vi.fn().mockResolvedValue([
+        { id: 'one-time-type-id', name: 'One Time', code: 'O' },
+        { id: 'day-type-id', name: 'Day', code: 'D' },
+        { id: 'week-type-id', name: 'Week', code: 'W' },
+      ]),
       getForecastDefinitions: vi.fn().mockResolvedValue([]),
       getForecastRows: vi.fn().mockResolvedValue([]),
       createPayment: vi.fn().mockResolvedValue('00000000-0000-0000-0000-000000000000'),
       updatePayment: vi.fn().mockResolvedValue(undefined),
       deletePayment: vi.fn().mockResolvedValue(undefined),
-      createForecastDefinition: vi.fn().mockResolvedValue('00000000-0000-0000-0000-000000000000'),
+      createForecastDefinition: vi.fn().mockResolvedValue('00000000-0000-0000-0000-000000000000',
       updateForecastDefinition: vi.fn().mockResolvedValue(undefined),
       deleteForecastDefinition: vi.fn().mockResolvedValue(undefined),
     };
@@ -66,6 +72,18 @@ describe('App', () => {
     expect(compiled.querySelector('h1')?.textContent).toContain('Money Tracker');
     expect(compiled.textContent).toContain('Payments');
     expect(compiled.textContent).toContain('Forecasts');
+  });
+
+  it('should load recurrence rule types and set default forecast recurrence type to one time', async () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+
+    await app.reloadDashboard();
+
+    expect(apiServiceSpy.getForecastRecurrenceRuleTypes).toHaveBeenCalled();
+    expect(app.forecastRecurrenceRuleTypes.length).toBeGreaterThan(0);
+    expect(app.forecastForm.forecastRecurrenceRuleTypeId).toBe('one-time-type-id');
+    expect(app.forecastForm.dayInterval).toBe(1);
   });
 
   it('should reject payment submit when required fields are missing', async () => {
@@ -156,6 +174,7 @@ describe('App', () => {
     const app = fixture.componentInstance;
 
     app.forecastForm = {
+      forecastRecurrenceRuleTypeId: '11111111-1111-1111-1111-111111111111',
       description: '  Monthly Rent  ',
       amount: 800,
       recurrenceStart: '2026-04-01',
@@ -167,6 +186,7 @@ describe('App', () => {
     await app.submitForecast();
 
     expect(apiServiceSpy.createForecastDefinition).toHaveBeenCalledWith({
+      forecastRecurrenceRuleTypeId: '11111111-1111-1111-1111-111111111111',
       description: 'Monthly Rent',
       amount: 800,
       recurrenceStart: '2026-04-01',
@@ -179,12 +199,41 @@ describe('App', () => {
     expect(app.editingForecastId).toBeNull();
   });
 
+  it('should force dayInterval to one when recurrence type is one time', async () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+
+    app.forecastRecurrenceRuleTypes = [{ id: 'one-time-type-id', name: 'One Time', code: 'O' }];
+    app.forecastForm = {
+      forecastRecurrenceRuleTypeId: 'one-time-type-id',
+      description: '  Gift  ',
+      amount: 120,
+      recurrenceStart: '2026-04-01',
+      recurrenceEnd: '',
+      dayInterval: 12,
+      isIncome: true,
+    };
+
+    await app.submitForecast();
+
+    expect(apiServiceSpy.createForecastDefinition).toHaveBeenCalledWith({
+      forecastRecurrenceRuleTypeId: 'one-time-type-id',
+      description: 'Gift',
+      amount: 120,
+      recurrenceStart: '2026-04-01',
+      recurrenceEnd: '',
+      dayInterval: 1,
+      isIncome: true,
+    });
+  });
+
   it('should update forecast when in edit mode', async () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
 
     app.editingForecastId = 'forecast-id';
     app.forecastForm = {
+      forecastRecurrenceRuleTypeId: '22222222-2222-2222-2222-222222222222',
       description: '  Updated Salary  ',
       amount: 3000,
       recurrenceStart: '2026-04-01',
@@ -196,6 +245,7 @@ describe('App', () => {
     await app.submitForecast();
 
     expect(apiServiceSpy.updateForecastDefinition).toHaveBeenCalledWith('forecast-id', {
+      forecastRecurrenceRuleTypeId: '22222222-2222-2222-2222-222222222222',
       description: 'Updated Salary',
       amount: 3000,
       recurrenceStart: '2026-04-01',
@@ -215,6 +265,7 @@ describe('App', () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const definition = {
       id: 'forecast-id',
+      forecastRecurrenceRuleTypeId: '33333333-3333-3333-3333-333333333333',
       description: 'Salary',
       amount: 1000,
       recurrenceStart: '2026-04-01',

@@ -4,42 +4,75 @@ namespace MoneyTracker.Data.Tests;
 public class ForecastRecurrenceRuleTests
 {
     [Test]
-    public void GetNextOccurrence_Should_Return_Null_When_DayInterval_Is_Null()
+    public void GetRecurrences_Should_Return_Only_Start_Date_When_Interval_Is_Null()
     {
-        var rule = new ForecastRecurrenceRule
+        var ruleType = new ForecastRecurrenceRuleType
         {
             Id = Guid.NewGuid(),
-            Name = "No Rule",
-            Code = "NONE",
-            DayInterval = null,
+            Name = "Day",
+            Code = ForecastRecurrenceRuleType.Day,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "tester",
             ModifiedAt = DateTime.UtcNow,
             ModifiedBy = "tester"
         };
 
-        var result = rule.GetNextOccurrence(new DateOnly(2026, 4, 1));
+        var forecast = new ForecastExpense
+        {
+            Id = Guid.NewGuid(),
+            Description = "No interval",
+            Amount = 10m,
+            RecurrenceStart = new DateOnly(2026, 4, 1),
+            Interval = null,
+            ForecastRecurrenceRuleTypeId = ruleType.Id,
+            ForecastRecurrenceRuleType = ruleType,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "tester",
+            ModifiedAt = DateTime.UtcNow,
+            ModifiedBy = "tester"
+        };
 
-        Assert.That(result, Is.Null);
+        var result = forecast.GetRecurrences(new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 30));
+
+        Assert.That(result, Is.EqualTo(new List<DateOnly> { new(2026, 4, 1) }));
     }
 
     [Test]
-    public void GetNextOccurrence_Should_Add_DayInterval()
+    public void GetRecurrences_Should_Add_Interval_When_Type_Is_Day()
     {
-        var rule = new ForecastRecurrenceRule
+        var ruleType = new ForecastRecurrenceRuleType
         {
             Id = Guid.NewGuid(),
-            Name = "Weekly",
-            Code = "WEEK",
-            DayInterval = 7,
+            Name = "Day",
+            Code = ForecastRecurrenceRuleType.Day,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "tester",
             ModifiedAt = DateTime.UtcNow,
             ModifiedBy = "tester"
         };
 
-        var result = rule.GetNextOccurrence(new DateOnly(2026, 4, 1));
+        var forecast = new ForecastExpense
+        {
+            Id = Guid.NewGuid(),
+            Description = "Daily",
+            Amount = 10m,
+            RecurrenceStart = new DateOnly(2026, 4, 1),
+            Interval = 7,
+            ForecastRecurrenceRuleTypeId = ruleType.Id,
+            ForecastRecurrenceRuleType = ruleType,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "tester",
+            ModifiedAt = DateTime.UtcNow,
+            ModifiedBy = "tester"
+        };
 
-        Assert.That(result, Is.EqualTo(new DateOnly(2026, 4, 8)));
+        var result = forecast.GetRecurrences(new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 20));
+
+        Assert.That(result, Is.EqualTo(new List<DateOnly>
+        {
+            new(2026, 4, 1),
+            new(2026, 4, 8),
+            new(2026, 4, 15)
+        }));
     }
 }

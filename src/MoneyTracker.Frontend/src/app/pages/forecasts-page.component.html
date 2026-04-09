@@ -45,6 +45,22 @@
           </div>
 
           <div>
+            <label class="field-label" for="forecast-recurrence-rule-type-id">Recurrence type</label>
+            <select
+              id="forecast-recurrence-rule-type-id"
+              class="field-input"
+              name="forecastRecurrenceRuleTypeId"
+              [(ngModel)]="app.forecastForm.forecastRecurrenceRuleTypeId"
+              (ngModelChange)="app.onForecastRecurrenceTypeChanged()"
+              required>
+              <option value="" disabled>Select recurrence type</option>
+              <option *ngFor="let type of app.forecastRecurrenceRuleTypes; trackBy: app.trackById" [value]="type.id">
+                {{ type.name }} ({{ type.code }})
+              </option>
+            </select>
+          </div>
+
+          <div *ngIf="!app.isOneTimeRecurrenceTypeSelected()">
             <label class="field-label" for="forecast-interval">Every</label>
             <input
               id="forecast-interval"
@@ -107,6 +123,7 @@
               <tr>
                 <th>Description</th>
                 <th>Type</th>
+                <th>Recurrence type</th>
                 <th>Starts</th>
                 <th>Recurrence</th>
                 <th class="align-right">Amount</th>
@@ -121,8 +138,9 @@
                     {{ definition.isIncome ? 'Income' : 'Expense' }}
                   </span>
                 </td>
+                <td>{{ app.getForecastRecurrenceRuleTypeLabel(definition.forecastRecurrenceRuleTypeId) }}</td>
                 <td>{{ definition.recurrenceStart | date:'dd MMM yyyy' }}</td>
-                <td>Every {{ definition.dayInterval }} day<span *ngIf="definition.dayInterval > 1">s</span></td>
+                <td>{{ app.getRecurrenceSummary(definition) }}</td>
                 <td class="align-right">{{ definition.amount | currency:'EUR':'symbol':'1.2-2' }}</td>
                 <td class="align-right action-group">
                   <button class="icon-button" type="button" (click)="app.startForecastEdit(definition)">Edit</button>

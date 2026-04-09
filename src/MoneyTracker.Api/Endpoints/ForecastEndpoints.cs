@@ -34,6 +34,13 @@ namespace MoneyTracker.Api.Endpoints
                 .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
+            group.MapGet("/recurrence-rule-types", static async ([FromServices] ForecastService forecastService, CancellationToken cancellationToken) =>
+                    await forecastService.GetForecastRecurrenceRuleTypesAsync(cancellationToken))
+                .WithName("GetForecastRecurrenceRuleTypes")
+                .WithDescription("Retrieves forecast recurrence rule types")
+                .Produces<List<ForecastRecurrenceRuleTypeDto>>(StatusCodes.Status200OK)
+                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+
             group.MapGet("/definitions", static async ([FromServices] ForecastService forecastService, CancellationToken cancellationToken) =>
                     await forecastService.GetForecastDefinitionsAsync(cancellationToken))
                 .WithName("GetForecastDefinitions")

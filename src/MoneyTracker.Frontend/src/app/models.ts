@@ -36,8 +36,15 @@ export interface ForecastRow {
   isIncome: boolean;
 }
 
+export interface ForecastRecurrenceRuleTypeOption {
+  id: string;
+  name: string;
+  code: string;
+}
+
 export interface ForecastDefinition {
   id: string;
+  forecastRecurrenceRuleTypeId: string;
   description: string;
   amount: number;
   recurrenceStart: string;
@@ -55,6 +62,7 @@ export interface PaymentFormModel {
 }
 
 export interface ForecastFormModel {
+  forecastRecurrenceRuleTypeId: string;
   description: string;
   amount: number | null;
   recurrenceStart: string;

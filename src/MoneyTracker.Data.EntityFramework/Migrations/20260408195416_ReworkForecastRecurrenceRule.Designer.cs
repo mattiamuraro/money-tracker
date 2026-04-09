@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MoneyTracker.Data.EntityFramework;
 
@@ -11,9 +12,11 @@ using MoneyTracker.Data.EntityFramework;
 namespace MoneyTracker.Data.EntityFramework.Migrations
 {
     [DbContext(typeof(MoneyTrackerDbContext))]
-    partial class EntityFrameworkPaymentDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260408195416_ReworkForecastRecurrenceRule")]
+    partial class ReworkForecastRecurrenceRule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -44,11 +47,8 @@ namespace MoneyTracker.Data.EntityFramework.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<Guid>("ForecastRecurrenceRuleTypeId")
+                    b.Property<Guid>("ForecastRecurrenceRuleId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<int?>("Interval")
-                        .HasColumnType("int");
 
                     b.Property<DateTime>("ModifiedAt")
                         .HasColumnType("datetime2");
@@ -66,7 +66,7 @@ namespace MoneyTracker.Data.EntityFramework.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ForecastRecurrenceRuleTypeId");
+                    b.HasIndex("ForecastRecurrenceRuleId");
 
                     b.ToTable("ForecastExpenses");
                 });
@@ -93,11 +93,8 @@ namespace MoneyTracker.Data.EntityFramework.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<Guid>("ForecastRecurrenceRuleTypeId")
+                    b.Property<Guid>("ForecastRecurrenceRuleId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<int?>("Interval")
-                        .HasColumnType("int");
 
                     b.Property<DateTime>("ModifiedAt")
                         .HasColumnType("datetime2");
@@ -115,9 +112,54 @@ namespace MoneyTracker.Data.EntityFramework.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ForecastRecurrenceRuleTypeId");
+                    b.HasIndex("ForecastRecurrenceRuleId");
 
                     b.ToTable("ForecastIncomes");
+                });
+
+            modelBuilder.Entity("MoneyTracker.Data.ForecastRecurrenceRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("ForecastRecurrenceRuleTypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("Interval")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ForecastRecurrenceRuleTypeId");
+
+                    b.ToTable("ForecastRecurrenceRules");
                 });
 
             modelBuilder.Entity("MoneyTracker.Data.ForecastRecurrenceRuleType", b =>
@@ -268,21 +310,32 @@ namespace MoneyTracker.Data.EntityFramework.Migrations
 
             modelBuilder.Entity("MoneyTracker.Data.ForecastExpense", b =>
                 {
-                    b.HasOne("MoneyTracker.Data.ForecastRecurrenceRuleType", "ForecastRecurrenceRuleType")
+                    b.HasOne("MoneyTracker.Data.ForecastRecurrenceRule", "ForecastRecurrenceRule")
                         .WithMany()
-                        .HasForeignKey("ForecastRecurrenceRuleTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasForeignKey("ForecastRecurrenceRuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ForecastRecurrenceRuleType");
+                    b.Navigation("ForecastRecurrenceRule");
                 });
 
             modelBuilder.Entity("MoneyTracker.Data.ForecastIncome", b =>
                 {
+                    b.HasOne("MoneyTracker.Data.ForecastRecurrenceRule", "ForecastRecurrenceRule")
+                        .WithMany()
+                        .HasForeignKey("ForecastRecurrenceRuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ForecastRecurrenceRule");
+                });
+
+            modelBuilder.Entity("MoneyTracker.Data.ForecastRecurrenceRule", b =>
+                {
                     b.HasOne("MoneyTracker.Data.ForecastRecurrenceRuleType", "ForecastRecurrenceRuleType")
                         .WithMany()
                         .HasForeignKey("ForecastRecurrenceRuleTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("ForecastRecurrenceRuleType");
