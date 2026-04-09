@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.Data.Base;
 
 namespace MoneyTracker.Data.EntityFramework
 {
@@ -121,6 +122,56 @@ namespace MoneyTracker.Data.EntityFramework
                     .HasForeignKey(e => e.ForecastRecurrenceRuleTypeId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
+        }
+
+        public override int SaveChanges()
+        {
+            ApplyAuditFields();
+            return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            ApplyAuditFields();
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void ApplyAuditFields()
+        {
+            var entries = ChangeTracker.Entries<BaseEntity>();
+
+            foreach (var entry in entries)
+            {
+                var now = DateTime.UtcNow;
+                var currentUser = GetCurrentUser();
+
+                if (entry.State == EntityState.Added)
+                {
+                    entry.Entity.CreatedAt = now;
+                    entry.Entity.CreatedBy = currentUser;
+                    entry.Entity.ModifiedAt = now;
+                    entry.Entity.ModifiedBy = currentUser;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    entry.Entity.ModifiedAt = now;
+                    entry.Entity.ModifiedBy = currentUser;
+
+                    // Prevent changes to CreatedAt and CreatedBy
+                    entry.Property(e => e.CreatedAt).IsModified = false;
+                    entry.Property(e => e.CreatedBy).IsModified = false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the current user identifier. Override this method to implement your own logic
+        /// for retrieving the current user (e.g., from HttpContext, claims, etc.)
+        /// </summary>
+        protected virtual string GetCurrentUser()
+        {
+            // Default implementation - override in derived class or set via dependency injection
+            return "System";
         }
     }
 }

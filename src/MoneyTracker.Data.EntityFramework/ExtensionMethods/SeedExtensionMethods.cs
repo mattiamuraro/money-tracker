@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MoneyTracker.Data.Base;
 using System.Data;
 
 namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
@@ -8,33 +9,27 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
     {
         public static async Task SeedDefaultDataAsync(this MoneyTrackerDbContext db, string actor, ILogger logger, CancellationToken cancellationToken)
         {
+            await db.SeedDefaultDataAsync(forecastRecurrenceRuleTypes, actor, logger, cancellationToken);
+        }
+
+        private static async Task SeedDefaultDataAsync<T>(this MoneyTrackerDbContext db, T[] entities, string actor, ILogger logger, CancellationToken cancellationToken) where T : BaseContextEntity
+        {
             logger.LogInformation("Seeding default data...");
 
-            var recurrenceRuleTypeEntity = db.Model.FindEntityType(typeof(ForecastRecurrenceRuleType));
-            var recurrenceRuleTypeTable = recurrenceRuleTypeEntity?.GetTableName();
+            var entity = db.Model.FindEntityType(typeof(T));
+            var entityTableName = entity?.GetTableName();
 
-            if (string.IsNullOrWhiteSpace(recurrenceRuleTypeTable) || !await TableExistsAsync(db, recurrenceRuleTypeTable, cancellationToken))
+            if (string.IsNullOrWhiteSpace(entityTableName) || !await TableExistsAsync(db, entityTableName, cancellationToken))
             {
-                logger.LogWarning("Skipping forecast recurrence rule type seeding: table not found.");
+                logger.LogWarning($"Skipping {entityTableName} rule type seeding: table not found.");
                 return;
             }
 
-            var existingCodes = await db.Set<ForecastRecurrenceRuleType>()
+            var existingCodes = await db.Set<T>()
                 .Select(x => x.Code)
                 .ToListAsync(cancellationToken);
 
-            var now = DateTime.UtcNow;
-
-            var defaults = new[]
-            {
-            new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "One Time", Code = ForecastRecurrenceRuleType.OneTime, CreatedAt = now, CreatedBy = actor, ModifiedAt = now, ModifiedBy = actor, OrderIndex = 1 },
-            new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Day", Code = ForecastRecurrenceRuleType.Day, CreatedAt = now, CreatedBy = actor, ModifiedAt = now, ModifiedBy = actor, OrderIndex = 2 },
-            new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Week", Code = ForecastRecurrenceRuleType.Week, CreatedAt = now, CreatedBy = actor, ModifiedAt = now, ModifiedBy = actor, OrderIndex = 3 },
-            new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Month", Code = ForecastRecurrenceRuleType.Month, CreatedAt = now, CreatedBy = actor, ModifiedAt = now, ModifiedBy = actor, OrderIndex = 4 },
-            new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Year", Code = ForecastRecurrenceRuleType.Year, CreatedAt = now, CreatedBy = actor, ModifiedAt = now, ModifiedBy = actor, OrderIndex = 5 }
-        };
-
-            var missingDefaults = defaults
+            var missingDefaults = entities
                 .Where(x => !existingCodes.Contains(x.Code, StringComparer.OrdinalIgnoreCase))
                 .ToList();
 
@@ -44,11 +39,12 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
                 return;
             }
 
-            db.Set<ForecastRecurrenceRuleType>().AddRange(missingDefaults);
+            db.Set<T>().AddRange(missingDefaults);
             await db.SaveChangesAsync(cancellationToken);
 
-            logger.LogInformation("Seeded {Count} forecast recurrence rule types.", missingDefaults.Count);
+            logger.LogInformation($"Seeded {missingDefaults.Count} {entityTableName}.");
         }
+
         private static async Task<bool> TableExistsAsync(MoneyTrackerDbContext db, string tableName, CancellationToken cancellationToken)
         {
             var connection = db.Database.GetDbConnection();
@@ -76,5 +72,14 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
                     await connection.CloseAsync();
             }
         }
+
+        private static ForecastRecurrenceRuleType[] forecastRecurrenceRuleTypes =
+        {
+                new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "One Time", Code = ForecastRecurrenceRuleType.OneTime, OrderIndex = 1 },
+                new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Day", Code = ForecastRecurrenceRuleType.Day, OrderIndex = 2 },
+                new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Week", Code = ForecastRecurrenceRuleType.Week, OrderIndex = 3 },
+                new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Month", Code = ForecastRecurrenceRuleType.Month, OrderIndex = 4 },
+                new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Year", Code = ForecastRecurrenceRuleType.Year, OrderIndex = 5 }
+        };
     }
 }

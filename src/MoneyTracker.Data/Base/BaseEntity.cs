@@ -8,11 +8,11 @@ namespace MoneyTracker.Data.Base
         public DateTime CreatedAt { get; set; }
 
         [MaxLength(100)]
-        public required string CreatedBy { get; set; }
+        public string CreatedBy { get; set; }
 
         public DateTime ModifiedAt { get; set; }
 
         [MaxLength(100)]
-        public required string ModifiedBy { get; set; }
+        public string ModifiedBy { get; set; }
     }
 }
