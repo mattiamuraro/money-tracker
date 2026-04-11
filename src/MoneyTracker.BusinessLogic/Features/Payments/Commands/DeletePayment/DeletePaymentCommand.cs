@@ -6,11 +6,11 @@ namespace MoneyTracker.BusinessLogic.Features.Payments.Commands.DeletePayment;
 public class DeletePaymentCommand
 {
     public Guid PaymentId { get; set; }
-    public string? DeletedBy { get; set; }
+    public Guid DeletedBy { get; set; }
 
     public DeletePaymentCommand() { }
 
-    public DeletePaymentCommand(Guid paymentId, string? deletedBy = null)
+    public DeletePaymentCommand(Guid paymentId, Guid deletedBy)
     {
         PaymentId = paymentId;
         DeletedBy = deletedBy;

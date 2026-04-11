@@ -9,15 +9,17 @@ public class PaymentRowMappingMethodsTests
     [Fact]
     public void ToPaymentRow_Should_Map_All_Properties()
     {
+        var actorId = Guid.NewGuid();
+
         var category = new PaymentCategory
         {
             Id = Guid.NewGuid(),
             Name = "Food",
             Code = "FOOD",
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "tester",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "tester"
+            ModifiedById = actorId
         };
 
         var payment = new Payment
@@ -30,9 +32,9 @@ public class PaymentRowMappingMethodsTests
             Date = new DateTime(2026, 4, 5),
             IsOneShot = true,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "tester",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "tester"
+            ModifiedById = actorId
         };
 
         var row = payment.ToPaymentRow();
@@ -49,15 +51,17 @@ public class PaymentRowMappingMethodsTests
     [Fact]
     public void ToPaymentRows_Should_Map_Collection()
     {
+        var actorId = Guid.NewGuid();
+
         var category = new PaymentCategory
         {
             Id = Guid.NewGuid(),
             Name = "Transport",
             Code = "TRNS",
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "tester",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "tester"
+            ModifiedById = actorId
         };
 
         var payments = new List<Payment>
@@ -71,9 +75,9 @@ public class PaymentRowMappingMethodsTests
                 Amount = 2.5m,
                 Date = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = "tester",
+                CreatedById = actorId,
                 ModifiedAt = DateTime.UtcNow,
-                ModifiedBy = "tester"
+                ModifiedById = actorId
             },
             new()
             {
@@ -84,9 +88,9 @@ public class PaymentRowMappingMethodsTests
                 Amount = 9m,
                 Date = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = "tester",
+                CreatedById = actorId,
                 ModifiedAt = DateTime.UtcNow,
-                ModifiedBy = "tester"
+                ModifiedById = actorId
             }
         };
 

@@ -25,6 +25,7 @@ public class SoftDeleteQueryFilterTests
     public async Task Payments_Query_Should_Exclude_SoftDeleted_Records()
     {
         using var dbContext = _fixture.CreateDbContext();
+        var actorId = Guid.NewGuid();
 
         var category = new PaymentCategory
         {
@@ -32,9 +33,9 @@ public class SoftDeleteQueryFilterTests
             Name = "Food",
             Code = "FOOD",
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "tester",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "tester"
+            ModifiedById = actorId
         };
 
         var activePayment = new Payment
@@ -46,9 +47,9 @@ public class SoftDeleteQueryFilterTests
             PaymentCategoryId = category.Id,
             PaymentCategory = category,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "tester",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "tester"
+            ModifiedById = actorId
         };
 
         var deletedPayment = new Payment
@@ -60,12 +61,12 @@ public class SoftDeleteQueryFilterTests
             PaymentCategoryId = category.Id,
             PaymentCategory = category,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "tester",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "tester"
+            ModifiedById = actorId
         };
 
-        deletedPayment.Delete("tester");
+        deletedPayment.Delete(actorId);
 
         dbContext.PaymentCategories.Add(category);
         dbContext.Payments.Add(activePayment);

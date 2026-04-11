@@ -9,15 +9,17 @@ public class ForecastRowMappingMethodsTests
     [Fact]
     public void ToForecastRow_Should_Map_All_Properties()
     {
+        var actorId = Guid.NewGuid();
+
         var ruleType = new ForecastRecurrenceRuleType
         {
             Id = Guid.NewGuid(),
             Name = "Month",
             Code = ForecastRecurrenceRuleType.Month,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "tester",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "tester"
+            ModifiedById = actorId
         };
 
         var forecast = new ForecastExpense
@@ -30,9 +32,9 @@ public class ForecastRowMappingMethodsTests
             ForecastRecurrenceRuleTypeId = ruleType.Id,
             ForecastRecurrenceRuleType = ruleType,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "tester",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "tester"
+            ModifiedById = actorId
         };
 
         var date = new DateOnly(2026, 4, 15);

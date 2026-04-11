@@ -1,4 +1,4 @@
-﻿namespace MoneyTracker.Data.Tests
+namespace MoneyTracker.Data.Tests
 {
     [TestFixture]
     public class PaymentCategoryModelTests
@@ -6,6 +6,8 @@
         [Test]
         public void PaymentCategory_CanBeCreated()
         {
+            var actorId = Guid.NewGuid();
+
             // Arrange & Act
             var category = new PaymentCategory
             {
@@ -13,9 +15,9 @@
                 Name = "Food",
                 Code = "FOOD",
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = "TestUser",
+                CreatedById = actorId,
                 ModifiedAt = DateTime.UtcNow,
-                ModifiedBy = "TestUser"
+                ModifiedById = actorId
             };
 
             // Assert
@@ -26,6 +28,8 @@
         [Test]
         public void PaymentCategory_CanHaveMultiplePayments()
         {
+            var actorId = Guid.NewGuid();
+
             // Arrange
             var category = new PaymentCategory
             {
@@ -33,9 +37,9 @@
                 Name = "Food",
                 Code = "FOOD",
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = "TestUser",
+                CreatedById = actorId,
                 ModifiedAt = DateTime.UtcNow,
-                ModifiedBy = "TestUser",
+                ModifiedById = actorId,
                 Payments = new List<Payment>()
             };
 
@@ -47,9 +51,9 @@
                 Date = DateTime.UtcNow,
                 PaymentCategoryId = category.Id,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = "TestUser",
+                CreatedById = actorId,
                 ModifiedAt = DateTime.UtcNow,
-                ModifiedBy = "TestUser"
+                ModifiedById = actorId
             };
 
             var payment2 = new Payment
@@ -60,9 +64,9 @@
                 Date = DateTime.UtcNow,
                 PaymentCategoryId = category.Id,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = "TestUser",
+                CreatedById = actorId,
                 ModifiedAt = DateTime.UtcNow,
-                ModifiedBy = "TestUser"
+                ModifiedById = actorId
             };
 
             category.Payments.Add(payment1);
@@ -75,6 +79,8 @@
         [Test]
         public void PaymentCategory_HasConstraints()
         {
+            var actorId = Guid.NewGuid();
+
             // Arrange
             var category = new PaymentCategory
             {
@@ -82,9 +88,9 @@
                 Name = new string('a', 51), // Exceeds max length
                 Code = new string('a', 6), // Exceeds max length
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = "TestUser",
+                CreatedById = actorId,
                 ModifiedAt = DateTime.UtcNow,
-                ModifiedBy = "TestUser"
+                ModifiedById = actorId
             };
 
             // Assert

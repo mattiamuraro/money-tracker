@@ -9,7 +9,7 @@ public class PaymentCategoryDto
     public required string Name { get; set; }
     public required string Code { get; set; }
     public DateTime CreatedAt { get; set; }
-    public required string CreatedBy { get; set; }
+    public Guid CreatedById { get; set; }
     public DateTime ModifiedAt { get; set; }
-    public required string ModifiedBy { get; set; }
+    public Guid ModifiedById { get; set; }
 }

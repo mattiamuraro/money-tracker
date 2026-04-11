@@ -1,3 +1,4 @@
+using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.Payments.Commands.DeletePayment;
@@ -25,7 +26,7 @@ public class DeletePaymentCommandHandler
             return false;
 
         // Soft delete: mark as deleted instead of removing
-        payment.Delete(request.DeletedBy ?? "System");
+        payment.Delete(request.DeletedBy == Guid.Empty ? SystemUsers.SystemUserId : request.DeletedBy);
 
         _dbContext.Payments.Update(payment);
         await _dbContext.SaveChangesAsync(cancellationToken);

@@ -27,7 +27,7 @@ public class CreatePaymentCommandValidatorTests
             PaymentCategoryId = Guid.NewGuid(),
             Amount = 100,
             Date = DateTime.UtcNow.AddDays(-1),
-            CreatedBy = "test@example.com",
+            CreatedById = Guid.NewGuid(),
             IsOneShot = true
         };
 
@@ -48,7 +48,7 @@ public class CreatePaymentCommandValidatorTests
             PaymentCategoryId = Guid.NewGuid(),
             Amount = 100,
             Date = DateTime.UtcNow.AddDays(-1),
-            CreatedBy = "test@example.com",
+            CreatedById = Guid.NewGuid(),
             IsOneShot = true
         };
 
@@ -69,7 +69,7 @@ public class CreatePaymentCommandValidatorTests
             PaymentCategoryId = Guid.NewGuid(),
             Amount = 0,
             Date = DateTime.UtcNow.AddDays(-1),
-            CreatedBy = "test@example.com",
+            CreatedById = Guid.NewGuid(),
             IsOneShot = true
         };
 
@@ -90,7 +90,7 @@ public class CreatePaymentCommandValidatorTests
             PaymentCategoryId = Guid.NewGuid(),
             Amount = -50.00m,
             Date = DateTime.UtcNow.AddDays(-1),
-            CreatedBy = "test@example.com",
+            CreatedById = Guid.NewGuid(),
             IsOneShot = true
         };
 
@@ -111,7 +111,7 @@ public class CreatePaymentCommandValidatorTests
             PaymentCategoryId = Guid.NewGuid(),
             Amount = 100,
             Date = DateTime.UtcNow.AddDays(1),
-            CreatedBy = "test@example.com",
+            CreatedById = Guid.NewGuid(),
             IsOneShot = true
         };
 
@@ -132,7 +132,7 @@ public class CreatePaymentCommandValidatorTests
             PaymentCategoryId = Guid.Empty,
             Amount = 100,
             Date = DateTime.UtcNow.AddDays(-1),
-            CreatedBy = "test@example.com",
+            CreatedById = Guid.NewGuid(),
             IsOneShot = true
         };
 
@@ -153,7 +153,7 @@ public class CreatePaymentCommandValidatorTests
             PaymentCategoryId = Guid.NewGuid(),
             Amount = 100,
             Date = DateTime.UtcNow.AddDays(-1),
-            CreatedBy = string.Empty,
+            CreatedById = Guid.Empty,
             IsOneShot = true
         };
 
@@ -161,7 +161,7 @@ public class CreatePaymentCommandValidatorTests
         var result = _validator.TestValidate(command);
 
         // Assert
-        result.ShouldHaveValidationErrorFor(x => x.CreatedBy);
+        result.ShouldHaveValidationErrorFor(x => x .CreatedById);
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public class CreatePaymentCommandValidatorTests
             PaymentCategoryId = Guid.NewGuid(),
             Amount = 100,
             Date = DateTime.UtcNow.AddDays(-1),
-            CreatedBy = "test@example.com",
+            CreatedById = Guid.NewGuid(),
             IsOneShot = true
         };
 
@@ -198,7 +198,7 @@ public class CreatePaymentCommandValidatorTests
             PaymentCategoryId = Guid.NewGuid(),
             Amount = amount,
             Date = DateTime.UtcNow.AddDays(-1),
-            CreatedBy = "test@example.com",
+            CreatedById = Guid.NewGuid(),
             IsOneShot = true
         };
 

@@ -47,9 +47,9 @@ public class CreatePaymentCommandHandler
             IsOneShot = request.IsOneShot,
             IdempotencyKey = string.IsNullOrEmpty(request.IdempotencyKey) ? null : request.IdempotencyKey,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = request.CreatedBy,
+            CreatedById = request.CreatedById,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = request.CreatedBy
+            ModifiedById = request.CreatedById
         };
 
         _dbContext.Payments.Add(payment);

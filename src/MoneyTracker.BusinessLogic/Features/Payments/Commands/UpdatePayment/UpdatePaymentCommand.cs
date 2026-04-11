@@ -11,13 +11,13 @@ public class UpdatePaymentCommand
     public decimal? Amount { get; set; }
     public DateTime? Date { get; set; }
     public bool? IsOneShot { get; set; }
-    public string ModifiedBy { get; set; } = string.Empty;
+    public Guid ModifiedById { get; set; }
 
     public UpdatePaymentCommand() { }
 
     public UpdatePaymentCommand(
         Guid paymentId,
-        string modifiedBy,
+        Guid modifiedById,
         string? description = null,
         Guid? paymentCategoryId = null,
         decimal? amount = null,
@@ -25,7 +25,7 @@ public class UpdatePaymentCommand
         bool? isOneShot = null)
     {
         PaymentId = paymentId;
-        ModifiedBy = modifiedBy ?? throw new ArgumentNullException(nameof(modifiedBy));
+        ModifiedById = modifiedById;
         Description = description;
         PaymentCategoryId = paymentCategoryId;
         Amount = amount;

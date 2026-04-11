@@ -10,7 +10,7 @@ public class CreatePaymentCommand
     public decimal Amount { get; set; }
     public DateTime Date { get; set; }
     public bool IsOneShot { get; set; }
-    public string CreatedBy { get; set; } = string.Empty;
+    public Guid CreatedById { get; set; }
 
     /// <summary>
     /// Idempotency key to prevent duplicate payments
@@ -24,7 +24,7 @@ public class CreatePaymentCommand
         Guid paymentCategoryId,
         decimal amount,
         DateTime date,
-        string createdBy,
+        Guid createdById,
         bool isOneShot = false,
         string? idempotencyKey = null)
     {
@@ -32,7 +32,7 @@ public class CreatePaymentCommand
         PaymentCategoryId = paymentCategoryId;
         Amount = amount;
         Date = date;
-        CreatedBy = createdBy ?? throw new ArgumentNullException(nameof(createdBy));
+        CreatedById = createdById;
         IsOneShot = isOneShot;
         IdempotencyKey = idempotencyKey;
     }

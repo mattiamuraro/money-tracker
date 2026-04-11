@@ -34,11 +34,9 @@ public class CreatePaymentCommandValidator : AbstractValidator<CreatePaymentComm
             .NotEmpty()
             .WithMessage("Payment category is required");
 
-        RuleFor(x => x.CreatedBy)
+        RuleFor(x => x .CreatedById)
             .NotEmpty()
-            .WithMessage("CreatedBy is required")
-            .MaximumLength(100)
-            .WithMessage("CreatedBy must not exceed 100 characters");
+            .WithMessage("CreatedBy is required");
 
         RuleFor(x => x.IsOneShot)
             .NotNull()

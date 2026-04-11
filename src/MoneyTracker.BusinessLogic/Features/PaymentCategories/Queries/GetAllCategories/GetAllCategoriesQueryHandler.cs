@@ -25,9 +25,9 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Queries.GetAllCa
                 Name = c.Name,
                 Code = c.Code,
                 CreatedAt = c.CreatedAt,
-                CreatedBy = c.CreatedBy,
+                CreatedById = c.CreatedById,
                 ModifiedAt = c.ModifiedAt,
-                ModifiedBy = c.ModifiedBy
+                ModifiedById = c.ModifiedById
             });
 
             return Task.FromResult(result);

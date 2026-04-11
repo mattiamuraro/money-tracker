@@ -15,8 +15,7 @@ public abstract class SoftDeleteEntity : BaseEntity
     /// <summary>
     /// User who deleted the entity
     /// </summary>
-    [MaxLength(100)]
-    public string? DeletedBy { get; set; }
+    public Guid? DeletedBy { get; set; }
 
     /// <summary>
     /// Indicates if the entity is deleted
@@ -26,7 +25,7 @@ public abstract class SoftDeleteEntity : BaseEntity
     /// <summary>
     /// Soft delete the entity
     /// </summary>
-    public void Delete(string deletedBy)
+    public void Delete(Guid deletedBy)
     {
         DeletedAt = DateTime.UtcNow;
         DeletedBy = deletedBy;

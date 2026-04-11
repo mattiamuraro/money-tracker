@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using MoneyTracker.Data;
 using MoneyTracker.Data.Base;
 using System.Security.Claims;
 
@@ -33,7 +35,15 @@ namespace MoneyTracker.Data.EntityFramework
                 entity.Property(e => e.Username).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.PasswordHash).IsRequired();
                 entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.CreatedById)
+                    .IsRequired()
+                    .HasDefaultValue(SystemUsers.SystemUserId);
+                entity.Property(e => e.ModifiedAt).IsRequired();
+                entity.Property(e => e.ModifiedById)
+                    .IsRequired()
+                    .HasDefaultValue(SystemUsers.SystemUserId);
                 entity.HasIndex(e => e.Username).IsUnique();
+                ConfigureAuditRelations(entity);
             });
 
             // Configure Payment entity with soft delete support
@@ -56,27 +66,28 @@ namespace MoneyTracker.Data.EntityFramework
                 entity.Property(e => e.CreatedAt)
                     .IsRequired();
 
-                entity.Property(e => e.CreatedBy)
+                entity.Property(e => e.CreatedById)
                     .IsRequired()
-                    .HasMaxLength(100);
+                    .HasDefaultValue(SystemUsers.SystemUserId);
 
                 entity.Property(e => e.ModifiedAt)
                     .IsRequired();
 
-                entity.Property(e => e.ModifiedBy)
+                entity.Property(e => e.ModifiedById)
                     .IsRequired()
-                    .HasMaxLength(100);
+                    .HasDefaultValue(SystemUsers.SystemUserId);
 
                 // Soft delete properties
                 entity.Property(e => e.DeletedAt);
-                entity.Property(e => e.DeletedBy)
-                    .HasMaxLength(100);
+                entity.Property(e => e.DeletedBy);
 
                 // Configure relationship with PaymentCategory
                 entity.HasOne(e => e.PaymentCategory)
                     .WithMany(pc => pc.Payments)
                     .HasForeignKey(e => e.PaymentCategoryId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                ConfigureAuditRelations(entity);
 
                 // Indexes
                 entity.HasIndex(e => e.Date);
@@ -106,16 +117,18 @@ namespace MoneyTracker.Data.EntityFramework
                 entity.Property(e => e.CreatedAt)
                     .IsRequired();
 
-                entity.Property(e => e.CreatedBy)
+                entity.Property(e => e.CreatedById)
                     .IsRequired()
-                    .HasMaxLength(100);
+                    .HasDefaultValue(SystemUsers.SystemUserId);
 
                 entity.Property(e => e.ModifiedAt)
                     .IsRequired();
 
-                entity.Property(e => e.ModifiedBy)
+                entity.Property(e => e.ModifiedById)
                     .IsRequired()
-                    .HasMaxLength(100);
+                    .HasDefaultValue(SystemUsers.SystemUserId);
+
+                ConfigureAuditRelations(entity);
 
                 entity.HasIndex(e => e.Code)
                     .IsUnique();
@@ -123,19 +136,63 @@ namespace MoneyTracker.Data.EntityFramework
 
             modelBuilder.Entity<ForecastExpense>(entity =>
             {
+                entity.Property(e => e.CreatedById)
+                    .IsRequired()
+                    .HasDefaultValue(SystemUsers.SystemUserId);
+                entity.Property(e => e.ModifiedById)
+                    .IsRequired()
+                    .HasDefaultValue(SystemUsers.SystemUserId);
+
                 entity.HasOne(e => e.ForecastRecurrenceRuleType)
                     .WithMany()
                     .HasForeignKey(e => e.ForecastRecurrenceRuleTypeId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                ConfigureAuditRelations(entity);
             });
 
             modelBuilder.Entity<ForecastIncome>(entity =>
             {
+                entity.Property(e => e.CreatedById)
+                    .IsRequired()
+                    .HasDefaultValue(SystemUsers.SystemUserId);
+                entity.Property(e => e.ModifiedById)
+                    .IsRequired()
+                    .HasDefaultValue(SystemUsers.SystemUserId);
+
                 entity.HasOne(e => e.ForecastRecurrenceRuleType)
                     .WithMany()
                     .HasForeignKey(e => e.ForecastRecurrenceRuleTypeId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                ConfigureAuditRelations(entity);
             });
+
+            modelBuilder.Entity<ForecastRecurrenceRuleType>(entity =>
+            {
+                entity.Property(e => e.CreatedById)
+                    .IsRequired()
+                    .HasDefaultValue(SystemUsers.SystemUserId);
+                entity.Property(e => e.ModifiedById)
+                    .IsRequired()
+                    .HasDefaultValue(SystemUsers.SystemUserId);
+
+                ConfigureAuditRelations(entity);
+            });
+        }
+
+        private static void ConfigureAuditRelations<TEntity>(EntityTypeBuilder<TEntity> entity)
+            where TEntity : BaseEntity
+        {
+            entity.HasOne(e => e.CreatedBy)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedById)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.ModifiedBy)
+                .WithMany()
+                .HasForeignKey(e => e.ModifiedById)
+                .OnDelete(DeleteBehavior.Restrict);
         }
 
         public override int SaveChanges()
@@ -162,18 +219,18 @@ namespace MoneyTracker.Data.EntityFramework
                 if (entry.State == EntityState.Added)
                 {
                     entry.Entity.CreatedAt = now;
-                    entry.Entity.CreatedBy = currentUser;
+                    entry.Entity.CreatedById = currentUser;
                     entry.Entity.ModifiedAt = now;
-                    entry.Entity.ModifiedBy = currentUser;
+                    entry.Entity.ModifiedById = currentUser;
                 }
                 else if (entry.State == EntityState.Modified)
                 {
                     entry.Entity.ModifiedAt = now;
-                    entry.Entity.ModifiedBy = currentUser;
+                    entry.Entity.ModifiedById = currentUser;
 
-                    // Prevent changes to CreatedAt and CreatedBy
+                    // Prevent changes to CreatedAt and CreatedById
                     entry.Property(e => e.CreatedAt).IsModified = false;
-                    entry.Property(e => e.CreatedBy).IsModified = false;
+                    entry.Property(e => e.CreatedById).IsModified = false;
                 }
             }
         }
@@ -182,9 +239,12 @@ namespace MoneyTracker.Data.EntityFramework
         /// Gets the current user identifier. Override this method to implement your own logic
         /// for retrieving the current user (e.g., from HttpContext, claims, etc.)
         /// </summary>
-        protected string GetCurrentUser()
+        protected Guid GetCurrentUser()
         {
-            return _httpContextAccessor?.HttpContext?.User?.FindFirstValue(ClaimTypes.Name) ?? "System";
+            var currentUserClaim = _httpContextAccessor?.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+            return Guid.TryParse(currentUserClaim, out var userId)
+                ? userId
+                : SystemUsers.SystemUserId;
         }
     }
 }

@@ -50,7 +50,7 @@ public class UpdatePaymentCommandHandler
             payment.IsOneShot = request.IsOneShot.Value;
 
         payment.ModifiedAt = DateTime.UtcNow;
-        payment.ModifiedBy = request.ModifiedBy;
+        payment.ModifiedById = request.ModifiedById;
 
         _dbContext.Payments.Update(payment);
         await _dbContext.SaveChangesAsync(cancellationToken);

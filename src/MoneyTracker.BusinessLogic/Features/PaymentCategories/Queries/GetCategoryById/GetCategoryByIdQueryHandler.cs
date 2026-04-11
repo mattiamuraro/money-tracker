@@ -30,9 +30,9 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Queries.GetCateg
                 Name = category.Name,
                 Code = category.Code,
                 CreatedAt = category.CreatedAt,
-                CreatedBy = category.CreatedBy,
+                CreatedById = category.CreatedById,
                 ModifiedAt = category.ModifiedAt,
-                ModifiedBy = category.ModifiedBy
+                ModifiedById = category.ModifiedById
             };
         }
     }

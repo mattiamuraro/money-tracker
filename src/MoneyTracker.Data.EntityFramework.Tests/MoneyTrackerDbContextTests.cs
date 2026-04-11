@@ -42,9 +42,9 @@ public class MoneyTrackerDbContextTests
             Name = "Food",
             Code = "FOOD",
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = Guid.NewGuid(),
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = Guid.NewGuid()
         };
 
         // Act
@@ -68,9 +68,9 @@ public class MoneyTrackerDbContextTests
             Name = "Food",
             Code = "FOOD",
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = Guid.NewGuid(),
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = Guid.NewGuid()
         };
 
         var payment = new Payment
@@ -82,9 +82,9 @@ public class MoneyTrackerDbContextTests
             PaymentCategoryId = categoryId,
             IsOneShot = true,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = Guid.NewGuid(),
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = Guid.NewGuid()
         };
 
         // Act
@@ -114,9 +114,9 @@ public class MoneyTrackerDbContextTests
             Name = "Food",
             Code = "FOOD",
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = Guid.NewGuid(),
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = Guid.NewGuid()
         };
 
         var paymentId = Guid.NewGuid();
@@ -129,9 +129,9 @@ public class MoneyTrackerDbContextTests
             PaymentCategoryId = categoryId,
             IsOneShot = true,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = Guid.NewGuid(),
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = Guid.NewGuid()
         };
 
         _dbContext.PaymentCategories.Add(category);
@@ -163,9 +163,9 @@ public class MoneyTrackerDbContextTests
             Name = "Food",
             Code = "FOOD",
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = Guid.NewGuid(),
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = Guid.NewGuid()
         };
 
         var paymentId = Guid.NewGuid();
@@ -178,9 +178,9 @@ public class MoneyTrackerDbContextTests
             PaymentCategoryId = categoryId,
             IsOneShot = true,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = Guid.NewGuid(),
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = Guid.NewGuid()
         };
 
         _dbContext.PaymentCategories.Add(category);
@@ -209,9 +209,9 @@ public class MoneyTrackerDbContextTests
             Name = "Food",
             Code = "FOOD",
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = Guid.NewGuid(),
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = Guid.NewGuid()
         };
 
         var category2 = new PaymentCategory
@@ -220,9 +220,9 @@ public class MoneyTrackerDbContextTests
             Name = "Transport",
             Code = "TRANS",
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = Guid.NewGuid(),
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = Guid.NewGuid()
         };
 
         _dbContext.PaymentCategories.Add(category1);
@@ -236,9 +236,9 @@ public class MoneyTrackerDbContextTests
             Date = DateTime.UtcNow,
             PaymentCategoryId = category1.Id,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = Guid.NewGuid(),
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = Guid.NewGuid()
         };
 
         var payment2 = new Payment
@@ -249,9 +249,9 @@ public class MoneyTrackerDbContextTests
             Date = DateTime.UtcNow,
             PaymentCategoryId = category2.Id,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = Guid.NewGuid(),
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = Guid.NewGuid()
         };
 
         _dbContext.Payments.Add(payment1);
@@ -279,9 +279,9 @@ public class MoneyTrackerDbContextTests
             Name = "Food",
             Code = "FOOD",
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = Guid.NewGuid(),
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = Guid.NewGuid()
         };
 
         var today = DateTime.UtcNow.Date;
@@ -294,9 +294,9 @@ public class MoneyTrackerDbContextTests
             Date = today.AddDays(-5),
             PaymentCategoryId = categoryId,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = Guid.NewGuid(),
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = Guid.NewGuid()
         };
 
         var payment2 = new Payment
@@ -307,9 +307,9 @@ public class MoneyTrackerDbContextTests
             Date = today.AddDays(1),
             PaymentCategoryId = categoryId,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = Guid.NewGuid(),
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = Guid.NewGuid()
         };
 
         _dbContext.PaymentCategories.Add(category);

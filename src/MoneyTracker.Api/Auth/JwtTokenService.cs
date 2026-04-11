@@ -34,7 +34,7 @@ public class JwtTokenService
         if (result == PasswordVerificationResult.Failed)
             return null;
 
-        return BuildToken(username);
+        return BuildToken(user);
     }
 
     public async Task<string?> RegisterAsync(string username, string password, CancellationToken cancellationToken)
@@ -56,10 +56,10 @@ public class JwtTokenService
         _dbContext.Users.Add(user);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return BuildToken(username);
+        return BuildToken(user);
     }
 
-    private string BuildToken(string username)
+    private string BuildToken(User user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -67,8 +67,8 @@ public class JwtTokenService
 
         var claims = new[]
         {
-            new Claim(ClaimTypes.Name, username),
-            new Claim(ClaimTypes.NameIdentifier, username),
+            new Claim(ClaimTypes.Name, user.Username),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
         };
 
         var token = new JwtSecurityToken(

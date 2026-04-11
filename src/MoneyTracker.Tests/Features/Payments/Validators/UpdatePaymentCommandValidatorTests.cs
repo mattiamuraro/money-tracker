@@ -26,7 +26,7 @@ public class UpdatePaymentCommandValidatorTests
             PaymentId = Guid.Empty,
             Description = "Updated Payment",
             Amount = 150,
-            ModifiedBy = "test@example.com"
+            ModifiedById = Guid.NewGuid()
         };
 
         // Act
@@ -45,14 +45,14 @@ public class UpdatePaymentCommandValidatorTests
             PaymentId = Guid.NewGuid(),
             Description = "Updated Payment",
             Amount = 150,
-            ModifiedBy = string.Empty
+            ModifiedById = Guid.Empty
         };
 
         // Act
         var result = _validator.TestValidate(command);
 
         // Assert
-        result.ShouldHaveValidationErrorFor(x => x.ModifiedBy);
+        result.ShouldHaveValidationErrorFor(x => x .ModifiedById);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class UpdatePaymentCommandValidatorTests
         {
             PaymentId = Guid.NewGuid(),
             Description = new string('a', 101),
-            ModifiedBy = "test@example.com"
+            ModifiedById = Guid.NewGuid()
         };
 
         // Act
@@ -81,7 +81,7 @@ public class UpdatePaymentCommandValidatorTests
         {
             PaymentId = Guid.NewGuid(),
             Amount = -50,
-            ModifiedBy = "test@example.com"
+            ModifiedById = Guid.NewGuid()
         };
 
         // Act
@@ -99,7 +99,7 @@ public class UpdatePaymentCommandValidatorTests
         {
             PaymentId = Guid.NewGuid(),
             Date = DateTime.UtcNow.AddDays(1),
-            ModifiedBy = "test@example.com"
+            ModifiedById = Guid.NewGuid()
         };
 
         // Act
@@ -116,7 +116,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            ModifiedBy = "test@example.com"
+            ModifiedById = Guid.NewGuid()
         };
 
         // Act
@@ -135,7 +135,7 @@ public class UpdatePaymentCommandValidatorTests
             PaymentId = Guid.NewGuid(),
             Description = "Updated Description",
             Amount = 200,
-            ModifiedBy = "test@example.com"
+            ModifiedById = Guid.NewGuid()
         };
 
         // Act
@@ -155,7 +155,7 @@ public class UpdatePaymentCommandValidatorTests
             Description = null,
             Amount = null,
             Date = null,
-            ModifiedBy = "test@example.com"
+            ModifiedById = Guid.NewGuid()
         };
 
         // Act

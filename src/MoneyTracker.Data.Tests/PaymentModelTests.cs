@@ -1,4 +1,4 @@
-﻿namespace MoneyTracker.Data.Tests;
+namespace MoneyTracker.Data.Tests;
 
 [TestFixture]
 public class PaymentModelTests
@@ -6,6 +6,8 @@ public class PaymentModelTests
     [Test]
     public void Payment_CanBeCreated()
     {
+        var actorId = Guid.NewGuid();
+
         // Arrange & Act
         var payment = new Payment
         {
@@ -16,9 +18,9 @@ public class PaymentModelTests
             PaymentCategoryId = Guid.NewGuid(),
             IsOneShot = true,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = actorId
         };
 
         // Assert
@@ -30,6 +32,8 @@ public class PaymentModelTests
     [Test]
     public void Payment_HasMaxLengthConstraintOnDescription()
     {
+        var actorId = Guid.NewGuid();
+
         // Arrange
         var payment = new Payment
         {
@@ -39,9 +43,9 @@ public class PaymentModelTests
             Date = DateTime.UtcNow,
             PaymentCategoryId = Guid.NewGuid(),
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = actorId
         };
 
         // Assert - should have exceeded max length
@@ -51,6 +55,8 @@ public class PaymentModelTests
     [Test]
     public void Payment_HasPaymentCategoryNavigation()
     {
+        var actorId = Guid.NewGuid();
+
         // Arrange
         var category = new PaymentCategory
         {
@@ -58,9 +64,9 @@ public class PaymentModelTests
             Name = "Food",
             Code = "FOOD",
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = actorId
         };
 
         var payment = new Payment
@@ -72,9 +78,9 @@ public class PaymentModelTests
             PaymentCategoryId = category.Id,
             PaymentCategory = category,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "TestUser",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "TestUser"
+            ModifiedById = actorId
         };
 
         // Assert

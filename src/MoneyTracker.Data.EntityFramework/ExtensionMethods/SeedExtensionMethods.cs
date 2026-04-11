@@ -12,20 +12,40 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
     {
         public static async Task SeedDefaultDataAsync(this MoneyTrackerDbContext db, string actor, ILogger logger, CancellationToken cancellationToken)
         {
+            await db.SeedSystemUserAsync(logger, cancellationToken);
             await db.SeedDefaultDataAsync(forecastRecurrenceRuleTypes, actor, logger, cancellationToken);
         }
 
         public static async Task SeedDefaultDataAsync(this MoneyTrackerDbContext db, string actor, ILogger logger, IConfiguration configuration, CancellationToken cancellationToken)
         {
-            await db.SeedDefaultDataAsync(forecastRecurrenceRuleTypes, actor, logger, cancellationToken);
+            await db.SeedSystemUserAsync(logger, cancellationToken);
             await db.SeedAdminUserAsync(logger, configuration, cancellationToken);
+            await db.SeedDefaultDataAsync(forecastRecurrenceRuleTypes, actor, logger, cancellationToken);
+        }
+
+        private static async Task SeedSystemUserAsync(this MoneyTrackerDbContext db, ILogger logger, CancellationToken cancellationToken)
+        {
+            var systemUserExists = await db.Users
+                .AnyAsync(u => u.Id == SystemUsers.SystemUserId, cancellationToken);
+
+            if (systemUserExists)
+                return;
+
+            var systemUser = new User
+            {
+                Id = SystemUsers.SystemUserId,
+                Username = SystemUsers.SystemUsername,
+                PasswordHash = string.Empty,
+            };
+
+            db.Users.Add(systemUser);
+            await db.SaveChangesAsync(cancellationToken);
+
+            logger.LogInformation("Seeded system user '{Username}' ({UserId}).", SystemUsers.SystemUsername, SystemUsers.SystemUserId);
         }
 
         private static async Task SeedAdminUserAsync(this MoneyTrackerDbContext db, ILogger logger, IConfiguration configuration, CancellationToken cancellationToken)
         {
-            if (await db.Users.AnyAsync(cancellationToken))
-                return;
-
             var username = configuration["Auth:Username"];
             var password = configuration["Auth:Password"];
 
@@ -34,6 +54,12 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
                 logger.LogWarning("Admin user not seeded: Auth:Username or Auth:Password not configured.");
                 return;
             }
+
+            var adminExists = await db.Users
+                .AnyAsync(u => u.Username == username, cancellationToken);
+
+            if (adminExists)
+                return;
 
             var hasher = new PasswordHasher<User>();
             var user = new User

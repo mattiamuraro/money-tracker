@@ -36,10 +36,8 @@ public class UpdatePaymentCommandValidator : AbstractValidator<UpdatePaymentComm
             .WithMessage("Date cannot be in the future")
             .When(x => x.Date.HasValue);
 
-        RuleFor(x => x.ModifiedBy)
+        RuleFor(x => x .ModifiedById)
             .NotEmpty()
-            .WithMessage("ModifiedBy is required")
-            .MaximumLength(100)
-            .WithMessage("ModifiedBy must not exceed 100 characters");
+            .WithMessage("ModifiedBy is required");
     }
 }

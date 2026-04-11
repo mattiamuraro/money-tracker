@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using MoneyTracker.Api.Endpoints.Forecasts.Contracts;
 using MoneyTracker.BusinessLogic.ExtensionMethods.Mapping;
 using MoneyTracker.BusinessLogic.Features.Forecasts.Models;
@@ -248,7 +248,7 @@ namespace MoneyTracker.BusinessLogic.Services
 
             replacement.Id = id;
             replacement.CreatedAt = existingForecast.CreatedAt;
-            replacement.CreatedBy = existingForecast.CreatedBy;
+            replacement.CreatedById = existingForecast.CreatedById;
 
             ApplyForecastValues(replacement, request, recurrenceRuleType);
 

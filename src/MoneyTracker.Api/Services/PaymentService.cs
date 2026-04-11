@@ -1,9 +1,11 @@
-﻿using FluentValidation;
+using FluentValidation;
 using MoneyTracker.Api.Endpoints.Payments.Contracts;
 using MoneyTracker.BusinessLogic.Features.Payments.Commands.CreatePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.Commands.DeletePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.Commands.UpdatePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.Queries.GetPaymentHistory;
+using MoneyTracker.Data;
+using System.Security.Claims;
 
 namespace MoneyTracker.Api.Services
 {
@@ -112,6 +114,8 @@ namespace MoneyTracker.Api.Services
             {
                 _logger.LogInformation("Creating new payment");
 
+                command.CreatedById = GetCurrentUserId();
+
                 // Extract idempotency key from header if present
                 var idempotencyKey = _httpContext.Request.Headers["X-Idempotency-Key"].ToString();
                 if (!string.IsNullOrEmpty(idempotencyKey))
@@ -153,6 +157,7 @@ namespace MoneyTracker.Api.Services
             {
                 _logger.LogInformation("Updating payment with ID: {PaymentId}", id);
                 command.PaymentId = id;
+                command.ModifiedById = GetCurrentUserId();
 
                 await _updatePaymentCommandValidator.ValidateAndThrowAsync(command, cancellationToken);
 
@@ -186,7 +191,11 @@ namespace MoneyTracker.Api.Services
             try
             {
                 _logger.LogInformation("Deleting payment with ID: {PaymentId}", id);
-                var command = new DeletePaymentCommand { PaymentId = id };
+                var command = new DeletePaymentCommand
+                {
+                    PaymentId = id,
+                    DeletedBy = GetCurrentUserId()
+                };
                 var result = await _deletePaymentCommandHandler.Handle(command, cancellationToken);
 
                 if (!result)
@@ -202,6 +211,14 @@ namespace MoneyTracker.Api.Services
                     statusCode: StatusCodes.Status500InternalServerError,
                     title: "Error deleting payment");
             }
+        }
+
+        private Guid GetCurrentUserId()
+        {
+            var userIdClaim = _httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return Guid.TryParse(userIdClaim, out var userId)
+                ? userId
+                : SystemUsers.SystemUserId;
         }
 
         private static Dictionary<string, string[]> ToValidationErrors(ValidationException exception)

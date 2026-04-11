@@ -6,15 +6,17 @@ public class ForecastRecurrenceRuleTests
     [Test]
     public void GetRecurrences_Should_Return_Only_Start_Date_When_Interval_Is_Null()
     {
+        var actorId = Guid.NewGuid();
+
         var ruleType = new ForecastRecurrenceRuleType
         {
             Id = Guid.NewGuid(),
             Name = "Day",
             Code = ForecastRecurrenceRuleType.Day,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "tester",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "tester"
+            ModifiedById = actorId
         };
 
         var forecast = new ForecastExpense
@@ -27,9 +29,9 @@ public class ForecastRecurrenceRuleTests
             ForecastRecurrenceRuleTypeId = ruleType.Id,
             ForecastRecurrenceRuleType = ruleType,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "tester",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "tester"
+            ModifiedById = actorId
         };
 
         var result = forecast.GetRecurrences(new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 30));
@@ -40,15 +42,17 @@ public class ForecastRecurrenceRuleTests
     [Test]
     public void GetRecurrences_Should_Add_Interval_When_Type_Is_Day()
     {
+        var actorId = Guid.NewGuid();
+
         var ruleType = new ForecastRecurrenceRuleType
         {
             Id = Guid.NewGuid(),
             Name = "Day",
             Code = ForecastRecurrenceRuleType.Day,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "tester",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "tester"
+            ModifiedById = actorId
         };
 
         var forecast = new ForecastExpense
@@ -61,9 +65,9 @@ public class ForecastRecurrenceRuleTests
             ForecastRecurrenceRuleTypeId = ruleType.Id,
             ForecastRecurrenceRuleType = ruleType,
             CreatedAt = DateTime.UtcNow,
-            CreatedBy = "tester",
+            CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedBy = "tester"
+            ModifiedById = actorId
         };
 
         var result = forecast.GetRecurrences(new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 20));

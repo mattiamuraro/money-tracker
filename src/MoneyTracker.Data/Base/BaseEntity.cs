@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using MoneyTracker.Data;
+using System.ComponentModel.DataAnnotations;
 
 namespace MoneyTracker.Data.Base
 {
@@ -7,12 +8,14 @@ namespace MoneyTracker.Data.Base
         public Guid Id { get; set; }
         public DateTime CreatedAt { get; set; }
 
-        [MaxLength(100)]
-        public string CreatedBy { get; set; }
+        public Guid CreatedById { get; set; }
+
+        public User CreatedBy { get; set; } = default!;
 
         public DateTime ModifiedAt { get; set; }
 
-        [MaxLength(100)]
-        public string ModifiedBy { get; set; }
+        public Guid ModifiedById { get; set; }
+
+        public User ModifiedBy { get; set; } = default!;
     }
 }
