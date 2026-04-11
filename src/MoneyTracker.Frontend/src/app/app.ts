@@ -27,6 +27,7 @@ export class App implements OnInit {
   public isSavingForecast = false;
   public successMessage = '';
   public errorMessage = '';
+  public theme: 'light' | 'dark' = 'dark';
 
   public categories: PaymentCategory[] = [];
   public payments: PaymentRow[] = [];
@@ -52,6 +53,8 @@ export class App implements OnInit {
     endDate: this.toInputDate(this.addDays(new Date(), 30)),
   };
 
+  private readonly themeStorageKey = 'money-tracker.theme';
+
   constructor(
     private readonly moneyTrackerApiService: MoneyTrackerApiService,
     private readonly ngZone: NgZone,
@@ -60,6 +63,7 @@ export class App implements OnInit {
   ) {}
 
   async ngOnInit(): Promise<void> {
+    this.initializeTheme();
     this.isLoginRoute = this.router.url.startsWith('/login');
 
     this.router.events.pipe(
@@ -76,6 +80,14 @@ export class App implements OnInit {
     if (!this.isLoginRoute) {
       await this.reloadDashboard();
     }
+  }
+
+  public get isDarkTheme(): boolean {
+    return this.theme === 'dark';
+  }
+
+  public toggleTheme(): void {
+    this.setTheme(this.isDarkTheme ? 'light' : 'dark', true);
   }
 
   public async reloadDashboard(): Promise<void> {
@@ -441,5 +453,36 @@ export class App implements OnInit {
 
   public logout(): void {
     this.authService.logout();
+  }
+
+  private initializeTheme(): void {
+    const preferredTheme = this.getPreferredTheme();
+    this.setTheme(preferredTheme, false);
+  }
+
+  private getPreferredTheme(): 'light' | 'dark' {
+    try {
+      const stored = localStorage.getItem(this.themeStorageKey);
+      if (stored === 'light' || stored === 'dark') {
+        return stored;
+      }
+    } catch (error) {
+      void error;
+    }
+
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  private setTheme(theme: 'light' | 'dark', persist: boolean): void {
+    this.theme = theme;
+    document.documentElement.setAttribute('data-theme', theme);
+
+    if (persist) {
+      try {
+        localStorage.setItem(this.themeStorageKey, theme);
+      } catch (error) {
+        void error;
+      }
+    }
   }
 }
