@@ -89,8 +89,20 @@
 
       <article class="list-card">
         <div class="card-heading">
-          <h3>Recent payments</h3>
-          <span class="muted-copy">Latest 12 records</span>
+          <div>
+            <h3>Recent payments</h3>
+            <span class="muted-copy">Latest 12 records</span>
+          </div>
+          <div>
+            <label class="field-label" for="payment-list-month">Month</label>
+            <input
+              id="payment-list-month"
+              class="field-input"
+              type="month"
+              [ngModel]="app.selectedPaymentMonth"
+              (ngModelChange)="app.onPaymentMonthChanged($event)"
+              required />
+          </div>
         </div>
 
         <div *ngIf="app.payments.length; else paymentsEmpty" class="table-shell">

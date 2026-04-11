@@ -55,6 +55,8 @@ namespace MoneyTracker.Api.Services
             {
                 _logger.LogInformation("Fetching payments with filter");
                 filterQuery.Validate();
+                var (year, month) = filterQuery.GetRequiredYearMonth();
+
                 var query = new GetPaymentQuery(
                     filterQuery.StartDate,
                     filterQuery.EndDate,
@@ -62,6 +64,8 @@ namespace MoneyTracker.Api.Services
                     filterQuery.CategoryId,
                     filterQuery.MinAmount,
                     filterQuery.MaxAmount,
+                    year,
+                    month,
                     filterQuery.PageNumber ?? 1,
                     filterQuery.PageSize ?? 20,
                     filterQuery.SortBy,
@@ -69,6 +73,11 @@ namespace MoneyTracker.Api.Services
                 var result = await _getPaymentQueryHandler.Handle(query, cancellationToken);
 
                 return Results.Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid payments filter query");
+                return Results.BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {

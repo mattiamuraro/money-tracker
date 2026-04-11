@@ -38,6 +38,7 @@ public class PaymentFilterQueryTests
         var categoryId = Guid.NewGuid();
         var query = new PaymentFilterQuery
         {
+            Month = "2026-01",
             StartDate = new DateTime(2026, 1, 1),
             EndDate = new DateTime(2026, 1, 31),
             CategoryFilter = "Food",
@@ -46,11 +47,33 @@ public class PaymentFilterQueryTests
             CategoryId = categoryId
         };
 
+        Xunit.Assert.Equal("2026-01", query.Month);
         Xunit.Assert.Equal(new DateTime(2026, 1, 1), query.StartDate);
         Xunit.Assert.Equal(new DateTime(2026, 1, 31), query.EndDate);
         Xunit.Assert.Equal("Food", query.CategoryFilter);
         Xunit.Assert.Equal(10.5m, query.MinAmount);
         Xunit.Assert.Equal(120m, query.MaxAmount);
         Xunit.Assert.Equal(categoryId, query.CategoryId);
+    }
+
+    [Fact]
+    public void GetRequiredYearMonth_Should_Return_Parsed_Values()
+    {
+        var query = new PaymentFilterQuery { Month = "2026-07" };
+
+        var (year, month) = query.GetRequiredYearMonth();
+
+        Xunit.Assert.Equal(2026, year);
+        Xunit.Assert.Equal(7, month);
+    }
+
+    [Fact]
+    public void GetRequiredYearMonth_Should_Throw_When_Month_Missing_Or_Invalid()
+    {
+        var missing = new PaymentFilterQuery();
+        var invalid = new PaymentFilterQuery { Month = "07-2026" };
+
+        Xunit.Assert.Throws<ArgumentException>(() => missing.GetRequiredYearMonth());
+        Xunit.Assert.Throws<ArgumentException>(() => invalid.GetRequiredYearMonth());
     }
 }

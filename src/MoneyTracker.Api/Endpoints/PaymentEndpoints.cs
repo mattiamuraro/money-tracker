@@ -20,11 +20,11 @@ namespace MoneyTracker.Api.Endpoints
             // GET all payments with pagination and filtering
             group.MapGet("/", static async ([FromServices] PaymentService paymentService, [AsParameters] PaymentFilterQuery paymentFilterQuery, CancellationToken cancellationToken) => await paymentService.GetPaymentsAsync(paymentFilterQuery, cancellationToken))
                 .WithName("GetPayments")
-                .WithDescription("Retrieves all payments with optional filtering and pagination")
+                .WithDescription("Retrieves all payments with required month filtering and pagination")
                 .AddOpenApiOperationTransformer((operation, context, ct) =>
                 {
                     operation.Summary = "Get paginated payments";
-                    operation.Description = "Returns a paginated list of payments with optional filtering by date range, amount, or category";
+                    operation.Description = "Returns a paginated list of payments. The month filter is required and must use yyyy-MM format.";
 
                     return Task.CompletedTask;
                 })

@@ -19,6 +19,8 @@ public class GetPaymentQuery
     public Guid? CategoryId { get; set; }
     public decimal? MinAmount { get; set; }
     public decimal? MaxAmount { get; set; }
+    public int? Year { get; set; }
+    public int? Month { get; set; }
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 20;
     public string? SortBy { get; set; }
@@ -33,6 +35,8 @@ public class GetPaymentQuery
         Guid? categoryId = null,
         decimal? minAmount = null,
         decimal? maxAmount = null,
+        int? year = null,
+        int? month = null,
         int pageNumber = 1,
         int pageSize = 20,
         string? sortBy = null,
@@ -44,6 +48,8 @@ public class GetPaymentQuery
         CategoryId = categoryId;
         MinAmount = minAmount;
         MaxAmount = maxAmount;
+        Year = year;
+        Month = month;
         PageNumber = Math.Max(1, pageNumber);
         PageSize = Math.Clamp(pageSize, 1, 100);
         SortBy = sortBy;

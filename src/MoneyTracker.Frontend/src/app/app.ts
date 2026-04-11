@@ -11,6 +11,7 @@ import {
   PaymentCategory,
   PaymentCategoryFormModel,
   PaymentFormModel,
+  PaymentQuery,
   PaymentRow,
 } from './models';
 
@@ -45,7 +46,8 @@ export class App implements OnInit {
   public forecastForm = this.createEmptyForecastForm();
   public categoryForm = this.createEmptyCategoryForm();
 
-  private readonly paymentQuery = {
+  private readonly paymentQuery: PaymentQuery = {
+    month: this.toMonthInput(new Date()),
     pageNumber: 1,
     pageSize: 12,
     sortBy: 'Date',
@@ -431,6 +433,15 @@ export class App implements OnInit {
     this.categoryForm = this.createEmptyCategoryForm();
   }
 
+  public onPaymentMonthChanged(month: string): void {
+    this.paymentQuery.month = month;
+    void this.loadPayments();
+  }
+
+  public get selectedPaymentMonth(): string {
+    return this.paymentQuery.month;
+  }
+
   private async loadCategories(): Promise<void> {
     const categories = await this.moneyTrackerApiService.getCategories();
     this.ngZone.run(() => {
@@ -536,6 +547,11 @@ export class App implements OnInit {
 
     const timezoneOffset = value.getTimezoneOffset() * 60000;
     return new Date(value.getTime() - timezoneOffset).toISOString().slice(0, 10);
+  }
+
+  private toMonthInput(value: Date): string {
+    const timezoneOffset = value.getTimezoneOffset() * 60000;
+    return new Date(value.getTime() - timezoneOffset).toISOString().slice(0, 7);
   }
 
   private getErrorMessage(error: unknown, fallbackMessage: string): string {

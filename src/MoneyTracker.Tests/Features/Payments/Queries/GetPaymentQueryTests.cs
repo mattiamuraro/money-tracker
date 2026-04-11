@@ -34,6 +34,8 @@ public class GetPaymentQueryTests
             categoryId: categoryId,
             minAmount: 10,
             maxAmount: 300,
+            year: 2026,
+            month: 1,
             pageNumber: 2,
             pageSize: 25,
             sortBy: "Amount",
@@ -45,6 +47,8 @@ public class GetPaymentQueryTests
         Xunit.Assert.Equal(categoryId, query.CategoryId);
         Xunit.Assert.Equal(10, query.MinAmount);
         Xunit.Assert.Equal(300, query.MaxAmount);
+        Xunit.Assert.Equal(2026, query.Year);
+        Xunit.Assert.Equal(1, query.Month);
         Xunit.Assert.Equal(2, query.PageNumber);
         Xunit.Assert.Equal(25, query.PageSize);
         Xunit.Assert.Equal("Amount", query.SortBy);

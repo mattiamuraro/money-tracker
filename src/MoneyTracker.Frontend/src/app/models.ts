@@ -77,6 +77,7 @@ export interface ForecastFormModel {
 }
 
 export interface PaymentQuery {
+  month: string;
   pageNumber?: number;
   pageSize?: number;
   sortBy?: string;

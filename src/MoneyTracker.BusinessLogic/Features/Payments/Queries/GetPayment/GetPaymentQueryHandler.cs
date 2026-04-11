@@ -22,6 +22,9 @@ public class GetPaymentQueryHandler
         if (request.Id.HasValue)
             query = query.Where(p => p.Id == request.Id.Value);
 
+        if (request.Year.HasValue && request.Month.HasValue)
+            query = query.Where(p => p.Date.Year == request.Year.Value && p.Date.Month == request.Month.Value);
+
         if (request.StartDate.HasValue)
             query = query.Where(p => p.Date >= request.StartDate.Value);
 
