@@ -8,6 +8,6 @@ public class ForecastDefinitionDto
     public decimal Amount { get; set; }
     public DateOnly RecurrenceStart { get; set; }
     public DateOnly? RecurrenceEnd { get; set; }
-    public int DayInterval { get; set; }
+    public int Interval { get; set; }
     public bool IsIncome { get; set; }
 }

@@ -49,7 +49,7 @@ export interface ForecastDefinition {
   amount: number;
   recurrenceStart: string;
   recurrenceEnd: string | null;
-  dayInterval: number;
+  interval: number;
   isIncome: boolean;
 }
 
@@ -67,7 +67,7 @@ export interface ForecastFormModel {
   amount: number | null;
   recurrenceStart: string;
   recurrenceEnd: string;
-  dayInterval: number;
+  interval: number;
   isIncome: boolean;
 }
 

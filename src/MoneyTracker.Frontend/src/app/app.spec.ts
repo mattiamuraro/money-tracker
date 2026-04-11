@@ -83,7 +83,7 @@ describe('App', () => {
     expect(apiServiceSpy.getForecastRecurrenceRuleTypes).toHaveBeenCalled();
     expect(app.forecastRecurrenceRuleTypes.length).toBeGreaterThan(0);
     expect(app.forecastForm.forecastRecurrenceRuleTypeId).toBe('one-time-type-id');
-    expect(app.forecastForm.dayInterval).toBe(1);
+    expect(app.forecastForm.interval).toBe(1);
   });
 
   it('should reject payment submit when required fields are missing', async () => {
@@ -160,7 +160,7 @@ describe('App', () => {
 
     app.forecastForm.description = '   ';
     app.forecastForm.amount = null;
-    app.forecastForm.dayInterval = 0;
+    app.forecastForm.interval = 0;
 
     await app.submitForecast();
 
@@ -179,7 +179,7 @@ describe('App', () => {
       amount: 800,
       recurrenceStart: '2026-04-01',
       recurrenceEnd: '',
-      dayInterval: 30,
+      interval: 30,
       isIncome: false,
     };
 
@@ -191,7 +191,7 @@ describe('App', () => {
       amount: 800,
       recurrenceStart: '2026-04-01',
       recurrenceEnd: '',
-      dayInterval: 30,
+      interval: 30,
       isIncome: false,
     });
     expect(apiServiceSpy.updateForecastDefinition).not.toHaveBeenCalled();
@@ -199,7 +199,7 @@ describe('App', () => {
     expect(app.editingForecastId).toBeNull();
   });
 
-  it('should force dayInterval to one when recurrence type is one time', async () => {
+  it('should force interval to one when recurrence type is one time', async () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
 
@@ -210,7 +210,7 @@ describe('App', () => {
       amount: 120,
       recurrenceStart: '2026-04-01',
       recurrenceEnd: '',
-      dayInterval: 12,
+      interval: 12,
       isIncome: true,
     };
 
@@ -222,7 +222,7 @@ describe('App', () => {
       amount: 120,
       recurrenceStart: '2026-04-01',
       recurrenceEnd: '',
-      dayInterval: 1,
+      interval: 1,
       isIncome: true,
     });
   });
@@ -238,7 +238,7 @@ describe('App', () => {
       amount: 3000,
       recurrenceStart: '2026-04-01',
       recurrenceEnd: '2026-12-31',
-      dayInterval: 30,
+      interval: 30,
       isIncome: true,
     };
 
@@ -250,7 +250,7 @@ describe('App', () => {
       amount: 3000,
       recurrenceStart: '2026-04-01',
       recurrenceEnd: '2026-12-31',
-      dayInterval: 30,
+      interval: 30,
       isIncome: true,
     });
     expect(apiServiceSpy.createForecastDefinition).not.toHaveBeenCalled();
@@ -270,7 +270,7 @@ describe('App', () => {
       amount: 1000,
       recurrenceStart: '2026-04-01',
       recurrenceEnd: null,
-      dayInterval: 30,
+      interval: 30,
       isIncome: true,
     };
 

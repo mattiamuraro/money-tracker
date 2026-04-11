@@ -140,7 +140,7 @@ describe('MoneyTrackerApiService', () => {
       amount: 2500,
       recurrenceStart: '2026-04-01',
       recurrenceEnd: '',
-      dayInterval: 30,
+      interval: 30,
       isIncome: true,
     };
 
@@ -154,7 +154,7 @@ describe('MoneyTrackerApiService', () => {
       amount: 2500,
       recurrenceStart: '2026-04-01',
       recurrenceEnd: null,
-      dayInterval: 30,
+      interval: 30,
       isIncome: true,
     });
 
@@ -170,7 +170,7 @@ describe('MoneyTrackerApiService', () => {
       amount: 900,
       recurrenceStart: '2026-04-01',
       recurrenceEnd: '2026-12-31',
-      dayInterval: 30,
+      interval: 30,
       isIncome: false,
     };
 
@@ -184,7 +184,7 @@ describe('MoneyTrackerApiService', () => {
       amount: 900,
       recurrenceStart: '2026-04-01',
       recurrenceEnd: '2026-12-31',
-      dayInterval: 30,
+      interval: 30,
       isIncome: false,
     });
 

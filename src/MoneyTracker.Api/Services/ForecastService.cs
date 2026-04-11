@@ -11,13 +11,11 @@ namespace MoneyTracker.BusinessLogic.Services
     public class ForecastService
     {
         private readonly MoneyTrackerDbContext _dbContext;
-        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<ForecastService> _logger;
 
-        public ForecastService(MoneyTrackerDbContext dbContext, IHttpContextAccessor httpContextAccessor, ILogger<ForecastService> logger)
+        public ForecastService(MoneyTrackerDbContext dbContext, ILogger<ForecastService> logger)
         {
             _dbContext = dbContext;
-            _httpContextAccessor = httpContextAccessor;
             _logger = logger;
         }
 
@@ -272,7 +270,7 @@ namespace MoneyTracker.BusinessLogic.Services
             forecast.Amount = request.Amount;
             forecast.RecurrenceStart = request.RecurrenceStart;
             forecast.RecurrenceEnd = request.RecurrenceEnd;
-            forecast.Interval = request.DayInterval;
+            forecast.Interval = request.Interval;
             forecast.ForecastRecurrenceRuleTypeId = recurrenceRuleType.Id;
             forecast.ForecastRecurrenceRuleType = recurrenceRuleType;
         }
@@ -294,7 +292,7 @@ namespace MoneyTracker.BusinessLogic.Services
             forecast.Amount = request.Amount;
             forecast.RecurrenceStart = request.RecurrenceStart;
             forecast.RecurrenceEnd = request.RecurrenceEnd;
-            forecast.Interval = request.DayInterval;
+            forecast.Interval = request.Interval;
             forecast.ForecastRecurrenceRuleTypeId = recurrenceRuleType.Id;
             forecast.ForecastRecurrenceRuleType = recurrenceRuleType;
 
@@ -311,7 +309,7 @@ namespace MoneyTracker.BusinessLogic.Services
                 Amount = forecast.Amount,
                 RecurrenceStart = forecast.RecurrenceStart,
                 RecurrenceEnd = forecast.RecurrenceEnd,
-                DayInterval = forecast.Interval ?? 1,
+                Interval = forecast.Interval ?? 1,
                 IsIncome = isIncome
             };
         }

@@ -18,7 +18,7 @@ public class UpdateForecastRequest
     public DateOnly? RecurrenceEnd { get; set; }
 
     [Range(1, 365)]
-    public int DayInterval { get; set; }
+    public int Interval { get; set; }
 
     public bool IsIncome { get; set; }
 }

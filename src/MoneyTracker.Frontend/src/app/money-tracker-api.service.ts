@@ -94,7 +94,7 @@ export class MoneyTrackerApiService {
         amount: model.amount,
         recurrenceStart: model.recurrenceStart,
         recurrenceEnd: model.recurrenceEnd || null,
-        dayInterval: model.dayInterval,
+        interval: model.interval,
         isIncome: model.isIncome,
       })
     );
@@ -108,7 +108,7 @@ export class MoneyTrackerApiService {
         amount: model.amount,
         recurrenceStart: model.recurrenceStart,
         recurrenceEnd: model.recurrenceEnd || null,
-        dayInterval: model.dayInterval,
+        interval: model.interval,
         isIncome: model.isIncome,
       })
     );

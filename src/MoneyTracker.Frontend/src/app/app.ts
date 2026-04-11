@@ -190,7 +190,7 @@ export class App implements OnInit {
     const selectedRecurrenceTypeId = this.forecastForm.forecastRecurrenceRuleTypeId.trim();
     const isOneTime = this.isOneTimeRecurrenceTypeId(selectedRecurrenceTypeId);
 
-    if (!selectedRecurrenceTypeId || !this.forecastForm.description.trim() || !this.forecastForm.amount || !this.forecastForm.recurrenceStart || (!isOneTime && this.forecastForm.dayInterval < 1)) {
+    if (!selectedRecurrenceTypeId || !this.forecastForm.description.trim() || !this.forecastForm.amount || !this.forecastForm.recurrenceStart || (!isOneTime && this.forecastForm.interval < 1)) {
       this.errorMessage = 'Complete all required forecast fields before saving.';
       this.successMessage = '';
       return;
@@ -202,7 +202,7 @@ export class App implements OnInit {
     const model: ForecastFormModel = {
       ...this.forecastForm,
       forecastRecurrenceRuleTypeId: selectedRecurrenceTypeId,
-      dayInterval: isOneTime ? 1 : this.forecastForm.dayInterval,
+      interval: isOneTime ? 1 : this.forecastForm.interval,
       description: this.forecastForm.description.trim(),
     };
 
@@ -232,7 +232,7 @@ export class App implements OnInit {
       amount: definition.amount,
       recurrenceStart: this.toInputDate(definition.recurrenceStart),
       recurrenceEnd: definition.recurrenceEnd ? this.toInputDate(definition.recurrenceEnd) : '',
-      dayInterval: definition.dayInterval,
+      interval: definition.interval,
       isIncome: definition.isIncome,
     };
     this.successMessage = '';
@@ -275,14 +275,14 @@ export class App implements OnInit {
 
   public onForecastRecurrenceTypeChanged(): void {
     if (this.isOneTimeRecurrenceTypeSelected()) {
-      this.forecastForm.dayInterval = 1;
+      this.forecastForm.interval = 1;
     }
   }
 
   public getRecurrenceSummary(definition: ForecastDefinition): string {
     return this.isOneTimeRecurrenceTypeId(definition.forecastRecurrenceRuleTypeId)
       ? 'One time'
-      : `Every ${definition.dayInterval} day${definition.dayInterval > 1 ? 's' : ''}`;
+      : `Every ${definition.interval} day${definition.interval > 1 ? 's' : ''}`;
   }
 
   public get paymentTotal(): number {
@@ -406,7 +406,7 @@ export class App implements OnInit {
       amount: null,
       recurrenceStart: this.toInputDate(new Date()),
       recurrenceEnd: '',
-      dayInterval: 1,
+      interval: 1,
       isIncome: false,
     };
   }
