@@ -1,4 +1,7 @@
 import { Component, NgZone, OnInit } from '@angular/core';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs/operators';
+import { AuthService } from './auth/auth.service';
 import { MoneyTrackerApiService } from './money-tracker-api.service';
 import {
   ForecastDefinition,
@@ -19,6 +22,7 @@ import {
 export class App implements OnInit {
   public readonly title = 'Money Tracker';
   public isLoading = true;
+  public isLoginRoute = false;
   public isSavingPayment = false;
   public isSavingForecast = false;
   public successMessage = '';
@@ -50,10 +54,28 @@ export class App implements OnInit {
 
   constructor(
     private readonly moneyTrackerApiService: MoneyTrackerApiService,
-    private readonly ngZone: NgZone) {}
+    private readonly ngZone: NgZone,
+    private readonly authService: AuthService,
+    private readonly router: Router
+  ) {}
 
   async ngOnInit(): Promise<void> {
-    await this.reloadDashboard();
+    this.isLoginRoute = this.router.url.startsWith('/login');
+
+    this.router.events.pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd)
+    ).subscribe(async (e: NavigationEnd) => {
+      const wasLogin = this.isLoginRoute;
+      this.isLoginRoute = e.urlAfterRedirects.startsWith('/login');
+
+      if (wasLogin && !this.isLoginRoute) {
+        await this.reloadDashboard();
+      }
+    });
+
+    if (!this.isLoginRoute) {
+      await this.reloadDashboard();
+    }
   }
 
   public async reloadDashboard(): Promise<void> {
@@ -415,5 +437,9 @@ export class App implements OnInit {
     }
 
     return fallbackMessage;
+  }
+
+  public logout(): void {
+    this.authService.logout();
   }
 }

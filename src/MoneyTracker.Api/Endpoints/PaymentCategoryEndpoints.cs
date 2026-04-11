@@ -11,7 +11,8 @@ namespace MoneyTracker.Api.Endpoints
         internal static WebApplication AddPaymentCategoryApis(this WebApplication app)
         {
             var group = app.MapGroup("/api/v1/categories")
-                        .WithTags("Payment Categories");
+                        .WithTags("Payment Categories")
+                        .RequireAuthorization();
 
             // GET all categories
             group.MapGet("/", static async ([FromServices] PaymentCategoryService paymentCategoryService, CancellationToken cancellationToken) => await paymentCategoryService.GetAllCategoriesAsync(cancellationToken))

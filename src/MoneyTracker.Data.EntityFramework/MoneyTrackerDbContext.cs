@@ -1,26 +1,40 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using MoneyTracker.Data.Base;
+using System.Security.Claims;
 
 namespace MoneyTracker.Data.EntityFramework
 {
     public class MoneyTrackerDbContext : DbContext
     {
+        private readonly IHttpContextAccessor? _httpContextAccessor;
+
         public DbSet<Payment> Payments { get; set; }
         public DbSet<PaymentCategory> PaymentCategories { get; set; }
 
         public DbSet<ForecastExpense> ForecastExpenses { get; set; }
         public DbSet<ForecastIncome> ForecastIncomes { get; set; }
         public DbSet<ForecastRecurrenceRuleType> ForecastRecurrenceRuleTypes { get; set; }
-        
+        public DbSet<User> Users { get; set; }
 
-
-        public MoneyTrackerDbContext(DbContextOptions<MoneyTrackerDbContext> options)
+        public MoneyTrackerDbContext(DbContextOptions<MoneyTrackerDbContext> options, IHttpContextAccessor? httpContextAccessor = null)
             : base(options)
-        { }
+        {
+            _httpContextAccessor = httpContextAccessor;
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Username).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.PasswordHash).IsRequired();
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.HasIndex(e => e.Username).IsUnique();
+            });
 
             // Configure Payment entity with soft delete support
             modelBuilder.Entity<Payment>(entity =>
@@ -168,10 +182,9 @@ namespace MoneyTracker.Data.EntityFramework
         /// Gets the current user identifier. Override this method to implement your own logic
         /// for retrieving the current user (e.g., from HttpContext, claims, etc.)
         /// </summary>
-        protected virtual string GetCurrentUser()
+        protected string GetCurrentUser()
         {
-            // Default implementation - override in derived class or set via dependency injection
-            return "System";
+            return _httpContextAccessor?.HttpContext?.User?.FindFirstValue(ClaimTypes.Name) ?? "System";
         }
     }
 }

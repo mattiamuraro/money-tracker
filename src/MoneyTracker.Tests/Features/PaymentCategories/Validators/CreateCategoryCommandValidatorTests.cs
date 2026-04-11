@@ -15,8 +15,7 @@ public class CreateCategoryCommandValidatorTests
         var command = new CreateCategoryCommand
         {
             Name = string.Empty,
-            Code = "FOOD",
-            CreatedBy = "tester"
+            Code = "FOOD"
         };
 
         var result = _validator.TestValidate(command);
@@ -30,8 +29,7 @@ public class CreateCategoryCommandValidatorTests
         var command = new CreateCategoryCommand
         {
             Name = "Food",
-            Code = "food-1",
-            CreatedBy = "tester"
+            Code = "food-1"
         };
 
         var result = _validator.TestValidate(command);
@@ -40,28 +38,12 @@ public class CreateCategoryCommandValidatorTests
     }
 
     [Fact]
-    public void Should_Fail_When_CreatedBy_Is_Empty()
-    {
-        var command = new CreateCategoryCommand
-        {
-            Name = "Food",
-            Code = "FOOD",
-            CreatedBy = string.Empty
-        };
-
-        var result = _validator.TestValidate(command);
-
-        result.ShouldHaveValidationErrorFor(x => x.CreatedBy);
-    }
-
-    [Fact]
     public void Should_Succeed_When_Command_Is_Valid()
     {
         var command = new CreateCategoryCommand
         {
             Name = "Food",
-            Code = "FOOD",
-            CreatedBy = "tester"
+            Code = "FOOD"
         };
 
         var result = _validator.TestValidate(command);

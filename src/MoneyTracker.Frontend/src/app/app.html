@@ -1,31 +1,47 @@
-<div class="app-shell">
-  <header class="hero-panel">
-    <div>
-      <p class="eyebrow">Finance home</p>
-      <h1>{{ title }}</h1>
-      <p class="hero-copy">
-        Manage daily payments and recurring forecasts from one clear workspace with live summaries,
-        inline editing, and a fast overview of what is coming next.
-      </p>
-    </div>
-
-    <div class="hero-actions">
-      <a class="secondary-button nav-link" routerLink="/" routerLinkActive="nav-link-active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
-      <a class="secondary-button nav-link" routerLink="/payments" routerLinkActive="nav-link-active">Payments</a>
-      <a class="secondary-button nav-link" routerLink="/forecasts" routerLinkActive="nav-link-active">Forecasts</a>
-      <button class="primary-button" type="button" (click)="reloadDashboard()" [disabled]="isLoading">
-        {{ isLoading ? 'Refreshing...' : 'Refresh data' }}
-      </button>
-    </div>
-  </header>
-
-  <section *ngIf="successMessage" class="banner banner-success">
-    {{ successMessage }}
-  </section>
-
-  <section *ngIf="errorMessage" class="banner banner-error">
-    {{ errorMessage }}
-  </section>
-
+<ng-container *ngIf="isLoginRoute; else mainLayout">
   <router-outlet></router-outlet>
-</div>
+</ng-container>
+
+<ng-template #mainLayout>
+  <div class="app-shell">
+
+    <nav class="app-nav">
+      <a class="nav-brand" routerLink="/">
+        <span class="nav-brand-icon">MT</span>
+        <span class="nav-brand-name">Money Tracker</span>
+      </a>
+
+      <div class="nav-links">
+        <a class="nav-link" routerLink="/" routerLinkActive="nav-link-active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+        <a class="nav-link" routerLink="/payments" routerLinkActive="nav-link-active">Payments</a>
+        <a class="nav-link" routerLink="/forecasts" routerLinkActive="nav-link-active">Forecasts</a>
+      </div>
+
+      <div class="nav-actions">
+        <button
+          class="nav-refresh-btn"
+          type="button"
+          (click)="reloadDashboard()"
+          [disabled]="isLoading"
+          [class.is-spinning]="isLoading"
+          title="Refresh data"
+        >&#x21BB;</button>
+
+        <button class="nav-signout-btn" type="button" (click)="logout()">
+          Sign out
+        </button>
+      </div>
+    </nav>
+
+    <section *ngIf="successMessage" class="banner banner-success">
+      {{ successMessage }}
+    </section>
+
+    <section *ngIf="errorMessage" class="banner banner-error">
+      {{ errorMessage }}
+    </section>
+
+    <router-outlet></router-outlet>
+
+  </div>
+</ng-template>

@@ -8,6 +8,5 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.UpdateC
         public Guid Id { get; set; }
         public required string Name { get; set; }
         public required string Code { get; set; }
-        public required string ModifiedBy { get; set; }
     }
 }

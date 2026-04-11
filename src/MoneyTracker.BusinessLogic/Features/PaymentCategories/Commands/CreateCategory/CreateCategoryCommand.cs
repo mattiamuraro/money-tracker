@@ -7,6 +7,5 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.CreateC
     {
         public required string Name { get; set; }
         public required string Code { get; set; }
-        public required string CreatedBy { get; set; }
     }
 }

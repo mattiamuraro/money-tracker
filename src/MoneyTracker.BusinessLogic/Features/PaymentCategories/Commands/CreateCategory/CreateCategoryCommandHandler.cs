@@ -26,11 +26,7 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.CreateC
             {
                 Id = Guid.NewGuid(),
                 Name = request.Name,
-                Code = request.Code,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = request.CreatedBy,
-                ModifiedAt = DateTime.UtcNow,
-                ModifiedBy = request.CreatedBy
+                Code = request.Code
             };
 
             _dbContext.PaymentCategories.Add(category);

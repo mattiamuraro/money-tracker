@@ -132,10 +132,8 @@ namespace MoneyTracker.BusinessLogic.Services
                 if (request.RecurrenceEnd.HasValue && request.RecurrenceEnd.Value < request.RecurrenceStart)
                     return Results.BadRequest(new { message = "Recurrence end date cannot be earlier than recurrence start date." });
 
-                var actor = GetActor();
-                var now = DateTime.UtcNow;
                 var recurrenceRuleType = await GetRecurrenceRuleTypeAsync(request.ForecastRecurrenceRuleTypeId, cancellationToken);
-                var forecast = CreateForecastEntity(request, recurrenceRuleType, actor, now);
+                var forecast = CreateForecastEntity(request, recurrenceRuleType);
 
                 if (request.IsIncome)
                     _dbContext.ForecastIncomes.Add((ForecastIncome)forecast);
@@ -231,12 +229,9 @@ namespace MoneyTracker.BusinessLogic.Services
 
         private async Task UpdateForecastAsync(Guid id, BaseForecast existingForecast, UpdateForecastRequest request, ForecastRecurrenceRuleType recurrenceRuleType, bool isIncome, CancellationToken cancellationToken)
         {
-            var actor = GetActor();
-            var now = DateTime.UtcNow;
-
             if (isIncome == request.IsIncome)
             {
-                ApplyForecastValues(existingForecast, request, recurrenceRuleType, actor, now);
+                ApplyForecastValues(existingForecast, request, recurrenceRuleType);
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 return;
             }
@@ -244,22 +239,18 @@ namespace MoneyTracker.BusinessLogic.Services
             BaseForecast replacement = request.IsIncome
                 ? new ForecastIncome
                 {
-                    Description = existingForecast.Description,
-                    CreatedBy = existingForecast.CreatedBy,
-                    ModifiedBy = actor
+                    Description = existingForecast.Description
                 }
                 : new ForecastExpense
                 {
-                    Description = existingForecast.Description,
-                    CreatedBy = existingForecast.CreatedBy,
-                    ModifiedBy = actor
+                    Description = existingForecast.Description
                 };
 
             replacement.Id = id;
             replacement.CreatedAt = existingForecast.CreatedAt;
             replacement.CreatedBy = existingForecast.CreatedBy;
 
-            ApplyForecastValues(replacement, request, recurrenceRuleType, actor, now);
+            ApplyForecastValues(replacement, request, recurrenceRuleType);
 
             if (isIncome)
             {
@@ -275,7 +266,7 @@ namespace MoneyTracker.BusinessLogic.Services
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        private static void ApplyForecastValues(BaseForecast forecast, UpdateForecastRequest request, ForecastRecurrenceRuleType recurrenceRuleType, string actor, DateTime now)
+        private static void ApplyForecastValues(BaseForecast forecast, UpdateForecastRequest request, ForecastRecurrenceRuleType recurrenceRuleType)
         {
             forecast.Description = request.Description;
             forecast.Amount = request.Amount;
@@ -284,24 +275,18 @@ namespace MoneyTracker.BusinessLogic.Services
             forecast.Interval = request.DayInterval;
             forecast.ForecastRecurrenceRuleTypeId = recurrenceRuleType.Id;
             forecast.ForecastRecurrenceRuleType = recurrenceRuleType;
-            forecast.ModifiedAt = now;
-            forecast.ModifiedBy = actor;
         }
 
-        private static BaseForecast CreateForecastEntity(CreateForecastRequest request, ForecastRecurrenceRuleType recurrenceRuleType, string actor, DateTime now)
+        private static BaseForecast CreateForecastEntity(CreateForecastRequest request, ForecastRecurrenceRuleType recurrenceRuleType)
         {
             BaseForecast forecast = request.IsIncome
                 ? new ForecastIncome
                 {
-                    Description = request.Description,
-                    CreatedBy = actor,
-                    ModifiedBy = actor
+                    Description = request.Description
                 }
                 : new ForecastExpense
                 {
-                    Description = request.Description,
-                    CreatedBy = actor,
-                    ModifiedBy = actor
+                    Description = request.Description
                 };
 
             forecast.Id = Guid.NewGuid();
@@ -312,10 +297,6 @@ namespace MoneyTracker.BusinessLogic.Services
             forecast.Interval = request.DayInterval;
             forecast.ForecastRecurrenceRuleTypeId = recurrenceRuleType.Id;
             forecast.ForecastRecurrenceRuleType = recurrenceRuleType;
-            forecast.CreatedAt = now;
-            forecast.CreatedBy = actor;
-            forecast.ModifiedAt = now;
-            forecast.ModifiedBy = actor;
 
             return forecast;
         }
@@ -354,8 +335,6 @@ namespace MoneyTracker.BusinessLogic.Services
             return recurrenceRuleType
                 ?? throw new InvalidOperationException($"Forecast recurrence rule type '{requestedId}' was not found.");
         }
-
-        private string GetActor() => _httpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value ?? "System";
 
         private List<ForecastRow> GetForecastRow<T>(List<T> forecasts, DateOnly startDate, DateOnly endDate, bool isIncome = false) where T : BaseForecast
         {

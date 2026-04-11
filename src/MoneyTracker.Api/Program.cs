@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using MoneyTracker.Api.Endpoints;
 using MoneyTracker.ApiService.ExtensionMethods;
 using MoneyTracker.ApiService.Middleware;
 using MoneyTracker.BusinessLogic.Extensions;
 using MoneyTracker.Data.EntityFramework;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -75,6 +78,25 @@ builder.AddSqlServerDbContext<MoneyTrackerDbContext>("moneytacker-db");
 // Register business logic services and handlers
 builder.Services.AddBusinessLogicServices();
 
+// Configure JWT Bearer authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -97,6 +119,10 @@ app.UseResponseCompression();
 // Use CORS
 app.UseCors("default");
 
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.AddAuthApis();
 app.AddPaymentApis();
 app.AddPaymentCategoryApis();
 app.AddForecastApis();

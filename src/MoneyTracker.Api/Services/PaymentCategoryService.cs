@@ -104,8 +104,7 @@ namespace MoneyTracker.Api.Services
                 var command = new CreateCategoryCommand
                 {
                     Name = request.Name,
-                    Code = request.Code,
-                    CreatedBy = _httpContext.User?.FindFirst("sub")?.Value ?? "System"
+                    Code = request.Code
                 };
 
                 await _createCategoryCommandValidator.ValidateAndThrowAsync(command, cancellationToken);
@@ -147,8 +146,7 @@ namespace MoneyTracker.Api.Services
                 {
                     Id = id,
                     Name = request.Name,
-                    Code = request.Code,
-                    ModifiedBy = _httpContext.User?.FindFirst("sub")?.Value ?? "System"
+                    Code = request.Code
                 };
 
                 await _updateCategoryCommandValidator.ValidateAndThrowAsync(command, cancellationToken);

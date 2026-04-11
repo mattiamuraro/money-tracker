@@ -111,7 +111,6 @@ namespace MoneyTracker.Api.Services
             try
             {
                 _logger.LogInformation("Creating new payment");
-                command.CreatedBy = _httpContext.User?.FindFirst("sub")?.Value ?? "System";
 
                 // Extract idempotency key from header if present
                 var idempotencyKey = _httpContext.Request.Headers["X-Idempotency-Key"].ToString();
@@ -154,7 +153,6 @@ namespace MoneyTracker.Api.Services
             {
                 _logger.LogInformation("Updating payment with ID: {PaymentId}", id);
                 command.PaymentId = id;
-                command.ModifiedBy = _httpContext.User?.FindFirst("sub")?.Value ?? "System";
 
                 await _updatePaymentCommandValidator.ValidateAndThrowAsync(command, cancellationToken);
 

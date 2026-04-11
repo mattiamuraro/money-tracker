@@ -18,9 +18,6 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Validators
                 .NotEmpty().WithMessage("Category code is required.")
                 .MaximumLength(5).WithMessage("Category code cannot exceed 5 characters.")
                 .Matches(@"^[A-Z0-9]+$").WithMessage("Category code must contain only uppercase letters and numbers.");
-
-            RuleFor(x => x.CreatedBy)
-                .NotEmpty().WithMessage("CreatedBy field is required.");
         }
     }
 }

@@ -8,12 +8,14 @@ public class MigrationWorker : IHostedService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<MigrationWorker> _logger;
+    private readonly IConfiguration _configuration;
     private readonly string _actor;
 
-    public MigrationWorker(IServiceProvider serviceProvider, ILogger<MigrationWorker> logger)
+    public MigrationWorker(IServiceProvider serviceProvider, ILogger<MigrationWorker> logger, IConfiguration configuration)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _configuration = configuration;
         _actor = "MigrationService";
     }
 
@@ -30,7 +32,7 @@ public class MigrationWorker : IHostedService
             await db.Database.MigrateAsync(cancellationToken);
             _logger.LogInformation("Migrations applied successfully.");
 
-            await db.SeedDefaultDataAsync(_actor, _logger, cancellationToken);
+            await db.SeedDefaultDataAsync(_actor, _logger, _configuration, cancellationToken);
 
             _logger.LogInformation("Seeded default data.");
         }
@@ -40,13 +42,11 @@ public class MigrationWorker : IHostedService
             throw;
         }
 
-        // The worker shuts down immediately after migration
         _logger.LogInformation("Migration worker completed. Shutting down.");
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        // Nothing to do: the worker terminates right after StartAsync
         return Task.CompletedTask;
     }
 }

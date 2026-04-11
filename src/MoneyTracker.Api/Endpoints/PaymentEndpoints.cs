@@ -14,7 +14,8 @@ namespace MoneyTracker.Api.Endpoints
         internal static WebApplication AddPaymentApis(this WebApplication app)
         {
             var group = app.MapGroup("/api/v1/payments")
-                        .WithTags("Payments");
+                        .WithTags("Payments")
+                        .RequireAuthorization();
 
             // GET all payments with pagination and filtering
             group.MapGet("/", static async ([FromServices] PaymentService paymentService, [AsParameters] PaymentFilterQuery paymentFilterQuery, CancellationToken cancellationToken) => await paymentService.GetPaymentsAsync(paymentFilterQuery, cancellationToken))

@@ -16,8 +16,7 @@ public class UpdateCategoryCommandValidatorTests
         {
             Id = Guid.Empty,
             Name = "Food",
-            Code = "FOOD",
-            ModifiedBy = "tester"
+            Code = "FOOD"
         };
 
         var result = _validator.TestValidate(command);
@@ -32,29 +31,12 @@ public class UpdateCategoryCommandValidatorTests
         {
             Id = Guid.NewGuid(),
             Name = "Food",
-            Code = "food",
-            ModifiedBy = "tester"
+            Code = "food"
         };
 
         var result = _validator.TestValidate(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Code);
-    }
-
-    [Fact]
-    public void Should_Fail_When_ModifiedBy_Is_Empty()
-    {
-        var command = new UpdateCategoryCommand
-        {
-            Id = Guid.NewGuid(),
-            Name = "Food",
-            Code = "FOOD",
-            ModifiedBy = string.Empty
-        };
-
-        var result = _validator.TestValidate(command);
-
-        result.ShouldHaveValidationErrorFor(x => x.ModifiedBy);
     }
 
     [Fact]
@@ -64,8 +46,7 @@ public class UpdateCategoryCommandValidatorTests
         {
             Id = Guid.NewGuid(),
             Name = "Food",
-            Code = "FOOD",
-            ModifiedBy = "tester"
+            Code = "FOOD"
         };
 
         var result = _validator.TestValidate(command);

@@ -11,7 +11,8 @@ namespace MoneyTracker.Api.Endpoints
         internal static WebApplication AddForecastApis(this WebApplication app)
         {
             var group = app.MapGroup("/api/v1/forecasts")
-                        .WithTags("Forecasts");
+                        .WithTags("Forecasts")
+                        .RequireAuthorization();
 
             // GET all forecasts for a date range
             group.MapGet("/", static async ([FromServices] ForecastService forecastService, [FromQuery] DateOnly? startDate, [FromQuery] DateOnly? endDate, CancellationToken cancellationToken) =>

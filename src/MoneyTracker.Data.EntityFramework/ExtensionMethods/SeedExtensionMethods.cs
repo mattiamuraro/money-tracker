@@ -1,5 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using MoneyTracker.Data;
 using MoneyTracker.Data.Base;
 using System.Data;
 
@@ -10,6 +13,40 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
         public static async Task SeedDefaultDataAsync(this MoneyTrackerDbContext db, string actor, ILogger logger, CancellationToken cancellationToken)
         {
             await db.SeedDefaultDataAsync(forecastRecurrenceRuleTypes, actor, logger, cancellationToken);
+        }
+
+        public static async Task SeedDefaultDataAsync(this MoneyTrackerDbContext db, string actor, ILogger logger, IConfiguration configuration, CancellationToken cancellationToken)
+        {
+            await db.SeedDefaultDataAsync(forecastRecurrenceRuleTypes, actor, logger, cancellationToken);
+            await db.SeedAdminUserAsync(logger, configuration, cancellationToken);
+        }
+
+        private static async Task SeedAdminUserAsync(this MoneyTrackerDbContext db, ILogger logger, IConfiguration configuration, CancellationToken cancellationToken)
+        {
+            if (await db.Users.AnyAsync(cancellationToken))
+                return;
+
+            var username = configuration["Auth:Username"];
+            var password = configuration["Auth:Password"];
+
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                logger.LogWarning("Admin user not seeded: Auth:Username or Auth:Password not configured.");
+                return;
+            }
+
+            var hasher = new PasswordHasher<User>();
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                Username = username,
+                PasswordHash = hasher.HashPassword(null!, password),
+            };
+
+            db.Users.Add(user);
+            await db.SaveChangesAsync(cancellationToken);
+
+            logger.LogInformation("Seeded admin user '{Username}'.", username);
         }
 
         private static async Task SeedDefaultDataAsync<T>(this MoneyTrackerDbContext db, T[] entities, string actor, ILogger logger, CancellationToken cancellationToken) where T : BaseContextEntity

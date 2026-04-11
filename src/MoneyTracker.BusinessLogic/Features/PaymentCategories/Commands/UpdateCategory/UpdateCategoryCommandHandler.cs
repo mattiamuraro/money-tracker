@@ -30,8 +30,6 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.UpdateC
 
             category.Name = request.Name;
             category.Code = request.Code;
-            category.ModifiedAt = DateTime.UtcNow;
-            category.ModifiedBy = request.ModifiedBy;
 
             _dbContext.PaymentCategories.Update(category);
             await _dbContext.SaveChangesAsync(cancellationToken);
