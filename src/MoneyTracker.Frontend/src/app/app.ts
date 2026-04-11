@@ -9,6 +9,7 @@ import {
   ForecastRecurrenceRuleTypeOption,
   ForecastRow,
   PaymentCategory,
+  PaymentCategoryFormModel,
   PaymentFormModel,
   PaymentRow,
 } from './models';
@@ -25,6 +26,7 @@ export class App implements OnInit {
   public isLoginRoute = false;
   public isSavingPayment = false;
   public isSavingForecast = false;
+  public isSavingCategory = false;
   public successMessage = '';
   public errorMessage = '';
   public theme: 'light' | 'dark' = 'dark';
@@ -37,9 +39,11 @@ export class App implements OnInit {
 
   public editingPaymentId: string | null = null;
   public editingForecastId: string | null = null;
+  public editingCategoryId: string | null = null;
 
   public paymentForm = this.createEmptyPaymentForm();
   public forecastForm = this.createEmptyForecastForm();
+  public categoryForm = this.createEmptyCategoryForm();
 
   private readonly paymentQuery = {
     pageNumber: 1,
@@ -236,6 +240,81 @@ export class App implements OnInit {
     }
   }
 
+  public async submitCategory(): Promise<void> {
+    const name = this.categoryForm.name.trim();
+    const code = this.categoryForm.code.trim().toUpperCase();
+
+    if (!name || !code) {
+      this.errorMessage = 'Complete all required category fields before saving.';
+      this.successMessage = '';
+      return;
+    }
+
+    this.isSavingCategory = true;
+    this.clearMessages();
+
+    const model: PaymentCategoryFormModel = {
+      name,
+      code,
+    };
+
+    try {
+      if (this.editingCategoryId) {
+        await this.moneyTrackerApiService.updateCategory(this.editingCategoryId, model);
+        this.successMessage = 'Category updated successfully.';
+      } else {
+        await this.moneyTrackerApiService.createCategory(model);
+        this.successMessage = 'Category created successfully.';
+      }
+
+      await Promise.all([this.loadCategories(), this.loadPayments()]);
+      this.resetCategoryForm();
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error, 'Unable to save the category.');
+    } finally {
+      this.isSavingCategory = false;
+    }
+  }
+
+  public startCategoryEdit(category: PaymentCategory): void {
+    this.editingCategoryId = category.id;
+    this.categoryForm = {
+      name: category.name,
+      code: category.code,
+    };
+    this.successMessage = '';
+    this.errorMessage = '';
+  }
+
+  public cancelCategoryEdit(): void {
+    this.resetCategoryForm();
+    this.clearMessages();
+  }
+
+  public async deleteCategory(category: PaymentCategory): Promise<void> {
+    if (!confirm(`Delete category "${category.name}"?`)) {
+      return;
+    }
+
+    this.clearMessages();
+
+    try {
+      await this.moneyTrackerApiService.deleteCategory(category.id);
+      await Promise.all([this.loadCategories(), this.loadPayments()]);
+      this.successMessage = 'Category deleted successfully.';
+
+      if (this.editingCategoryId === category.id) {
+        this.resetCategoryForm();
+      }
+
+      if (this.paymentForm.paymentCategoryId === category.id) {
+        this.paymentForm.paymentCategoryId = '';
+      }
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error, 'Unable to delete the category.');
+    }
+  }
+
   public startForecastEdit(definition: ForecastDefinition): void {
     this.editingForecastId = definition.id;
     this.forecastForm = {
@@ -347,10 +426,19 @@ export class App implements OnInit {
     this.forecastForm = this.createEmptyForecastForm();
   }
 
+  public resetCategoryForm(): void {
+    this.editingCategoryId = null;
+    this.categoryForm = this.createEmptyCategoryForm();
+  }
+
   private async loadCategories(): Promise<void> {
     const categories = await this.moneyTrackerApiService.getCategories();
     this.ngZone.run(() => {
       this.categories = [...categories].sort((left, right) => left.name.localeCompare(right.name));
+
+      if (this.paymentForm.paymentCategoryId && !this.categories.some((x) => x.id === this.paymentForm.paymentCategoryId)) {
+        this.paymentForm.paymentCategoryId = '';
+      }
     });
   }
 
@@ -420,6 +508,13 @@ export class App implements OnInit {
       recurrenceEnd: '',
       interval: 1,
       isIncome: false,
+    };
+  }
+
+  private createEmptyCategoryForm(): PaymentCategoryFormModel {
+    return {
+      name: '',
+      code: '',
     };
   }
 

@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
 import { AuthInterceptor } from './auth/auth.interceptor';
+import { AdminCategoriesPageComponent } from './pages/admin-categories-page.component';
 import { ForecastsPageComponent } from './pages/forecasts-page.component';
 import { HomePageComponent } from './pages/home-page.component';
 import { LoginPageComponent } from './pages/login-page.component';
@@ -18,6 +19,7 @@ import { PaymentsPageComponent } from './pages/payments-page.component';
     PaymentsPageComponent,
     ForecastsPageComponent,
     LoginPageComponent,
+    AdminCategoriesPageComponent,
   ],
   imports: [
     BrowserModule,

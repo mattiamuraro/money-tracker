@@ -18,6 +18,11 @@ export interface PaymentCategory {
   modifiedBy: string;
 }
 
+export interface PaymentCategoryFormModel {
+  name: string;
+  code: string;
+}
+
 export interface PaymentRow {
   id: string;
   description: string;

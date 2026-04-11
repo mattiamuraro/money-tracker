@@ -8,6 +8,7 @@ import {
   ForecastRow,
   PaginatedResponse,
   PaymentCategory,
+  PaymentCategoryFormModel,
   PaymentFormModel,
   PaymentQuery,
   PaymentRow,
@@ -23,6 +24,28 @@ export class MoneyTrackerApiService {
 
   getCategories(): Promise<PaymentCategory[]> {
     return firstValueFrom(this.httpClient.get<PaymentCategory[]>(`${this.apiBaseUrl}/categories`));
+  }
+
+  createCategory(model: PaymentCategoryFormModel): Promise<string> {
+    return firstValueFrom(
+      this.httpClient.post<string>(`${this.apiBaseUrl}/categories`, {
+        name: model.name,
+        code: model.code,
+      })
+    );
+  }
+
+  updateCategory(id: string, model: PaymentCategoryFormModel): Promise<void> {
+    return firstValueFrom(
+      this.httpClient.put<void>(`${this.apiBaseUrl}/categories/${id}`, {
+        name: model.name,
+        code: model.code,
+      })
+    );
+  }
+
+  deleteCategory(id: string): Promise<void> {
+    return firstValueFrom(this.httpClient.delete<void>(`${this.apiBaseUrl}/categories/${id}`));
   }
 
   getPayments(query: PaymentQuery): Promise<PaginatedResponse<PaymentRow>> {

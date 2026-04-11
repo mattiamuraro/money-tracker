@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { AdminCategoriesPageComponent } from './pages/admin-categories-page.component';
 import { ForecastsPageComponent } from './pages/forecasts-page.component';
 import { HomePageComponent } from './pages/home-page.component';
 import { LoginPageComponent } from './pages/login-page.component';
@@ -11,6 +12,7 @@ const routes: Routes = [
   { path: '', component: HomePageComponent, canActivate: [authGuard] },
   { path: 'payments', component: PaymentsPageComponent, canActivate: [authGuard] },
   { path: 'forecasts', component: ForecastsPageComponent, canActivate: [authGuard] },
+  { path: 'admin/categories', component: AdminCategoriesPageComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '' },
 ];
 
