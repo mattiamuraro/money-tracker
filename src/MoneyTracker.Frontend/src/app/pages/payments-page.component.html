@@ -268,9 +268,10 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let payment of app.payments; trackBy: app.trackById">
+              <tr *ngFor="let payment of app.payments; trackBy: app.trackById" [class.future-dated-row]="isFutureDated(payment.date)">
                 <td>
                   <strong>{{ payment.description }}</strong>
+                  <span *ngIf="isFutureDated(payment.date)" class="scheduled-badge">Scheduled</span>
                 </td>
                 <td>
                   <span class="tag">{{ payment.category }}</span>
@@ -436,9 +437,10 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let income of app.incomes; trackBy: app.trackById">
+              <tr *ngFor="let income of app.incomes; trackBy: app.trackById" [class.future-dated-row]="isFutureDated(income.date)">
                 <td>
                   <strong>{{ income.description }}</strong>
+                  <span *ngIf="isFutureDated(income.date)" class="scheduled-badge">Scheduled</span>
                 </td>
                 <td>{{ income.date | date:'dd MMM yyyy' }}</td>
                 <td class="align-right">{{ income.amount | currency:'EUR':'symbol':'1.2-2' }}</td>

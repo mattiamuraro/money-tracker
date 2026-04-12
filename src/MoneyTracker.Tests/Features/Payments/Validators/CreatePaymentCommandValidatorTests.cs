@@ -102,7 +102,7 @@ public class CreatePaymentCommandValidatorTests
     }
 
     [Fact]
-    public void Should_Fail_When_Date_Is_In_Future()
+    public void Should_Allow_When_Date_Is_In_Future()
     {
         // Arrange
         var command = new CreatePaymentCommand
@@ -119,7 +119,7 @@ public class CreatePaymentCommandValidatorTests
         var result = _validator.TestValidate(command);
 
         // Assert
-        result.ShouldHaveValidationErrorFor(x => x.Date);
+        result.ShouldNotHaveValidationErrorFor(x => x.Date);
     }
 
     [Fact]

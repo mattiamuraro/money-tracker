@@ -26,9 +26,7 @@ public class CreatePaymentCommandValidator : AbstractValidator<CreatePaymentComm
 
         RuleFor(x => x.Date)
             .NotEmpty()
-            .WithMessage("Date is required")
-            .LessThanOrEqualTo(DateTime.UtcNow)
-            .WithMessage("Date cannot be in the future");
+            .WithMessage("Date is required");
 
         RuleFor(x => x.PaymentCategoryId)
             .NotEmpty()

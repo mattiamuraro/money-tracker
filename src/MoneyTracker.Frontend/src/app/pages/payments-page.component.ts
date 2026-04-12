@@ -30,6 +30,19 @@ export class PaymentsPageComponent {
     this.isPaymentBreakdownCollapsed = !this.isPaymentBreakdownCollapsed;
   }
 
+  isFutureDated(dateValue: string): boolean {
+    const parsed = new Date(dateValue);
+    if (Number.isNaN(parsed.getTime())) {
+      return false;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    parsed.setHours(0, 0, 0, 0);
+
+    return parsed > today;
+  }
+
   get selectedPaymentMonthLabel(): string {
     const monthValue = this.app.selectedPaymentMonth;
     const parsed = new Date(`${monthValue}-01T00:00:00`);

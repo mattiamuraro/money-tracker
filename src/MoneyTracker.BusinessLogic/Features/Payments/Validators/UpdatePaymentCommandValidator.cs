@@ -31,11 +31,6 @@ public class UpdatePaymentCommandValidator : AbstractValidator<UpdatePaymentComm
             .WithMessage("Amount must have maximum 2 decimal places")
             .When(x => x.Amount.HasValue);
 
-        RuleFor(x => x.Date)
-            .LessThanOrEqualTo(DateTime.UtcNow)
-            .WithMessage("Date cannot be in the future")
-            .When(x => x.Date.HasValue);
-
         RuleFor(x => x .ModifiedById)
             .NotEmpty()
             .WithMessage("ModifiedBy is required");

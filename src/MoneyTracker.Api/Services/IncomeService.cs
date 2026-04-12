@@ -116,9 +116,6 @@ public class IncomeService
         if (request.Amount <= 0)
             return Results.BadRequest(new { message = "Amount must be greater than 0." });
 
-        if (request.Date > DateTime.UtcNow)
-            return Results.BadRequest(new { message = "Date cannot be in the future." });
-
         try
         {
             var idempotencyKey = _httpContext.Request.Headers["X-Idempotency-Key"].ToString();
@@ -164,9 +161,6 @@ public class IncomeService
 
         if (request.Amount.HasValue && request.Amount.Value <= 0)
             return Results.BadRequest(new { message = "Amount must be greater than 0." });
-
-        if (request.Date.HasValue && request.Date.Value > DateTime.UtcNow)
-            return Results.BadRequest(new { message = "Date cannot be in the future." });
 
         try
         {

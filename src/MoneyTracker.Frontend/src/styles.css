@@ -451,6 +451,22 @@ td {
   vertical-align: middle;
 }
 
+.future-dated-row {
+  opacity: 0.58;
+}
+
+.scheduled-badge {
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: #cbd5e1;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 th {
   color: #94a3b8;
   font-size: 0.82rem;
