@@ -204,4 +204,169 @@
       </article>
     </div>
   </section>
+
+  <section class="management-panel" id="incomes">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Entity</p>
+        <h2>Incomes</h2>
+        <p>Track incoming transactions with amount, date, and quick edit or delete actions.</p>
+      </div>
+      <span class="pill">{{ app.incomes.length }} records</span>
+    </div>
+
+    <div class="panel-grid">
+      <form class="editor-card" (ngSubmit)="app.submitIncome()">
+        <div class="card-heading">
+          <h3>{{ app.editingIncomeId ? 'Edit income' : 'Create income' }}</h3>
+          <button *ngIf="app.editingIncomeId" class="text-button" type="button" (click)="app.cancelIncomeEdit()">
+            Cancel edit
+          </button>
+        </div>
+
+        <label class="field-label" for="income-description">Description</label>
+        <input
+          id="income-description"
+          class="field-input"
+          type="text"
+          name="incomeDescription"
+          [(ngModel)]="app.incomeForm.description"
+          maxlength="100"
+          placeholder="Salary, refund, freelance..."
+          required />
+
+        <div class="field-row">
+          <div>
+            <label class="field-label" for="income-amount">Amount</label>
+            <input
+              id="income-amount"
+              class="field-input"
+              type="number"
+              name="incomeAmount"
+              [(ngModel)]="app.incomeForm.amount"
+              min="0.01"
+              step="0.01"
+              placeholder="0.00"
+              required />
+          </div>
+
+          <div>
+            <label class="field-label" for="income-date">Date</label>
+            <input
+              id="income-date"
+              class="field-input"
+              type="date"
+              name="incomeDate"
+              [(ngModel)]="app.incomeForm.date"
+              required />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="primary-button" type="submit" [disabled]="app.isSavingIncome">
+            {{ app.isSavingIncome ? 'Saving...' : (app.editingIncomeId ? 'Update income' : 'Create income') }}
+          </button>
+          <button class="secondary-button" type="button" (click)="app.resetIncomeForm()">Reset</button>
+        </div>
+      </form>
+
+      <article class="list-card">
+        <div class="card-heading">
+          <div>
+            <h3>Month incomes</h3>
+            <span class="muted-copy">All records for selected month, ordered by date ascending</span>
+          </div>
+          <strong class="muted-copy">Total: {{ app.incomeTotal | currency:'EUR':'symbol':'1.2-2' }}</strong>
+        </div>
+
+        <div style="margin-bottom: 1rem; display: grid; gap: .75rem;">
+          <div class="field-row" style="margin: 0; align-items: end;">
+            <div>
+              <label class="field-label" for="income-list-month">Month</label>
+              <input
+                id="income-list-month"
+                class="field-input"
+                type="month"
+                [ngModel]="app.selectedIncomeMonth"
+                (ngModelChange)="app.onIncomeMonthChanged($event)"
+                required />
+            </div>
+
+            <div>
+              <label class="field-label" for="income-list-description-filter">Description</label>
+              <input
+                id="income-list-description-filter"
+                class="field-input"
+                type="text"
+                maxlength="100"
+                placeholder="e.g. Salary"
+                [(ngModel)]="app.incomeFilters.descriptionFilter" />
+            </div>
+          </div>
+
+          <div class="field-row compact-row" style="margin: 0; align-items: end;">
+            <div>
+              <label class="field-label" for="income-list-min-amount">Min amount</label>
+              <input
+                id="income-list-min-amount"
+                class="field-input"
+                type="number"
+                min="0"
+                step="0.01"
+                [(ngModel)]="app.incomeFilters.minAmount" />
+            </div>
+
+            <div>
+              <label class="field-label" for="income-list-max-amount">Max amount</label>
+              <input
+                id="income-list-max-amount"
+                class="field-input"
+                type="number"
+                min="0"
+                step="0.01"
+                [(ngModel)]="app.incomeFilters.maxAmount" />
+            </div>
+
+            <div class="action-group" style="display: flex; gap: .5rem;">
+              <button class="primary-button" type="button" (click)="app.applyIncomeFilters()">Apply</button>
+              <button class="secondary-button" type="button" (click)="app.resetIncomeFilters()">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="app.incomes.length; else incomesEmpty" class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Date</th>
+                <th class="align-right">Amount</th>
+                <th class="align-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let income of app.incomes; trackBy: app.trackById">
+                <td>
+                  <strong>{{ income.description }}</strong>
+                </td>
+                <td>{{ income.date | date:'dd MMM yyyy' }}</td>
+                <td class="align-right">{{ income.amount | currency:'EUR':'symbol':'1.2-2' }}</td>
+                <td class="align-right action-group">
+                  <button class="icon-button" type="button" (click)="app.startIncomeEdit(income)">Edit</button>
+                  <button class="icon-button danger" type="button" (click)="app.deleteIncome(income)">Delete</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ng-template #incomesEmpty>
+          <div class="empty-state">
+            <h4>No incomes yet</h4>
+            <p>Create the first income to populate this section.</p>
+          </div>
+        </ng-template>
+      </article>
+    </div>
+  </section>
 </main>

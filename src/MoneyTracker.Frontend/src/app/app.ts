@@ -8,6 +8,9 @@ import {
   ForecastFormModel,
   ForecastRecurrenceRuleTypeOption,
   ForecastRow,
+  IncomeFormModel,
+  IncomeQuery,
+  IncomeRow,
   PaymentCategory,
   PaymentCategoryFormModel,
   PaymentFormModel,
@@ -26,6 +29,7 @@ export class App implements OnInit {
   public isLoading = true;
   public isLoginRoute = false;
   public isSavingPayment = false;
+  public isSavingIncome = false;
   public isSavingForecast = false;
   public isSavingCategory = false;
   public successMessage = '';
@@ -34,15 +38,18 @@ export class App implements OnInit {
 
   public categories: PaymentCategory[] = [];
   public payments: PaymentRow[] = [];
+  public incomes: IncomeRow[] = [];
   public forecastRecurrenceRuleTypes: ForecastRecurrenceRuleTypeOption[] = [];
   public forecastDefinitions: ForecastDefinition[] = [];
   public forecastRows: ForecastRow[] = [];
 
   public editingPaymentId: string | null = null;
+  public editingIncomeId: string | null = null;
   public editingForecastId: string | null = null;
   public editingCategoryId: string | null = null;
 
   public paymentForm = this.createEmptyPaymentForm();
+  public incomeForm = this.createEmptyIncomeForm();
   public forecastForm = this.createEmptyForecastForm();
   public categoryForm = this.createEmptyCategoryForm();
 
@@ -54,9 +61,24 @@ export class App implements OnInit {
     sortOrder: 'asc',
   };
 
+  private readonly incomeQuery: IncomeQuery = {
+    month: this.toMonthInput(new Date()),
+    pageNumber: 1,
+    pageSize: 100,
+    sortBy: 'Date',
+    sortOrder: 'asc',
+  };
+
   public readonly paymentFilters = {
     month: this.paymentQuery.month,
     categoryId: '',
+    descriptionFilter: '',
+    minAmount: null as number | null,
+    maxAmount: null as number | null,
+  };
+
+  public readonly incomeFilters = {
+    month: this.incomeQuery.month,
     descriptionFilter: '',
     minAmount: null as number | null,
     maxAmount: null as number | null,
@@ -111,6 +133,7 @@ export class App implements OnInit {
     const results = await Promise.allSettled([
       this.loadCategories(),
       this.loadPayments(),
+      this.loadIncomes(),
       this.loadForecastRecurrenceRuleTypes(),
       this.loadForecastDefinitions(),
       this.loadForecastRows(),
@@ -386,8 +409,81 @@ export class App implements OnInit {
       : `Every ${definition.interval} day${definition.interval > 1 ? 's' : ''}`;
   }
 
+  public async submitIncome(): Promise<void> {
+    if (!this.incomeForm.description.trim() || !this.incomeForm.amount || !this.incomeForm.date) {
+      this.errorMessage = 'Complete all required income fields before saving.';
+      this.successMessage = '';
+      return;
+    }
+
+    this.isSavingIncome = true;
+    this.clearMessages();
+
+    const model: IncomeFormModel = {
+      ...this.incomeForm,
+      description: this.incomeForm.description.trim(),
+    };
+
+    try {
+      if (this.editingIncomeId) {
+        await this.moneyTrackerApiService.updateIncome(this.editingIncomeId, model);
+        this.successMessage = 'Income updated successfully.';
+      } else {
+        await this.moneyTrackerApiService.createIncome(model);
+        this.successMessage = 'Income created successfully.';
+      }
+
+      await this.loadIncomes();
+      this.resetIncomeForm();
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error, 'Unable to save the income.');
+    } finally {
+      this.isSavingIncome = false;
+    }
+  }
+
+  public startIncomeEdit(income: IncomeRow): void {
+    this.editingIncomeId = income.id;
+    this.incomeForm = {
+      description: income.description,
+      amount: income.amount,
+      date: this.toInputDate(income.date),
+    };
+    this.successMessage = '';
+    this.errorMessage = '';
+  }
+
+  public cancelIncomeEdit(): void {
+    this.resetIncomeForm();
+    this.clearMessages();
+  }
+
+  public async deleteIncome(income: IncomeRow): Promise<void> {
+    if (!confirm(`Delete income "${income.description}"?`)) {
+      return;
+    }
+
+    this.clearMessages();
+
+    try {
+      await this.moneyTrackerApiService.deleteIncome(income.id);
+      await this.loadIncomes();
+      this.successMessage = 'Income deleted successfully.';
+
+      if (this.editingIncomeId === income.id) {
+        this.resetIncomeForm();
+      }
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error, 'Unable to delete the income.');
+    }
+  }
+
   public get paymentTotal(): number {
     return this.payments.reduce((total, payment) => total + Number(payment.amount ?? 0), 0);
+  }
+
+  public get incomeTotal(): number {
+    return this.incomes.reduce((total, income) => total + Number(income.amount ?? 0), 0);
   }
 
   public get forecastIncomeTotal(): number {
@@ -431,6 +527,11 @@ export class App implements OnInit {
     this.paymentForm = this.createEmptyPaymentForm();
   }
 
+  public resetIncomeForm(): void {
+    this.editingIncomeId = null;
+    this.incomeForm = this.createEmptyIncomeForm();
+  }
+
   public resetForecastForm(): void {
     this.editingForecastId = null;
     this.forecastForm = this.createEmptyForecastForm();
@@ -460,6 +561,24 @@ export class App implements OnInit {
     void this.loadPayments();
   }
 
+  public onIncomeMonthChanged(month: string): void {
+    this.incomeFilters.month = month;
+    this.incomeQuery.month = month;
+    void this.loadIncomes();
+  }
+
+  public get selectedIncomeMonth(): string {
+    return this.incomeFilters.month;
+  }
+
+  public applyIncomeFilters(): void {
+    this.incomeQuery.month = this.incomeFilters.month;
+    this.incomeQuery.descriptionFilter = this.incomeFilters.descriptionFilter.trim() || undefined;
+    this.incomeQuery.minAmount = this.incomeFilters.minAmount ?? undefined;
+    this.incomeQuery.maxAmount = this.incomeFilters.maxAmount ?? undefined;
+    void this.loadIncomes();
+  }
+
   public resetPaymentFilters(): void {
     this.paymentFilters.month = this.toMonthInput(new Date());
     this.paymentFilters.categoryId = '';
@@ -474,6 +593,20 @@ export class App implements OnInit {
     this.paymentQuery.maxAmount = undefined;
 
     void this.loadPayments();
+  }
+
+  public resetIncomeFilters(): void {
+    this.incomeFilters.month = this.toMonthInput(new Date());
+    this.incomeFilters.descriptionFilter = '';
+    this.incomeFilters.minAmount = null;
+    this.incomeFilters.maxAmount = null;
+
+    this.incomeQuery.month = this.incomeFilters.month;
+    this.incomeQuery.descriptionFilter = undefined;
+    this.incomeQuery.minAmount = undefined;
+    this.incomeQuery.maxAmount = undefined;
+
+    void this.loadIncomes();
   }
 
   private async loadCategories(): Promise<void> {
@@ -506,6 +639,28 @@ export class App implements OnInit {
 
     this.ngZone.run(() => {
       this.payments = [...allItems].sort((left, right) => left.date.localeCompare(right.date));
+    });
+  }
+
+  private async loadIncomes(): Promise<void> {
+    const pageSize = this.incomeQuery.pageSize ?? 100;
+    const baseQuery: IncomeQuery = {
+      ...this.incomeQuery,
+      pageSize,
+      pageNumber: 1,
+    };
+
+    const firstPage = await this.moneyTrackerApiService.getIncomes(baseQuery);
+    const allItems = [...firstPage.items];
+    const totalPages = Math.max(1, Math.ceil(firstPage.totalItems / pageSize));
+
+    for (let page = 2; page <= totalPages; page++) {
+      const nextPage = await this.moneyTrackerApiService.getIncomes({ ...baseQuery, pageNumber: page });
+      allItems.push(...nextPage.items);
+    }
+
+    this.ngZone.run(() => {
+      this.incomes = [...allItems].sort((left, right) => left.date.localeCompare(right.date));
     });
   }
 
@@ -556,6 +711,14 @@ export class App implements OnInit {
       amount: null,
       date: this.toInputDate(new Date()),
       isOneShot: true,
+    };
+  }
+
+  private createEmptyIncomeForm(): IncomeFormModel {
+    return {
+      description: '',
+      amount: null,
+      date: this.toInputDate(new Date()),
     };
   }
 

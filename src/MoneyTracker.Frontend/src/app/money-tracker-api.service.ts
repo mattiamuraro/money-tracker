@@ -6,6 +6,9 @@ import {
   ForecastFormModel,
   ForecastRecurrenceRuleTypeOption,
   ForecastRow,
+  IncomeFormModel,
+  IncomeQuery,
+  IncomeRow,
   PaginatedResponse,
   PaymentCategory,
   PaymentCategoryFormModel,
@@ -62,6 +65,20 @@ export class MoneyTrackerApiService {
     );
   }
 
+  getIncomes(query: IncomeQuery): Promise<PaginatedResponse<IncomeRow>> {
+    let params = new HttpParams();
+
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== null && value !== '') {
+        params = params.set(key, String(value));
+      }
+    }
+
+    return firstValueFrom(
+      this.httpClient.get<PaginatedResponse<IncomeRow>>(`${this.apiBaseUrl}/incomes`, { params })
+    );
+  }
+
   createPayment(model: PaymentFormModel): Promise<string> {
     return firstValueFrom(
       this.httpClient.post<string>(`${this.apiBaseUrl}/payments`, {
@@ -71,6 +88,16 @@ export class MoneyTrackerApiService {
         date: model.date,
         isOneShot: model.isOneShot,
         createdBy: 'MoneyTracker.Frontend',
+      })
+    );
+  }
+
+  createIncome(model: IncomeFormModel): Promise<string> {
+    return firstValueFrom(
+      this.httpClient.post<string>(`${this.apiBaseUrl}/incomes`, {
+        description: model.description,
+        amount: model.amount,
+        date: model.date,
       })
     );
   }
@@ -88,8 +115,22 @@ export class MoneyTrackerApiService {
     );
   }
 
+  updateIncome(id: string, model: IncomeFormModel): Promise<void> {
+    return firstValueFrom(
+      this.httpClient.put<void>(`${this.apiBaseUrl}/incomes/${id}`, {
+        description: model.description,
+        amount: model.amount,
+        date: model.date,
+      })
+    );
+  }
+
   deletePayment(id: string): Promise<void> {
     return firstValueFrom(this.httpClient.delete<void>(`${this.apiBaseUrl}/payments/${id}`));
+  }
+
+  deleteIncome(id: string): Promise<void> {
+    return firstValueFrom(this.httpClient.delete<void>(`${this.apiBaseUrl}/incomes/${id}`));
   }
 
   getForecastRows(startDate: string, endDate: string): Promise<ForecastRow[]> {

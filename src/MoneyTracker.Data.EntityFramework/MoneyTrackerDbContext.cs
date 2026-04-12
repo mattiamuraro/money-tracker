@@ -13,6 +13,7 @@ namespace MoneyTracker.Data.EntityFramework
 
         public DbSet<Payment> Payments { get; set; }
         public DbSet<PaymentCategory> PaymentCategories { get; set; }
+        public DbSet<Income> Incomes { get; set; }
 
         public DbSet<ForecastExpense> ForecastExpenses { get; set; }
         public DbSet<ForecastIncome> ForecastIncomes { get; set; }
@@ -92,6 +93,51 @@ namespace MoneyTracker.Data.EntityFramework
                 // Indexes
                 entity.HasIndex(e => e.Date);
                 entity.HasIndex(e => e.PaymentCategoryId);
+                entity.HasIndex(e => e.DeletedAt);
+                entity.HasIndex(e => e.IdempotencyKey)
+                    .IsUnique()
+                    .HasFilter("[IdempotencyKey] IS NOT NULL");
+
+                // Global query filter for soft deletes
+                entity.HasQueryFilter(p => !p.IsDeleted);
+            });
+
+            modelBuilder.Entity<Income>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Description)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.Amount)
+                    .HasPrecision(18, 2);
+
+                entity.Property(e => e.Date)
+                    .IsRequired();
+
+                entity.Property(e => e.CreatedAt)
+                    .IsRequired();
+
+                entity.Property(e => e.CreatedById)
+                    .IsRequired()
+                    .HasDefaultValue(SystemUsers.SystemUserId);
+
+                entity.Property(e => e.ModifiedAt)
+                    .IsRequired();
+
+                entity.Property(e => e.ModifiedById)
+                    .IsRequired()
+                    .HasDefaultValue(SystemUsers.SystemUserId);
+
+                // Soft delete properties
+                entity.Property(e => e.DeletedAt);
+                entity.Property(e => e.DeletedBy);
+
+                ConfigureAuditRelations(entity);
+
+                // Indexes
+                entity.HasIndex(e => e.Date);
                 entity.HasIndex(e => e.DeletedAt);
                 entity.HasIndex(e => e.IdempotencyKey)
                     .IsUnique()

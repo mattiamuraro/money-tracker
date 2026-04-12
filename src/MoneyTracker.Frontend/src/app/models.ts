@@ -33,6 +33,13 @@ export interface PaymentRow {
   isOneShot: boolean;
 }
 
+export interface IncomeRow {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+}
+
 export interface ForecastRow {
   id: string;
   description: string;
@@ -66,6 +73,12 @@ export interface PaymentFormModel {
   isOneShot: boolean;
 }
 
+export interface IncomeFormModel {
+  description: string;
+  amount: number | null;
+  date: string;
+}
+
 export interface ForecastFormModel {
   forecastRecurrenceRuleTypeId: string;
   description: string;
@@ -83,6 +96,17 @@ export interface PaymentQuery {
   sortBy?: string;
   sortOrder?: string;
   categoryId?: string;
+  descriptionFilter?: string;
+  minAmount?: number;
+  maxAmount?: number;
+}
+
+export interface IncomeQuery {
+  month: string;
+  pageNumber?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortOrder?: string;
   descriptionFilter?: string;
   minAmount?: number;
   maxAmount?: number;

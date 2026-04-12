@@ -124,6 +124,7 @@ app.UseAuthorization();
 
 app.AddAuthApis();
 app.AddPaymentApis();
+app.AddIncomeApis();
 app.AddPaymentCategoryApis();
 app.AddForecastApis();
 

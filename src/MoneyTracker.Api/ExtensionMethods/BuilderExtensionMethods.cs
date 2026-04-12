@@ -11,6 +11,7 @@ namespace MoneyTracker.ApiService.ExtensionMethods
         internal static void AddServices(this WebApplicationBuilder builder)
         {
             builder.Services.AddScoped<PaymentService>();
+            builder.Services.AddScoped<IncomeService>();
             builder.Services.AddScoped<PaymentCategoryService>();
             builder.Services.AddScoped<ForecastService>();
             builder.Services.AddScoped<JwtTokenService>();
