@@ -1,5 +1,26 @@
 <main class="content-stack">
-  <section class="management-panel" id="payments">
+  <div class="page-tabs" role="tablist" aria-label="Payments page tabs">
+    <button
+      class="page-tab"
+      type="button"
+      role="tab"
+      [class.page-tab-active]="activeTab === 'payments'"
+      [attr.aria-selected]="activeTab === 'payments'"
+      (click)="setActiveTab('payments')">
+      Payments
+    </button>
+    <button
+      class="page-tab"
+      type="button"
+      role="tab"
+      [class.page-tab-active]="activeTab === 'incomes'"
+      [attr.aria-selected]="activeTab === 'incomes'"
+      (click)="setActiveTab('incomes')">
+      Incomes
+    </button>
+  </div>
+
+  <section *ngIf="activeTab === 'payments'" class="management-panel" id="payments" role="tabpanel" aria-label="Payments">
     <div class="panel-heading">
       <div>
         <p class="eyebrow">Entity</p>
@@ -205,7 +226,7 @@
     </div>
   </section>
 
-  <section class="management-panel" id="incomes">
+  <section *ngIf="activeTab === 'incomes'" class="management-panel" id="incomes" role="tabpanel" aria-label="Incomes">
     <div class="panel-heading">
       <div>
         <p class="eyebrow">Entity</p>
