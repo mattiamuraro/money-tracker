@@ -24,15 +24,12 @@ public class GetPaymentQueryHandler
 
         if (request.Year.HasValue && request.Month.HasValue)
             query = query.Where(p => p.Date.Year == request.Year.Value && p.Date.Month == request.Month.Value);
-
-        if (request.StartDate.HasValue)
-            query = query.Where(p => p.Date >= request.StartDate.Value);
-
-        if (request.EndDate.HasValue)
-            query = query.Where(p => p.Date <= request.EndDate.Value);
-
+               
         if (!string.IsNullOrEmpty(request.CategoryFilter))
             query = query.Where(p => p.PaymentCategory.Name.Contains(request.CategoryFilter));
+
+        if (!string.IsNullOrEmpty(request.DescriptionFilter))
+            query = query.Where(p => p.Description.Contains(request.DescriptionFilter));
 
         if (request.CategoryId.HasValue)
             query = query.Where(p => p.PaymentCategoryId == request.CategoryId.Value);

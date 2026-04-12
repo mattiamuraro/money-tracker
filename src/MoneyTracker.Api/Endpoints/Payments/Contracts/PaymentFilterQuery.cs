@@ -13,19 +13,14 @@ public class PaymentFilterQuery : PaginationQuery
     public string? Month { get; set; }
 
     /// <summary>
-    /// Filter by start date
-    /// </summary>
-    public DateTime? StartDate { get; set; }
-
-    /// <summary>
-    /// Filter by end date
-    /// </summary>
-    public DateTime? EndDate { get; set; }
-
-    /// <summary>
     /// Filter by category name
     /// </summary>
     public string? CategoryFilter { get; set; }
+
+    /// <summary>
+    /// Filter by payment description text
+    /// </summary>
+    public string? DescriptionFilter { get; set; }
 
     /// <summary>
     /// Filter by minimum amount

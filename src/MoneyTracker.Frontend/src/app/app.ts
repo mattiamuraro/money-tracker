@@ -49,9 +49,17 @@ export class App implements OnInit {
   private readonly paymentQuery: PaymentQuery = {
     month: this.toMonthInput(new Date()),
     pageNumber: 1,
-    pageSize: 12,
+    pageSize: 100,
     sortBy: 'Date',
-    sortOrder: 'desc',
+    sortOrder: 'asc',
+  };
+
+  public readonly paymentFilters = {
+    month: this.paymentQuery.month,
+    categoryId: '',
+    descriptionFilter: '',
+    minAmount: null as number | null,
+    maxAmount: null as number | null,
   };
 
   public readonly forecastRange = {
@@ -399,7 +407,7 @@ export class App implements OnInit {
   }
 
   public get latestPayment(): PaymentRow | undefined {
-    return this.payments[0];
+    return this.payments[this.payments.length - 1];
   }
 
   public get nextForecast(): ForecastRow | undefined {
@@ -434,12 +442,38 @@ export class App implements OnInit {
   }
 
   public onPaymentMonthChanged(month: string): void {
+    this.paymentFilters.month = month;
     this.paymentQuery.month = month;
     void this.loadPayments();
   }
 
   public get selectedPaymentMonth(): string {
-    return this.paymentQuery.month;
+    return this.paymentFilters.month;
+  }
+
+  public applyPaymentFilters(): void {
+    this.paymentQuery.month = this.paymentFilters.month;
+    this.paymentQuery.categoryId = this.paymentFilters.categoryId || undefined;
+    this.paymentQuery.descriptionFilter = this.paymentFilters.descriptionFilter.trim() || undefined;
+    this.paymentQuery.minAmount = this.paymentFilters.minAmount ?? undefined;
+    this.paymentQuery.maxAmount = this.paymentFilters.maxAmount ?? undefined;
+    void this.loadPayments();
+  }
+
+  public resetPaymentFilters(): void {
+    this.paymentFilters.month = this.toMonthInput(new Date());
+    this.paymentFilters.categoryId = '';
+    this.paymentFilters.descriptionFilter = '';
+    this.paymentFilters.minAmount = null;
+    this.paymentFilters.maxAmount = null;
+
+    this.paymentQuery.month = this.paymentFilters.month;
+    this.paymentQuery.categoryId = undefined;
+    this.paymentQuery.descriptionFilter = undefined;
+    this.paymentQuery.minAmount = undefined;
+    this.paymentQuery.maxAmount = undefined;
+
+    void this.loadPayments();
   }
 
   private async loadCategories(): Promise<void> {
@@ -454,9 +488,24 @@ export class App implements OnInit {
   }
 
   private async loadPayments(): Promise<void> {
-    const response = await this.moneyTrackerApiService.getPayments(this.paymentQuery);
+    const pageSize = this.paymentQuery.pageSize ?? 100;
+    const baseQuery: PaymentQuery = {
+      ...this.paymentQuery,
+      pageSize,
+      pageNumber: 1,
+    };
+
+    const firstPage = await this.moneyTrackerApiService.getPayments(baseQuery);
+    const allItems = [...firstPage.items];
+    const totalPages = Math.max(1, Math.ceil(firstPage.totalItems / pageSize));
+
+    for (let page = 2; page <= totalPages; page++) {
+      const nextPage = await this.moneyTrackerApiService.getPayments({ ...baseQuery, pageNumber: page });
+      allItems.push(...nextPage.items);
+    }
+
     this.ngZone.run(() => {
-      this.payments = [...response.items].sort((left, right) => right.date.localeCompare(left.date));
+      this.payments = [...allItems].sort((left, right) => left.date.localeCompare(right.date));
     });
   }
 

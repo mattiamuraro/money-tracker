@@ -1,6 +1,3 @@
-using MoneyTracker.BusinessLogic.Features.Payments.Models;
-using MoneyTracker.BusinessLogic.Shared.Models;
-
 namespace MoneyTracker.BusinessLogic.Features.Payments.Queries.GetPaymentHistory;
 
 /// <summary>
@@ -12,10 +9,8 @@ public class GetPaymentQuery
     /// When set, returns only the payment with this ID.
     /// </summary>
     public Guid? Id { get; set; }
-
-    public DateTime? StartDate { get; set; }
-    public DateTime? EndDate { get; set; }
     public string? CategoryFilter { get; set; }
+    public string? DescriptionFilter { get; set; }
     public Guid? CategoryId { get; set; }
     public decimal? MinAmount { get; set; }
     public decimal? MaxAmount { get; set; }
@@ -29,9 +24,8 @@ public class GetPaymentQuery
     public GetPaymentQuery() { }
 
     public GetPaymentQuery(
-        DateTime? startDate = null,
-        DateTime? endDate = null,
         string? categoryFilter = null,
+        string? descriptionFilter = null,
         Guid? categoryId = null,
         decimal? minAmount = null,
         decimal? maxAmount = null,
@@ -42,9 +36,8 @@ public class GetPaymentQuery
         string? sortBy = null,
         string? sortOrder = "desc")
     {
-        StartDate = startDate;
-        EndDate = endDate;
         CategoryFilter = categoryFilter;
+        DescriptionFilter = descriptionFilter;
         CategoryId = categoryId;
         MinAmount = minAmount;
         MaxAmount = maxAmount;

@@ -39,8 +39,6 @@ public class PaymentFilterQueryTests
         var query = new PaymentFilterQuery
         {
             Month = "2026-01",
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 1, 31),
             CategoryFilter = "Food",
             MinAmount = 10.5m,
             MaxAmount = 120m,
@@ -48,8 +46,6 @@ public class PaymentFilterQueryTests
         };
 
         Xunit.Assert.Equal("2026-01", query.Month);
-        Xunit.Assert.Equal(new DateTime(2026, 1, 1), query.StartDate);
-        Xunit.Assert.Equal(new DateTime(2026, 1, 31), query.EndDate);
         Xunit.Assert.Equal("Food", query.CategoryFilter);
         Xunit.Assert.Equal(10.5m, query.MinAmount);
         Xunit.Assert.Equal(120m, query.MaxAmount);

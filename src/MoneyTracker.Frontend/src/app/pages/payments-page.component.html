@@ -90,18 +90,78 @@
       <article class="list-card">
         <div class="card-heading">
           <div>
-            <h3>Recent payments</h3>
-            <span class="muted-copy">Latest 12 records</span>
+            <h3>Month payments</h3>
+            <span class="muted-copy">All records for selected month, ordered by date ascending</span>
           </div>
-          <div>
-            <label class="field-label" for="payment-list-month">Month</label>
-            <input
-              id="payment-list-month"
-              class="field-input"
-              type="month"
-              [ngModel]="app.selectedPaymentMonth"
-              (ngModelChange)="app.onPaymentMonthChanged($event)"
-              required />
+        </div>
+
+        <div style="margin-bottom: 1rem; display: grid; gap: .75rem;">
+          <div class="field-row" style="margin: 0; align-items: end;">
+            <div>
+              <label class="field-label" for="payment-list-month">Month</label>
+              <input
+                id="payment-list-month"
+                class="field-input"
+                type="month"
+                [ngModel]="app.selectedPaymentMonth"
+                (ngModelChange)="app.onPaymentMonthChanged($event)"
+                required />
+            </div>
+
+            <div>
+              <label class="field-label" for="payment-list-category-id">Category</label>
+              <select
+                id="payment-list-category-id"
+                class="field-input"
+                [(ngModel)]="app.paymentFilters.categoryId">
+                <option value="">All categories</option>
+                <option *ngFor="let category of app.categories; trackBy: app.trackById" [value]="category.id">
+                  {{ category.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field-row compact-row" style="margin: 0; align-items: end;">
+            <div>
+              <label class="field-label" for="payment-list-min-amount">Min amount</label>
+              <input
+                id="payment-list-min-amount"
+                class="field-input"
+                type="number"
+                min="0"
+                step="0.01"
+                [(ngModel)]="app.paymentFilters.minAmount" />
+            </div>
+
+            <div>
+              <label class="field-label" for="payment-list-max-amount">Max amount</label>
+              <input
+                id="payment-list-max-amount"
+                class="field-input"
+                type="number"
+                min="0"
+                step="0.01"
+                [(ngModel)]="app.paymentFilters.maxAmount" />
+            </div>
+          </div>
+
+          <div class="field-row" style="margin: 0; align-items: end;">
+            <div>
+              <label class="field-label" for="payment-list-description-filter">Description</label>
+              <input
+                id="payment-list-description-filter"
+                class="field-input"
+                type="text"
+                maxlength="100"
+                placeholder="e.g. Rent"
+                [(ngModel)]="app.paymentFilters.descriptionFilter" />
+            </div>
+
+            <div class="action-group" style="display: flex; gap: .5rem;">
+              <button class="primary-button" type="button" (click)="app.applyPaymentFilters()">Apply</button>
+              <button class="secondary-button" type="button" (click)="app.resetPaymentFilters()">Reset</button>
+            </div>
           </div>
         </div>
 

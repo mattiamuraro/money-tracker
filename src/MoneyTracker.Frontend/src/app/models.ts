@@ -82,7 +82,8 @@ export interface PaymentQuery {
   pageSize?: number;
   sortBy?: string;
   sortOrder?: string;
-  startDate?: string;
-  endDate?: string;
   categoryId?: string;
+  descriptionFilter?: string;
+  minAmount?: number;
+  maxAmount?: number;
 }

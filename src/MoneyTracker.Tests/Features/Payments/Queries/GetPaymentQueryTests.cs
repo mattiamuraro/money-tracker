@@ -28,8 +28,6 @@ public class GetPaymentQueryTests
         var categoryId = Guid.NewGuid();
 
         var query = new GetPaymentQuery(
-            startDate: new DateTime(2026, 1, 1),
-            endDate: new DateTime(2026, 1, 31),
             categoryFilter: "Food",
             categoryId: categoryId,
             minAmount: 10,
@@ -41,8 +39,6 @@ public class GetPaymentQueryTests
             sortBy: "Amount",
             sortOrder: "asc");
 
-        Xunit.Assert.Equal(new DateTime(2026, 1, 1), query.StartDate);
-        Xunit.Assert.Equal(new DateTime(2026, 1, 31), query.EndDate);
         Xunit.Assert.Equal("Food", query.CategoryFilter);
         Xunit.Assert.Equal(categoryId, query.CategoryId);
         Xunit.Assert.Equal(10, query.MinAmount);

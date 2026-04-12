@@ -58,9 +58,8 @@ namespace MoneyTracker.Api.Services
                 var (year, month) = filterQuery.GetRequiredYearMonth();
 
                 var query = new GetPaymentQuery(
-                    filterQuery.StartDate,
-                    filterQuery.EndDate,
                     filterQuery.CategoryFilter,
+                    filterQuery.DescriptionFilter,
                     filterQuery.CategoryId,
                     filterQuery.MinAmount,
                     filterQuery.MaxAmount,
