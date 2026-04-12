@@ -30,6 +30,76 @@
       <span class="pill">{{ app.payments.length }} records</span>
     </div>
 
+    <section class="payment-widgets" aria-label="Month summary and payment category breakdown">
+      <div class="widget-grid payment-widget-grid">
+        <article class="widget-card accent-green">
+          <span class="widget-label">Income · {{ selectedPaymentMonthLabel }}</span>
+          <strong class="widget-value">{{ monthIncomeTotal | currency:'EUR':'symbol':'1.2-2' }}</strong>
+          <span class="widget-footnote">Total monthly income</span>
+        </article>
+
+        <article class="widget-card accent-rose">
+          <span class="widget-label">Payments · {{ selectedPaymentMonthLabel }}</span>
+          <strong class="widget-value">{{ monthPaymentTotal | currency:'EUR':'symbol':'1.2-2' }}</strong>
+          <span class="widget-footnote">Total monthly payments</span>
+        </article>
+
+        <article class="widget-card accent-violet">
+          <span class="widget-label">Net · {{ selectedPaymentMonthLabel }}</span>
+          <strong class="widget-value">{{ monthNetTotal | currency:'EUR':'symbol':'1.2-2' }}</strong>
+          <span class="widget-footnote">Income minus payments</span>
+        </article>
+      </div>
+
+      <article class="widget-card payment-breakdown-card">
+        <div class="compact-heading">
+          <div>
+            <h3>Payment categories breakdown</h3>
+            <p class="muted-copy">Share of monthly payments by category</p>
+          </div>
+          <button
+            class="secondary-button breakdown-toggle"
+            type="button"
+            [attr.aria-expanded]="!isPaymentBreakdownCollapsed"
+            aria-controls="payment-breakdown-content"
+            (click)="togglePaymentBreakdown()">
+            {{ isPaymentBreakdownCollapsed ? 'Show breakdown' : 'Hide breakdown' }}
+          </button>
+        </div>
+
+        <div *ngIf="!isPaymentBreakdownCollapsed" id="payment-breakdown-content">
+          <div *ngIf="paymentCategoryBreakdown.length; else noCategoryBreakdown" class="payment-breakdown-list">
+            <div class="payment-breakdown-columns" [class.with-forecast]="showPaymentForecastColumn">
+              <strong>Category</strong>
+              <strong class="align-right">Total</strong>
+              <strong class="align-right">Items</strong>
+              <strong *ngIf="showPaymentForecastColumn" class="align-right">Forecast</strong>
+            </div>
+
+            <div *ngFor="let item of paymentCategoryBreakdown" class="payment-breakdown-item">
+              <div class="payment-breakdown-columns" [class.with-forecast]="showPaymentForecastColumn">
+                <strong>{{ item.category }}</strong>
+                <span class="align-right">{{ item.amount | currency:'EUR':'symbol':'1.2-2' }}</span>
+                <span class="align-right">{{ item.count }}</span>
+                <span *ngIf="showPaymentForecastColumn" class="align-right">{{ item.forecastAmount ?? 0 | currency:'EUR':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="payment-breakdown-bar" role="presentation">
+                <span class="payment-breakdown-fill" [style.width.%]="item.percentage"></span>
+              </div>
+            </div>
+
+            <p *ngIf="showPaymentForecastColumn" class="muted-copy payment-breakdown-total-forecast">
+              Total forecast: {{ totalPaymentForecast | currency:'EUR':'symbol':'1.2-2' }}
+            </p>
+          </div>
+        </div>
+
+        <ng-template #noCategoryBreakdown>
+          <p class="muted-copy">No payments available for category breakdown.</p>
+        </ng-template>
+      </article>
+    </section>
+
     <div class="panel-grid">
       <form class="editor-card" (ngSubmit)="app.submitPayment()">
         <div class="card-heading">
