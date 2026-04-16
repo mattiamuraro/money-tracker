@@ -303,7 +303,15 @@ export class App implements OnInit {
   }
 
   public async deletePayment(payment: PaymentRow): Promise<void> {
-    if (!confirm(`Delete payment "${payment.description}"?`)) {
+    const confirmed = await this.confirmationDialogService.show({
+      title: 'Delete Payment',
+      message: `Delete payment "${payment.description}"?`,
+      confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel',
+      isDangerous: true,
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -606,7 +614,15 @@ export class App implements OnInit {
   }
 
   public async deleteIncome(income: IncomeRow): Promise<void> {
-    if (!confirm(`Delete income "${income.description}"?`)) {
+    const confirmed = await this.confirmationDialogService.show({
+      title: 'Delete Income',
+      message: `Delete income "${income.description}"?`,
+      confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel',
+      isDangerous: true,
+    });
+
+    if (!confirmed) {
       return;
     }
 

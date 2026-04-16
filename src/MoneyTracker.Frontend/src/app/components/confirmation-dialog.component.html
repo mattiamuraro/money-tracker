@@ -1,11 +1,10 @@
-<div *ngIf="isVisible" class="dialog-overlay" (click)="onCancel()" role="presentation" [@fadeIn]>
+<div *ngIf="isVisible" class="dialog-overlay" (click)="onCancel()" role="presentation">
   <div
     class="dialog-container"
     (click)="$event.stopPropagation()"
     role="dialog"
     [attr.aria-modal]="true"
     [attr.aria-labelledby]="'dialog-title'"
-    [@slideUp]
   >
     <div class="dialog-content">
       <h2 id="dialog-title" class="dialog-title">{{ title }}</h2>
