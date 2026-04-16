@@ -28,6 +28,8 @@ export interface PaymentRow {
   description: string;
   paymentCategoryId: string;
   category: string;
+  forecastOccurrenceId?: string | null;
+  forecastExpectedDate?: string | null;
   amount: number;
   date: string;
   isOneShot: boolean;
@@ -36,22 +38,32 @@ export interface PaymentRow {
 export interface IncomeRow {
   id: string;
   description: string;
+  forecastOccurrenceId?: string | null;
+  forecastExpectedDate?: string | null;
   amount: number;
   date: string;
 }
 
 export interface ForecastRow {
   id: string;
+  forecastDefinitionId: string;
   description: string;
   amount: number;
   date: string;
   isIncome: boolean;
+  paymentCategoryId?: string | null;
+  category?: string | null;
 }
 
-export interface ForecastRecurrenceRuleTypeOption {
+export interface ForecastOccurrenceRow {
   id: string;
-  name: string;
-  code: string;
+  forecastDefinitionId: string;
+  description: string;
+  amount: number;
+  expectedDate: string;
+  isIncome: boolean;
+  paymentCategoryId?: string | null;
+  category?: string | null;
 }
 
 export interface ForecastDefinition {
@@ -63,11 +75,14 @@ export interface ForecastDefinition {
   recurrenceEnd: string | null;
   interval: number;
   isIncome: boolean;
+  paymentCategoryId?: string | null;
+  category?: string | null;
 }
 
 export interface PaymentFormModel {
   description: string;
   paymentCategoryId: string;
+  forecastOccurrenceId?: string | null;
   amount: number | null;
   date: string;
   isOneShot: boolean;
@@ -75,6 +90,7 @@ export interface PaymentFormModel {
 
 export interface IncomeFormModel {
   description: string;
+  forecastOccurrenceId?: string | null;
   amount: number | null;
   date: string;
 }
@@ -87,27 +103,36 @@ export interface ForecastFormModel {
   recurrenceEnd: string;
   interval: number;
   isIncome: boolean;
+  paymentCategoryId: string;
+}
+
+export type OccurrenceDeleteAction = 'Auto' | 'Reopen' | 'Skip';
+
+export interface ForecastRecurrenceRuleTypeOption {
+  id: string;
+  name: string;
+  code: string;
 }
 
 export interface PaymentQuery {
   month: string;
-  pageNumber?: number;
-  pageSize?: number;
-  sortBy?: string;
-  sortOrder?: string;
   categoryId?: string;
   descriptionFilter?: string;
   minAmount?: number;
   maxAmount?: number;
-}
-
-export interface IncomeQuery {
-  month: string;
   pageNumber?: number;
   pageSize?: number;
   sortBy?: string;
   sortOrder?: string;
+}
+
+export interface IncomeQuery {
+  month: string;
   descriptionFilter?: string;
   minAmount?: number;
   maxAmount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortOrder?: string;
 }

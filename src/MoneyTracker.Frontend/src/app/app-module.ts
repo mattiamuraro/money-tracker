@@ -2,6 +2,7 @@ import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@a
 import { NgModule, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
@@ -11,6 +12,7 @@ import { ForecastsPageComponent } from './pages/forecasts-page.component';
 import { HomePageComponent } from './pages/home-page.component';
 import { LoginPageComponent } from './pages/login-page.component';
 import { PaymentsPageComponent } from './pages/payments-page.component';
+import { ConfirmationDialogComponent } from './components/confirmation-dialog.component';
 
 @NgModule({
   declarations: [
@@ -20,10 +22,12 @@ import { PaymentsPageComponent } from './pages/payments-page.component';
     ForecastsPageComponent,
     LoginPageComponent,
     AdminCategoriesPageComponent,
+    ConfirmationDialogComponent,
   ],
   imports: [
     BrowserModule,
     FormsModule,
+    CommonModule,
     AppRoutingModule
   ],
   providers: [

@@ -145,7 +145,7 @@ namespace MoneyTracker.Api.Services
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning(ex, "Invalid operation while creating payment");
-                return Results.BadRequest(new { message = "The requested payment category does not exist." });
+                return Results.BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -194,15 +194,20 @@ namespace MoneyTracker.Api.Services
         /// <summary>
         /// Deletes a payment by ID.
         /// </summary>
-        public async Task<IResult> DeletePaymentAsync(Guid id, CancellationToken cancellationToken)
+        public async Task<IResult> DeletePaymentAsync(Guid id, string? occurrenceAction, CancellationToken cancellationToken)
         {
             try
             {
                 _logger.LogInformation("Deleting payment with ID: {PaymentId}", id);
+
+                if (!TryParseOccurrenceAction(occurrenceAction, out var parsedAction))
+                    return Results.BadRequest(new { message = "Occurrence action must be Auto, Reopen, or Skip." });
+
                 var command = new DeletePaymentCommand
                 {
                     PaymentId = id,
-                    DeletedBy = GetCurrentUserId()
+                    DeletedBy = GetCurrentUserId(),
+                    OccurrenceAction = parsedAction
                 };
                 var result = await _deletePaymentCommandHandler.Handle(command, cancellationToken);
 
@@ -227,6 +232,17 @@ namespace MoneyTracker.Api.Services
             return Guid.TryParse(userIdClaim, out var userId)
                 ? userId
                 : SystemUsers.SystemUserId;
+        }
+
+        private static bool TryParseOccurrenceAction(string? occurrenceAction, out ForecastOccurrenceDeleteAction action)
+        {
+            if (string.IsNullOrWhiteSpace(occurrenceAction))
+            {
+                action = ForecastOccurrenceDeleteAction.Auto;
+                return true;
+            }
+
+            return Enum.TryParse(occurrenceAction, true, out action);
         }
 
         private static Dictionary<string, string[]> ToValidationErrors(ValidationException exception)

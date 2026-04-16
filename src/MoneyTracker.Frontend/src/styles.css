@@ -451,6 +451,15 @@ td {
   vertical-align: middle;
 }
 
+.pending-forecast-row {
+  background: linear-gradient(90deg, rgba(244, 63, 94, 0.14), rgba(244, 63, 94, 0.04));
+}
+
+.pending-forecast-row td:first-child {
+  border-left: 3px solid rgba(251, 113, 133, 0.7);
+  padding-left: 12px;
+}
+
 .future-dated-row {
   opacity: 0.58;
 }
@@ -465,6 +474,12 @@ td {
   font-size: 0.72rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.pending-forecast-badge {
+  border-color: rgba(251, 113, 133, 0.45);
+  color: #fecdd3;
+  background: rgba(244, 63, 94, 0.16);
 }
 
 th {
@@ -900,6 +915,18 @@ th {
 :root[data-theme='light'] .tag {
   background: rgba(148, 163, 184, 0.2);
   color: #334155;
+}
+
+:root[data-theme='light'] .scheduled-badge {
+  border-color: rgba(71, 85, 105, 0.38);
+  background: rgba(148, 163, 184, 0.2);
+  color: #334155;
+}
+
+:root[data-theme='light'] .pending-forecast-badge {
+  border-color: rgba(190, 24, 93, 0.45);
+  background: rgba(251, 113, 133, 0.2);
+  color: #9f1239;
 }
 
 :root[data-theme='light'] .page-tabs {

@@ -60,10 +60,11 @@ namespace MoneyTracker.Api.Endpoints
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
             // DELETE payment
-            group.MapDelete("/{id:guid}", async (PaymentService paymentService, Guid id, CancellationToken cancellationToken) => await paymentService.DeletePaymentAsync(id, cancellationToken))
+            group.MapDelete("/{id:guid}", async ([FromServices] PaymentService paymentService, Guid id, [FromQuery] string? occurrenceAction, CancellationToken cancellationToken) => await paymentService.DeletePaymentAsync(id, occurrenceAction, cancellationToken))
                 .WithName("DeletePayment")
                 .WithDescription("Deletes a payment")
                 .Produces(StatusCodes.Status204NoContent)
+                .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
                 .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 

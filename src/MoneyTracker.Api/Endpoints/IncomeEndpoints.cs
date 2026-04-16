@@ -65,11 +65,13 @@ public static class IncomeEndpoints
         group.MapDelete("/{id:guid}", static async (
                 [FromServices] IncomeService incomeService,
                 Guid id,
+                [FromQuery] string? occurrenceAction,
                 CancellationToken cancellationToken) =>
-            await incomeService.DeleteIncomeAsync(id, cancellationToken))
+            await incomeService.DeleteIncomeAsync(id, occurrenceAction, cancellationToken))
             .WithName("DeleteIncome")
             .WithDescription("Deletes an income")
             .Produces(StatusCodes.Status204NoContent)
+            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
             .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 

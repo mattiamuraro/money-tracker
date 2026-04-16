@@ -53,6 +53,8 @@ public class IncomeService
                 {
                     Id = x.Id,
                     Description = x.Description,
+                    ForecastOccurrenceId = x.ForecastOccurrenceId,
+                    ForecastExpectedDate = x.ForecastOccurrence != null ? x.ForecastOccurrence.ExpectedDate : null,
                     Amount = x.Amount,
                     Date = x.Date,
                 })
@@ -89,6 +91,8 @@ public class IncomeService
                 {
                     Id = x.Id,
                     Description = x.Description,
+                    ForecastOccurrenceId = x.ForecastOccurrenceId,
+                    ForecastExpectedDate = x.ForecastOccurrence != null ? x.ForecastOccurrence.ExpectedDate : null,
                     Amount = x.Amount,
                     Date = x.Date,
                 })
@@ -129,16 +133,39 @@ public class IncomeService
                     return Results.Created($"/api/v1/incomes/{existing.Id}", existing.Id);
             }
 
+            var occurrence = request.ForecastOccurrenceId.HasValue
+                ? await _dbContext.ForecastOccurrences.FirstOrDefaultAsync(
+                    x => x.Id == request.ForecastOccurrenceId.Value && x.IsIncome,
+                    cancellationToken)
+                : null;
+
+            if (request.ForecastOccurrenceId.HasValue)
+            {
+                if (occurrence == null)
+                    return Results.BadRequest(new { message = $"ForecastOccurrence with id {request.ForecastOccurrenceId.Value} not found." });
+
+                if (occurrence.ForecastOccurrenceStatusId != ForecastOccurrenceStatus.PendingId)
+                    return Results.BadRequest(new { message = $"ForecastOccurrence with id {request.ForecastOccurrenceId.Value} is not pending." });
+            }
+
+            var currentUserId = GetCurrentUserId();
             var income = new Income
             {
                 Id = Guid.NewGuid(),
                 Description = request.Description.Trim(),
+                ForecastOccurrenceId = request.ForecastOccurrenceId,
                 Amount = request.Amount,
                 Date = request.Date,
                 IdempotencyKey = string.IsNullOrWhiteSpace(idempotencyKey) ? request.IdempotencyKey : idempotencyKey,
-                CreatedById = GetCurrentUserId(),
-                ModifiedById = GetCurrentUserId(),
+                CreatedById = currentUserId,
+                ModifiedById = currentUserId,
             };
+
+            if (occurrence != null)
+            {
+                occurrence.ForecastOccurrenceStatusId = ForecastOccurrenceStatus.ConfirmedId;
+                occurrence.ValidatedAt = DateTime.UtcNow;
+            }
 
             _dbContext.Incomes.Add(income);
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -192,13 +219,28 @@ public class IncomeService
         }
     }
 
-    public async Task<IResult> DeleteIncomeAsync(Guid id, CancellationToken cancellationToken)
+    public async Task<IResult> DeleteIncomeAsync(Guid id, string? occurrenceAction, CancellationToken cancellationToken)
     {
         try
         {
+            if (!TryParseOccurrenceAction(occurrenceAction, out var parsedAction))
+                return Results.BadRequest(new { message = "Occurrence action must be Auto, Reopen, or Skip." });
+
             var income = await _dbContext.Incomes.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
             if (income is null)
                 return Results.NotFound();
+
+            if (income.ForecastOccurrenceId.HasValue)
+            {
+                var occurrence = await _dbContext.ForecastOccurrences
+                    .FirstOrDefaultAsync(x => x.Id == income.ForecastOccurrenceId.Value, cancellationToken);
+
+                if (occurrence != null)
+                {
+                    occurrence.ForecastOccurrenceStatusId = ResolveOccurrenceStatusId(occurrence.ExpectedDate, parsedAction);
+                    occurrence.ValidatedAt = null;
+                }
+            }
 
             income.Delete(GetCurrentUserId());
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -212,6 +254,29 @@ public class IncomeService
                 statusCode: StatusCodes.Status500InternalServerError,
                 title: "Error deleting income");
         }
+    }
+
+    private static bool TryParseOccurrenceAction(string? occurrenceAction, out ForecastOccurrenceDeleteAction action)
+    {
+        if (string.IsNullOrWhiteSpace(occurrenceAction))
+        {
+            action = ForecastOccurrenceDeleteAction.Auto;
+            return true;
+        }
+
+        return Enum.TryParse(occurrenceAction, true, out action);
+    }
+
+    private static Guid ResolveOccurrenceStatusId(DateOnly expectedDate, ForecastOccurrenceDeleteAction action)
+    {
+        return action switch
+        {
+            ForecastOccurrenceDeleteAction.Reopen => ForecastOccurrenceStatus.PendingId,
+            ForecastOccurrenceDeleteAction.Skip => ForecastOccurrenceStatus.SkippedId,
+            _ => expectedDate >= DateOnly.FromDateTime(DateTime.Today)
+                ? ForecastOccurrenceStatus.PendingId
+                : ForecastOccurrenceStatus.SkippedId
+        };
     }
 
     private Guid GetCurrentUserId()

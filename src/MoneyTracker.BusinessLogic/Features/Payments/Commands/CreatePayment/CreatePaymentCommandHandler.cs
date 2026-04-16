@@ -29,6 +29,21 @@ public class CreatePaymentCommandHandler
                 return existing.Id;
         }
 
+        var occurrence = request.ForecastOccurrenceId.HasValue
+            ? await _dbContext.ForecastOccurrences.FirstOrDefaultAsync(
+                x => x.Id == request.ForecastOccurrenceId.Value && !x.IsIncome,
+                cancellationToken)
+            : null;
+
+        if (request.ForecastOccurrenceId.HasValue)
+        {
+            if (occurrence == null)
+                throw new InvalidOperationException($"ForecastOccurrence with id {request.ForecastOccurrenceId.Value} not found");
+
+            if (occurrence.ForecastOccurrenceStatusId != ForecastOccurrenceStatus.PendingId)
+                throw new InvalidOperationException($"ForecastOccurrence with id {request.ForecastOccurrenceId.Value} is not pending");
+        }
+
         // Verificare che la categoria esista
         var category = await _dbContext.PaymentCategories.FindAsync(
             new object[] { request.PaymentCategoryId },
@@ -42,6 +57,7 @@ public class CreatePaymentCommandHandler
             Id = Guid.NewGuid(),
             Description = request.Description,
             PaymentCategoryId = request.PaymentCategoryId,
+            ForecastOccurrenceId = request.ForecastOccurrenceId,
             Amount = request.Amount,
             Date = request.Date,
             IsOneShot = request.IsOneShot,
@@ -51,6 +67,12 @@ public class CreatePaymentCommandHandler
             ModifiedAt = DateTime.UtcNow,
             ModifiedById = request.CreatedById
         };
+
+        if (occurrence != null)
+        {
+            occurrence.ForecastOccurrenceStatusId = ForecastOccurrenceStatus.ConfirmedId;
+            occurrence.ValidatedAt = DateTime.UtcNow;
+        }
 
         _dbContext.Payments.Add(payment);
         await _dbContext.SaveChangesAsync(cancellationToken);

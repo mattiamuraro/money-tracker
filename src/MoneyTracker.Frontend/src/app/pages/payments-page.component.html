@@ -27,7 +27,7 @@
         <h2>Payments</h2>
         <p>Track expenses with category, amount, date, and quick edit or delete actions.</p>
       </div>
-      <span class="pill">{{ app.payments.length }} records</span>
+      <span class="pill">{{ paymentListItems.length }} rows</span>
     </div>
 
     <section class="payment-widgets" aria-label="Month summary and payment category breakdown">
@@ -55,7 +55,7 @@
         <div class="compact-heading">
           <div>
             <h3>Payment categories breakdown</h3>
-            <p class="muted-copy">Share of monthly payments by category</p>
+            <p class="muted-copy">Share of monthly payments and pending forecast expenses by category</p>
           </div>
           <button
             class="secondary-button breakdown-toggle"
@@ -106,6 +106,13 @@
           <h3>{{ app.editingPaymentId ? 'Edit payment' : 'Create payment' }}</h3>
           <button *ngIf="app.editingPaymentId" class="text-button" type="button" (click)="app.cancelPaymentEdit()">
             Cancel edit
+          </button>
+        </div>
+
+        <div *ngIf="app.paymentForm.forecastOccurrenceId" class="tag" style="margin-bottom: 1rem; display: inline-flex; gap: .5rem; align-items: center;">
+          <span>Linked forecast occurrence</span>
+          <button *ngIf="!app.editingPaymentId" class="text-button" type="button" (click)="app.clearPaymentForecastOccurrence()">
+            Remove link
           </button>
         </div>
 
@@ -182,7 +189,7 @@
         <div class="card-heading">
           <div>
             <h3>Month payments</h3>
-            <span class="muted-copy">All records for selected month, ordered by date ascending</span>
+            <span class="muted-copy">Actual payments and pending forecast expenses, ordered by date ascending</span>
           </div>
         </div>
 
@@ -256,7 +263,7 @@
           </div>
         </div>
 
-        <div *ngIf="app.payments.length; else paymentsEmpty" class="table-shell">
+        <div *ngIf="paymentListItems.length; else paymentsEmpty" class="table-shell">
           <table>
             <thead>
               <tr>
@@ -268,19 +275,30 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let payment of app.payments; trackBy: app.trackById" [class.future-dated-row]="isFutureDated(payment.date)">
+              <tr
+                *ngFor="let item of paymentListItems; trackBy: trackByPaymentListItem"
+                [class.future-dated-row]="item.isFutureDated"
+                [class.pending-forecast-row]="isPendingForecastExpense(item)">
                 <td>
-                  <strong>{{ payment.description }}</strong>
-                  <span *ngIf="isFutureDated(payment.date)" class="scheduled-badge">Scheduled</span>
+                  <strong>{{ item.description }}</strong>
+                  <span *ngIf="item.isFutureDated" class="scheduled-badge">Scheduled</span>
+                  <span *ngIf="isPendingForecastExpense(item)" class="scheduled-badge pending-forecast-badge">Pending forecast</span>
+                  <span *ngIf="!isPendingForecastExpense(item) && item.isForecastLinked" class="scheduled-badge">Forecast</span>
                 </td>
                 <td>
-                  <span class="tag">{{ payment.category }}</span>
+                  <span class="tag">{{ item.category }}</span>
                 </td>
-                <td>{{ payment.date | date:'dd MMM yyyy' }}</td>
-                <td class="align-right">{{ payment.amount | currency:'EUR':'symbol':'1.2-2' }}</td>
+                <td>{{ item.date | date:'dd MMM yyyy' }}</td>
+                <td class="align-right">{{ item.amount | currency:'EUR':'symbol':'1.2-2' }}</td>
                 <td class="align-right action-group">
-                  <button class="icon-button" type="button" (click)="app.startPaymentEdit(payment)">Edit</button>
-                  <button class="icon-button danger" type="button" (click)="app.deletePayment(payment)">Delete</button>
+                  <ng-container *ngIf="isPendingForecastExpense(item); else paymentActions">
+                    <button class="icon-button" type="button" (click)="usePendingForecastExpense(item)">Use</button>
+                    <button class="icon-button danger" type="button" (click)="discardPendingForecastExpense(item)">Discard</button>
+                  </ng-container>
+                  <ng-template #paymentActions>
+                    <button class="icon-button" type="button" (click)="app.startPaymentEdit(item.payment!)">Edit</button>
+                    <button class="icon-button danger" type="button" (click)="app.deletePayment(item.payment!)">Delete</button>
+                  </ng-template>
                 </td>
               </tr>
             </tbody>
@@ -289,8 +307,8 @@
 
         <ng-template #paymentsEmpty>
           <div class="empty-state">
-            <h4>No payments yet</h4>
-            <p>Create the first payment to populate the dashboard.</p>
+            <h4>No payments or pending forecast expenses</h4>
+            <p>Create a payment or add a forecast definition to populate the list.</p>
           </div>
         </ng-template>
       </article>
@@ -304,7 +322,7 @@
         <h2>Incomes</h2>
         <p>Track incoming transactions with amount, date, and quick edit or delete actions.</p>
       </div>
-      <span class="pill">{{ app.incomes.length }} records</span>
+      <span class="pill">{{ incomeListItems.length }} rows</span>
     </div>
 
     <div class="panel-grid">
@@ -313,6 +331,13 @@
           <h3>{{ app.editingIncomeId ? 'Edit income' : 'Create income' }}</h3>
           <button *ngIf="app.editingIncomeId" class="text-button" type="button" (click)="app.cancelIncomeEdit()">
             Cancel edit
+          </button>
+        </div>
+
+        <div *ngIf="app.incomeForm.forecastOccurrenceId" class="tag" style="margin-bottom: 1rem; display: inline-flex; gap: .5rem; align-items: center;">
+          <span>Linked forecast occurrence</span>
+          <button *ngIf="!app.editingIncomeId" class="text-button" type="button" (click)="app.clearIncomeForecastOccurrence()">
+            Remove link
           </button>
         </div>
 
@@ -366,7 +391,7 @@
         <div class="card-heading">
           <div>
             <h3>Month incomes</h3>
-            <span class="muted-copy">All records for selected month, ordered by date ascending</span>
+            <span class="muted-copy">Actual incomes and pending forecast incomes, ordered by date ascending</span>
           </div>
           <strong class="muted-copy">Total: {{ app.incomeTotal | currency:'EUR':'symbol':'1.2-2' }}</strong>
         </div>
@@ -426,7 +451,7 @@
           </div>
         </div>
 
-        <div *ngIf="app.incomes.length; else incomesEmpty" class="table-shell">
+        <div *ngIf="incomeListItems.length; else incomesEmpty" class="table-shell">
           <table>
             <thead>
               <tr>
@@ -437,16 +462,27 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let income of app.incomes; trackBy: app.trackById" [class.future-dated-row]="isFutureDated(income.date)">
+              <tr
+                *ngFor="let item of incomeListItems; trackBy: trackByIncomeListItem"
+                [class.future-dated-row]="item.isFutureDated"
+                [class.pending-forecast-row]="isPendingForecastIncome(item)">
                 <td>
-                  <strong>{{ income.description }}</strong>
-                  <span *ngIf="isFutureDated(income.date)" class="scheduled-badge">Scheduled</span>
+                  <strong>{{ item.description }}</strong>
+                  <span *ngIf="item.isFutureDated" class="scheduled-badge">Scheduled</span>
+                  <span *ngIf="isPendingForecastIncome(item)" class="scheduled-badge pending-forecast-badge">Pending forecast</span>
+                  <span *ngIf="!isPendingForecastIncome(item) && item.isForecastLinked" class="scheduled-badge">Forecast</span>
                 </td>
-                <td>{{ income.date | date:'dd MMM yyyy' }}</td>
-                <td class="align-right">{{ income.amount | currency:'EUR':'symbol':'1.2-2' }}</td>
+                <td>{{ item.date | date:'dd MMM yyyy' }}</td>
+                <td class="align-right">{{ item.amount | currency:'EUR':'symbol':'1.2-2' }}</td>
                 <td class="align-right action-group">
-                  <button class="icon-button" type="button" (click)="app.startIncomeEdit(income)">Edit</button>
-                  <button class="icon-button danger" type="button" (click)="app.deleteIncome(income)">Delete</button>
+                  <ng-container *ngIf="isPendingForecastIncome(item); else incomeActions">
+                    <button class="icon-button" type="button" (click)="usePendingForecastIncome(item)">Use</button>
+                    <button class="icon-button danger" type="button" (click)="discardPendingForecastIncome(item)">Discard</button>
+                  </ng-container>
+                  <ng-template #incomeActions>
+                    <button class="icon-button" type="button" (click)="app.startIncomeEdit(item.income!)">Edit</button>
+                    <button class="icon-button danger" type="button" (click)="app.deleteIncome(item.income!)">Delete</button>
+                  </ng-template>
                 </td>
               </tr>
             </tbody>
@@ -455,8 +491,8 @@
 
         <ng-template #incomesEmpty>
           <div class="empty-state">
-            <h4>No incomes yet</h4>
-            <p>Create the first income to populate this section.</p>
+            <h4>No incomes or pending forecast incomes</h4>
+            <p>Create an income or add a forecast definition to populate this section.</p>
           </div>
         </ng-template>
       </article>

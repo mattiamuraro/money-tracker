@@ -26,7 +26,7 @@ namespace MoneyTracker.Api.Endpoints
                 if ((end.ToDateTime(TimeOnly.MinValue) - start.ToDateTime(TimeOnly.MinValue)).TotalDays > 366)
                     return Results.BadRequest(new { message = "Date range cannot exceed 366 days." });
 
-                var forecasts = forecastService.GetForecastRow(start, end);
+                var forecasts = await forecastService.GetForecastRowAsync(start, end, cancellationToken);
                 return Results.Ok(forecasts);
             })
                 .WithName("GetForecasts")
@@ -82,6 +82,23 @@ namespace MoneyTracker.Api.Endpoints
                 .WithDescription("Deletes a forecast definition")
                 .Produces(StatusCodes.Status204NoContent)
                 .Produces(StatusCodes.Status404NotFound)
+                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+
+            group.MapGet("/occurrences", static async ([FromServices] ForecastService forecastService, [AsParameters] ForecastOccurrenceQuery query, CancellationToken cancellationToken) =>
+                    await forecastService.GetPendingOccurrencesAsync(query, cancellationToken))
+                .WithName("GetForecastOccurrences")
+                .WithDescription("Retrieves pending forecast occurrences for a month and type")
+                .Produces<List<ForecastOccurrenceRow>>(StatusCodes.Status200OK)
+                .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
+                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+
+            group.MapDelete("/occurrences/{id:guid}", static async ([FromServices] ForecastService forecastService, Guid id, CancellationToken cancellationToken) =>
+                    await forecastService.DiscardPendingOccurrenceAsync(id, cancellationToken))
+                .WithName("DiscardForecastOccurrence")
+                .WithDescription("Discards a pending forecast occurrence")
+                .Produces(StatusCodes.Status204NoContent)
+                .Produces(StatusCodes.Status404NotFound)
+                .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
             return app;

@@ -7,6 +7,7 @@ public class CreatePaymentCommand
 {
     public string Description { get; set; } = string.Empty;
     public Guid PaymentCategoryId { get; set; }
+    public Guid? ForecastOccurrenceId { get; set; }
     public decimal Amount { get; set; }
     public DateTime Date { get; set; }
     public bool IsOneShot { get; set; }
@@ -26,7 +27,8 @@ public class CreatePaymentCommand
         DateTime date,
         Guid createdById,
         bool isOneShot = false,
-        string? idempotencyKey = null)
+        string? idempotencyKey = null,
+        Guid? forecastOccurrenceId = null)
     {
         Description = description ?? throw new ArgumentNullException(nameof(description));
         PaymentCategoryId = paymentCategoryId;
@@ -35,5 +37,6 @@ public class CreatePaymentCommand
         CreatedById = createdById;
         IsOneShot = isOneShot;
         IdempotencyKey = idempotencyKey;
+        ForecastOccurrenceId = forecastOccurrenceId;
     }
 }

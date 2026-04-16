@@ -9,6 +9,7 @@ namespace MoneyTracker.Data.Base
         public decimal Amount { get; set; }
         public DateOnly RecurrenceStart { get; set; }
         public DateOnly? RecurrenceEnd { get; set; }
+        public bool IsActive { get; set; } = true;
 
         public int? Interval { get; set; }
         public Guid ForecastRecurrenceRuleTypeId { get; set; }

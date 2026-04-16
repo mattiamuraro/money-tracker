@@ -53,4 +53,15 @@
     <router-outlet></router-outlet>
 
   </div>
+
+  <app-confirmation-dialog
+    [title]="dialogState.options.title || 'Confirm Action'"
+    [message]="dialogState.options.message"
+    [confirmButtonText]="dialogState.options.confirmButtonText || 'Confirm'"
+    [cancelButtonText]="dialogState.options.cancelButtonText || 'Cancel'"
+    [isDangerous]="dialogState.options.isDangerous || false"
+    [isVisible]="dialogState.isVisible"
+    (confirmed)="onDialogConfirmed()"
+    (cancelled)="onDialogCancelled()">
+  </app-confirmation-dialog>
 </ng-template>

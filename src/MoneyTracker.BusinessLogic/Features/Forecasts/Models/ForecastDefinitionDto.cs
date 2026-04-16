@@ -10,4 +10,6 @@ public class ForecastDefinitionDto
     public DateOnly? RecurrenceEnd { get; set; }
     public int Interval { get; set; }
     public bool IsIncome { get; set; }
+    public Guid? PaymentCategoryId { get; set; }
+    public string? Category { get; set; }
 }

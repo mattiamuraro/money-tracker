@@ -98,10 +98,26 @@
         </div>
 
         <label class="field-label" for="forecast-type">Type</label>
-        <select id="forecast-type" class="field-input" name="forecastType" [(ngModel)]="app.forecastForm.isIncome">
+        <select id="forecast-type" class="field-input" name="forecastType" [(ngModel)]="app.forecastForm.isIncome" (ngModelChange)="app.onForecastRecurrenceTypeChanged()">
           <option [ngValue]="false">Expense</option>
           <option [ngValue]="true">Income</option>
         </select>
+
+        <div *ngIf="!app.forecastForm.isIncome">
+          <label class="field-label" for="forecast-category">Category</label>
+          <select
+            id="forecast-category"
+            class="field-input"
+            name="forecastCategory"
+            [(ngModel)]="app.forecastForm.paymentCategoryId"
+            [disabled]="!app.hasCategories"
+            required>
+            <option value="">{{ app.hasCategories ? 'Select a category' : 'No categories available' }}</option>
+            <option *ngFor="let category of app.categories; trackBy: app.trackById" [value]="category.id">
+              {{ category.name }} · {{ category.code }}
+            </option>
+          </select>
+        </div>
 
         <div class="form-actions">
           <button class="primary-button" type="submit" [disabled]="app.isSavingForecast">
@@ -123,6 +139,7 @@
               <tr>
                 <th>Description</th>
                 <th>Type</th>
+                <th>Category</th>
                 <th>Recurrence type</th>
                 <th>Starts</th>
                 <th>Recurrence</th>
@@ -138,6 +155,7 @@
                     {{ definition.isIncome ? 'Income' : 'Expense' }}
                   </span>
                 </td>
+                <td>{{ definition.category || '—' }}</td>
                 <td>{{ app.getForecastRecurrenceRuleTypeLabel(definition.forecastRecurrenceRuleTypeId) }}</td>
                 <td>{{ definition.recurrenceStart | date:'dd MMM yyyy' }}</td>
                 <td>{{ app.getRecurrenceSummary(definition) }}</td>
@@ -168,7 +186,10 @@
             <article class="forecast-item" *ngFor="let row of app.upcomingForecasts; trackBy: app.trackById">
               <div>
                 <strong>{{ row.description }}</strong>
-                <p>{{ row.date | date:'dd MMM yyyy' }}</p>
+                <p>
+                  {{ row.date | date:'dd MMM yyyy' }}
+                  <span *ngIf="row.category"> · {{ row.category }}</span>
+                </p>
               </div>
               <div class="forecast-item-value" [class.is-income]="row.isIncome" [class.is-expense]="!row.isIncome">
                 {{ row.isIncome ? '+' : '-' }}{{ row.amount | currency:'EUR':'symbol':'1.2-2' }}

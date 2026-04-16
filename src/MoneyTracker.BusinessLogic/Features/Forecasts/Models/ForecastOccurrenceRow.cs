@@ -1,13 +1,13 @@
 namespace MoneyTracker.BusinessLogic.Features.Forecasts.Models;
 
-public class ForecastRow
+public class ForecastOccurrenceRow
 {
     public Guid Id { get; set; }
     public Guid ForecastDefinitionId { get; set; }
     public required string Description { get; set; }
     public decimal Amount { get; set; }
-    public DateOnly Date { get; set; }
-    public bool IsIncome { get; set; } = false;
+    public DateOnly ExpectedDate { get; set; }
+    public bool IsIncome { get; set; }
     public Guid? PaymentCategoryId { get; set; }
     public string? Category { get; set; }
 }

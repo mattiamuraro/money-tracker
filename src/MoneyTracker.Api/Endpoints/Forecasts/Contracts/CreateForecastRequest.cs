@@ -21,4 +21,5 @@ public class CreateForecastRequest
     public int Interval { get; set; }
 
     public bool IsIncome { get; set; }
+    public Guid? PaymentCategoryId { get; set; }
 }

@@ -1,0 +1,35 @@
+<div *ngIf="isVisible" class="dialog-overlay" (click)="onCancel()" role="presentation" [@fadeIn]>
+  <div
+    class="dialog-container"
+    (click)="$event.stopPropagation()"
+    role="dialog"
+    [attr.aria-modal]="true"
+    [attr.aria-labelledby]="'dialog-title'"
+    [@slideUp]
+  >
+    <div class="dialog-content">
+      <h2 id="dialog-title" class="dialog-title">{{ title }}</h2>
+      <p class="dialog-message">{{ message }}</p>
+    </div>
+
+    <div class="dialog-actions">
+      <button
+        class="secondary-button"
+        type="button"
+        (click)="onCancel()"
+        [attr.aria-label]="'Cancel: ' + cancelButtonText
+      >
+        {{ cancelButtonText }}
+      </button>
+      <button
+        class="primary-button"
+        [class.danger]="isDangerous"
+        type="button"
+        (click)="onConfirm()"
+        [attr.aria-label]="isDangerous ? 'Discard: ' + confirmButtonText : confirmButtonText"
+      >
+        {{ confirmButtonText }}
+      </button>
+    </div>
+  </div>
+</div>

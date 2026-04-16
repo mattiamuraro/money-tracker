@@ -11,6 +11,7 @@ namespace MoneyTracker.Data
         [MaxLength(100)]
         public required string Description { get; set; }
         public Guid PaymentCategoryId { get; set; }
+        public Guid? ForecastOccurrenceId { get; set; }
         public decimal Amount { get; set; }
         public DateTime Date { get; set; }
         public bool IsOneShot { get; set; } = false;
@@ -22,5 +23,6 @@ namespace MoneyTracker.Data
         public string? IdempotencyKey { get; set; }
 
         public PaymentCategory PaymentCategory { get; set; } = null!;
+        public ForecastOccurrence? ForecastOccurrence { get; set; }
     }
 }

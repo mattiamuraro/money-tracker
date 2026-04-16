@@ -18,6 +18,10 @@ namespace MoneyTracker.Data.EntityFramework
         public DbSet<ForecastExpense> ForecastExpenses { get; set; }
         public DbSet<ForecastIncome> ForecastIncomes { get; set; }
         public DbSet<ForecastRecurrenceRuleType> ForecastRecurrenceRuleTypes { get; set; }
+        public DbSet<ForecastOccurrenceStatus> ForecastOccurrenceStatuses { get; set; }
+
+        public DbSet<ForecastOccurrence> ForecastOccurrences { get; set; }
+
         public DbSet<User> Users { get; set; }
 
         public MoneyTrackerDbContext(DbContextOptions<MoneyTrackerDbContext> options, IHttpContextAccessor? httpContextAccessor = null)
@@ -30,201 +34,214 @@ namespace MoneyTracker.Data.EntityFramework
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<User>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Username).IsRequired().HasMaxLength(100);
-                entity.Property(e => e.PasswordHash).IsRequired();
-                entity.Property(e => e.CreatedAt).IsRequired();
-                entity.Property(e => e.CreatedById)
-                    .IsRequired()
-                    .HasDefaultValue(SystemUsers.SystemUserId);
-                entity.Property(e => e.ModifiedAt).IsRequired();
-                entity.Property(e => e.ModifiedById)
-                    .IsRequired()
-                    .HasDefaultValue(SystemUsers.SystemUserId);
-                entity.HasIndex(e => e.Username).IsUnique();
-                ConfigureAuditRelations(entity);
-            });
+            ConfigureUserEntity(modelBuilder.Entity<User>());
+            ConfigurePaymentEntity(modelBuilder.Entity<Payment>());
+            ConfigureIncomeEntity(modelBuilder.Entity<Income>());
+            ConfigurePaymentCategoryEntity(modelBuilder.Entity<PaymentCategory>());
+            ConfigureForecastExpenseEntity(modelBuilder.Entity<ForecastExpense>());
+            ConfigureForecastIncomeEntity(modelBuilder.Entity<ForecastIncome>());
+            ConfigureForecastRecurrenceRuleTypeEntity(modelBuilder.Entity<ForecastRecurrenceRuleType>());
+            ConfigureForecastOccurrenceStatusEntity(modelBuilder.Entity<ForecastOccurrenceStatus>());
+            ConfigureForecastOccurrenceEntity(modelBuilder.Entity<ForecastOccurrence>());
+        }
 
-            // Configure Payment entity with soft delete support
-            modelBuilder.Entity<Payment>(entity =>
-            {
-                entity.HasKey(e => e.Id);
+        private static void ConfigureUserEntity(EntityTypeBuilder<User> entity)
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Username)
+                .IsRequired()
+                .HasMaxLength(100);
+            entity.Property(e => e.PasswordHash)
+                .IsRequired();
 
-                entity.Property(e => e.Description)
-                    .IsRequired()
-                    .HasMaxLength(100);
+            ConfigureAuditedEntity(entity);
 
-                entity.Property(e => e.Amount)
-                    .HasPrecision(18, 2);
+            entity.HasIndex(e => e.Username)
+                .IsUnique();
+        }
 
-                entity.Property(e => e.Date)
-                    .IsRequired();
+        private static void ConfigurePaymentEntity(EntityTypeBuilder<Payment> entity)
+        {
+            entity.HasKey(e => e.Id);
 
-                entity.Property(e => e.IsOneShot);
+            entity.Property(e => e.Description)
+                .IsRequired()
+                .HasMaxLength(100);
 
-                entity.Property(e => e.CreatedAt)
-                    .IsRequired();
+            entity.Property(e => e.Amount)
+                .HasPrecision(18, 2);
 
-                entity.Property(e => e.CreatedById)
-                    .IsRequired()
-                    .HasDefaultValue(SystemUsers.SystemUserId);
+            entity.Property(e => e.Date)
+                .IsRequired();
 
-                entity.Property(e => e.ModifiedAt)
-                    .IsRequired();
+            entity.Property(e => e.IsOneShot);
 
-                entity.Property(e => e.ModifiedById)
-                    .IsRequired()
-                    .HasDefaultValue(SystemUsers.SystemUserId);
+            entity.HasOne(e => e.PaymentCategory)
+                .WithMany(pc => pc.Payments)
+                .HasForeignKey(e => e.PaymentCategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-                // Soft delete properties
-                entity.Property(e => e.DeletedAt);
-                entity.Property(e => e.DeletedBy);
+            ConfigureAuditedEntity(entity);
+            ConfigureSoftDeleteEntity(entity);
 
-                // Configure relationship with PaymentCategory
-                entity.HasOne(e => e.PaymentCategory)
-                    .WithMany(pc => pc.Payments)
-                    .HasForeignKey(e => e.PaymentCategoryId)
-                    .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.Date);
+            entity.HasIndex(e => e.PaymentCategoryId);
+            entity.HasIndex(e => e.IdempotencyKey)
+                .IsUnique()
+                .HasFilter("[IdempotencyKey] IS NOT NULL");
+        }
 
-                ConfigureAuditRelations(entity);
+        private static void ConfigureIncomeEntity(EntityTypeBuilder<Income> entity)
+        {
+            entity.HasKey(e => e.Id);
 
-                // Indexes
-                entity.HasIndex(e => e.Date);
-                entity.HasIndex(e => e.PaymentCategoryId);
-                entity.HasIndex(e => e.DeletedAt);
-                entity.HasIndex(e => e.IdempotencyKey)
-                    .IsUnique()
-                    .HasFilter("[IdempotencyKey] IS NOT NULL");
+            entity.Property(e => e.Description)
+                .IsRequired()
+                .HasMaxLength(100);
 
-                // Global query filter for soft deletes
-                entity.HasQueryFilter(p => !p.IsDeleted);
-            });
+            entity.Property(e => e.Amount)
+                .HasPrecision(18, 2);
 
-            modelBuilder.Entity<Income>(entity =>
-            {
-                entity.HasKey(e => e.Id);
+            entity.Property(e => e.Date)
+                .IsRequired();
 
-                entity.Property(e => e.Description)
-                    .IsRequired()
-                    .HasMaxLength(100);
+            ConfigureAuditedEntity(entity);
+            ConfigureSoftDeleteEntity(entity);
 
-                entity.Property(e => e.Amount)
-                    .HasPrecision(18, 2);
+            entity.HasIndex(e => e.Date);
+            entity.HasIndex(e => e.IdempotencyKey)
+                .IsUnique()
+                .HasFilter("[IdempotencyKey] IS NOT NULL");
+        }
 
-                entity.Property(e => e.Date)
-                    .IsRequired();
+        private static void ConfigurePaymentCategoryEntity(EntityTypeBuilder<PaymentCategory> entity)
+        {
+            ConfigureContextEntity(entity);
+        }
 
-                entity.Property(e => e.CreatedAt)
-                    .IsRequired();
+        private static void ConfigureForecastExpenseEntity(EntityTypeBuilder<ForecastExpense> entity)
+        {
+            ConfigureForecastEntity(entity);
+        }
 
-                entity.Property(e => e.CreatedById)
-                    .IsRequired()
-                    .HasDefaultValue(SystemUsers.SystemUserId);
+        private static void ConfigureForecastIncomeEntity(EntityTypeBuilder<ForecastIncome> entity)
+        {
+            ConfigureForecastEntity(entity);
+        }
 
-                entity.Property(e => e.ModifiedAt)
-                    .IsRequired();
+        private static void ConfigureForecastRecurrenceRuleTypeEntity(EntityTypeBuilder<ForecastRecurrenceRuleType> entity)
+        {
+            ConfigureContextEntity(entity);
+        }
 
-                entity.Property(e => e.ModifiedById)
-                    .IsRequired()
-                    .HasDefaultValue(SystemUsers.SystemUserId);
+        private static void ConfigureForecastOccurrenceStatusEntity(EntityTypeBuilder<ForecastOccurrenceStatus> entity)
+        {
+            ConfigureContextEntity(entity);
+        }
 
-                // Soft delete properties
-                entity.Property(e => e.DeletedAt);
-                entity.Property(e => e.DeletedBy);
+        private static void ConfigureForecastOccurrenceEntity(EntityTypeBuilder<ForecastOccurrence> entity)
+        {
+            entity.HasKey(e => e.Id);
 
-                ConfigureAuditRelations(entity);
+            entity.Property(e => e.Description)
+                .IsRequired()
+                .HasMaxLength(100);
 
-                // Indexes
-                entity.HasIndex(e => e.Date);
-                entity.HasIndex(e => e.DeletedAt);
-                entity.HasIndex(e => e.IdempotencyKey)
-                    .IsUnique()
-                    .HasFilter("[IdempotencyKey] IS NOT NULL");
+            entity.Property(e => e.Amount)
+                .HasPrecision(18, 2);
 
-                // Global query filter for soft deletes
-                entity.HasQueryFilter(p => !p.IsDeleted);
-            });
+            entity.Property(e => e.ExpectedDate)
+                .IsRequired();
 
-            // Configure PaymentCategory entity
-            modelBuilder.Entity<PaymentCategory>(entity =>
-            {
-                entity.HasKey(e => e.Id);
+            entity.Property(e => e.ForecastOccurrenceStatusId)
+                .IsRequired()
+                .HasDefaultValue(ForecastOccurrenceStatus.PendingId);
 
-                entity.Property(e => e.Name)
-                    .IsRequired()
-                    .HasMaxLength(50);
+            entity.HasOne(e => e.PaymentCategory)
+                .WithMany()
+                .HasForeignKey(e => e.PaymentCategoryId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-                entity.Property(e => e.Code)
-                    .IsRequired()
-                    .HasMaxLength(5);
+            entity.HasOne(e => e.Status)
+                .WithMany()
+                .HasForeignKey(e => e.ForecastOccurrenceStatusId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-                entity.Property(e => e.CreatedAt)
-                    .IsRequired();
+            ConfigureAuditedEntity(entity);
 
-                entity.Property(e => e.CreatedById)
-                    .IsRequired()
-                    .HasDefaultValue(SystemUsers.SystemUserId);
+            entity.HasIndex(e => e.ExpectedDate);
+            entity.HasIndex(e => e.ForecastDefinitionId);
+            entity.HasIndex(e => e.ForecastOccurrenceStatusId);
+            entity.HasIndex(e => e.PaymentCategoryId);
+        }
 
-                entity.Property(e => e.ModifiedAt)
-                    .IsRequired();
+        private static void ConfigureAuditedEntity<TEntity>(EntityTypeBuilder<TEntity> entity)
+            where TEntity : BaseEntity
+        {
+            entity.Property(e => e.CreatedAt)
+                .IsRequired();
 
-                entity.Property(e => e.ModifiedById)
-                    .IsRequired()
-                    .HasDefaultValue(SystemUsers.SystemUserId);
+            entity.Property(e => e.CreatedById)
+                .IsRequired()
+                .HasDefaultValue(SystemUsers.SystemUserId);
 
-                ConfigureAuditRelations(entity);
+            entity.Property(e => e.ModifiedAt)
+                .IsRequired();
 
-                entity.HasIndex(e => e.Code)
-                    .IsUnique();
-            });
+            entity.Property(e => e.ModifiedById)
+                .IsRequired()
+                .HasDefaultValue(SystemUsers.SystemUserId);
 
-            modelBuilder.Entity<ForecastExpense>(entity =>
-            {
-                entity.Property(e => e.CreatedById)
-                    .IsRequired()
-                    .HasDefaultValue(SystemUsers.SystemUserId);
-                entity.Property(e => e.ModifiedById)
-                    .IsRequired()
-                    .HasDefaultValue(SystemUsers.SystemUserId);
+            ConfigureAuditRelations(entity);
+        }
 
-                entity.HasOne(e => e.ForecastRecurrenceRuleType)
-                    .WithMany()
-                    .HasForeignKey(e => e.ForecastRecurrenceRuleTypeId)
-                    .OnDelete(DeleteBehavior.Restrict);
+        private static void ConfigureContextEntity<TEntity>(EntityTypeBuilder<TEntity> entity)
+            where TEntity : BaseContextEntity
+        {
+            entity.HasKey(e => e.Id);
 
-                ConfigureAuditRelations(entity);
-            });
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(50);
 
-            modelBuilder.Entity<ForecastIncome>(entity =>
-            {
-                entity.Property(e => e.CreatedById)
-                    .IsRequired()
-                    .HasDefaultValue(SystemUsers.SystemUserId);
-                entity.Property(e => e.ModifiedById)
-                    .IsRequired()
-                    .HasDefaultValue(SystemUsers.SystemUserId);
+            entity.Property(e => e.Code)
+                .IsRequired()
+                .HasMaxLength(5);
 
-                entity.HasOne(e => e.ForecastRecurrenceRuleType)
-                    .WithMany()
-                    .HasForeignKey(e => e.ForecastRecurrenceRuleTypeId)
-                    .OnDelete(DeleteBehavior.Restrict);
+            ConfigureAuditedEntity(entity);
 
-                ConfigureAuditRelations(entity);
-            });
+            entity.HasIndex(e => e.Code)
+                .IsUnique();
+        }
 
-            modelBuilder.Entity<ForecastRecurrenceRuleType>(entity =>
-            {
-                entity.Property(e => e.CreatedById)
-                    .IsRequired()
-                    .HasDefaultValue(SystemUsers.SystemUserId);
-                entity.Property(e => e.ModifiedById)
-                    .IsRequired()
-                    .HasDefaultValue(SystemUsers.SystemUserId);
+        private static void ConfigureForecastEntity<TEntity>(EntityTypeBuilder<TEntity> entity)
+            where TEntity : BaseForecast
+        {
+            entity.HasKey(e => e.Id);
 
-                ConfigureAuditRelations(entity);
-            });
+            entity.Property(e => e.Description)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.Amount)
+                .HasPrecision(18, 2);
+
+            entity.HasOne(e => e.ForecastRecurrenceRuleType)
+                .WithMany()
+                .HasForeignKey(e => e.ForecastRecurrenceRuleTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            ConfigureAuditedEntity(entity);
+        }
+
+        private static void ConfigureSoftDeleteEntity<TEntity>(EntityTypeBuilder<TEntity> entity)
+            where TEntity : SoftDeleteEntity
+        {
+            entity.Property(e => e.DeletedAt);
+            entity.Property(e => e.DeletedBy);
+
+            entity.HasIndex(e => e.DeletedAt);
+            entity.HasQueryFilter(e => !e.IsDeleted);
         }
 
         private static void ConfigureAuditRelations<TEntity>(EntityTypeBuilder<TEntity> entity)

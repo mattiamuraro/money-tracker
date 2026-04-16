@@ -3,14 +3,17 @@ import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthService } from './auth/auth.service';
 import { MoneyTrackerApiService } from './money-tracker-api.service';
+import { ConfirmationDialogService } from './services/confirmation-dialog.service';
 import {
   ForecastDefinition,
   ForecastFormModel,
+  ForecastOccurrenceRow,
   ForecastRecurrenceRuleTypeOption,
   ForecastRow,
   IncomeFormModel,
   IncomeQuery,
   IncomeRow,
+  OccurrenceDeleteAction,
   PaymentCategory,
   PaymentCategoryFormModel,
   PaymentFormModel,
@@ -39,6 +42,8 @@ export class App implements OnInit {
   public categories: PaymentCategory[] = [];
   public payments: PaymentRow[] = [];
   public incomes: IncomeRow[] = [];
+  public paymentOccurrences: ForecastOccurrenceRow[] = [];
+  public incomeOccurrences: ForecastOccurrenceRow[] = [];
   public forecastRecurrenceRuleTypes: ForecastRecurrenceRuleTypeOption[] = [];
   public forecastDefinitions: ForecastDefinition[] = [];
   public forecastRows: ForecastRow[] = [];
@@ -91,14 +96,37 @@ export class App implements OnInit {
 
   private readonly themeStorageKey = 'money-tracker.theme';
 
+  public dialogState: {
+    isVisible: boolean;
+    options: {
+      title?: string;
+      message: string;
+      confirmButtonText?: string;
+      cancelButtonText?: string;
+      isDangerous?: boolean;
+    };
+  } = {
+    isVisible: false,
+    options: {
+      message: '',
+    },
+  };
+
   constructor(
     private readonly moneyTrackerApiService: MoneyTrackerApiService,
     private readonly ngZone: NgZone,
     private readonly authService: AuthService,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly confirmationDialogService: ConfirmationDialogService
   ) {}
 
   async ngOnInit(): Promise<void> {
+    this.confirmationDialogService.getDialogState().subscribe((state) => {
+      this.ngZone.run(() => {
+        this.dialogState = state;
+      });
+    });
+
     this.initializeTheme();
     this.isLoginRoute = this.router.url.startsWith('/login');
 
@@ -134,6 +162,8 @@ export class App implements OnInit {
       this.loadCategories(),
       this.loadPayments(),
       this.loadIncomes(),
+      this.loadPaymentOccurrences(),
+      this.loadIncomeOccurrences(),
       this.loadForecastRecurrenceRuleTypes(),
       this.loadForecastDefinitions(),
       this.loadForecastRows(),
@@ -167,6 +197,7 @@ export class App implements OnInit {
     const model: PaymentFormModel = {
       ...this.paymentForm,
       description: this.paymentForm.description.trim(),
+      forecastOccurrenceId: this.paymentForm.forecastOccurrenceId || null,
     };
 
     try {
@@ -182,7 +213,7 @@ export class App implements OnInit {
         });
       }
 
-      await this.loadPayments();
+      await Promise.all([this.loadPayments(), this.loadPaymentOccurrences()]);
       this.ngZone.run(() => {
         this.resetPaymentForm();
       });
@@ -202,12 +233,68 @@ export class App implements OnInit {
     this.paymentForm = {
       description: payment.description,
       paymentCategoryId: payment.paymentCategoryId,
+      forecastOccurrenceId: payment.forecastOccurrenceId ?? null,
       amount: payment.amount,
       date: this.toInputDate(payment.date),
       isOneShot: payment.isOneShot,
     };
     this.successMessage = '';
     this.errorMessage = '';
+  }
+
+  public startPaymentFromOccurrence(occurrence: ForecastOccurrenceRow): void {
+    this.editingPaymentId = null;
+    this.paymentForm = {
+      description: occurrence.description,
+      paymentCategoryId: occurrence.paymentCategoryId ?? '',
+      forecastOccurrenceId: occurrence.id,
+      amount: occurrence.amount,
+      date: occurrence.expectedDate,
+      isOneShot: true,
+    };
+    this.clearMessages();
+  }
+
+  public async discardPendingForecastOccurrence(occurrence: ForecastOccurrenceRow, isIncome: boolean): Promise<void> {
+    const confirmed = await this.confirmationDialogService.show({
+      title: 'Discard Forecast Occurrence',
+      message: `Discard pending forecast occurrence "${occurrence.description}" scheduled on ${this.toDisplayDate(occurrence.expectedDate)}?`,
+      confirmButtonText: 'Discard',
+      cancelButtonText: 'Cancel',
+      isDangerous: true,
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.clearMessages();
+
+    try {
+      await this.moneyTrackerApiService.discardForecastOccurrence(occurrence.id);
+
+      if (isIncome) {
+        await Promise.all([this.loadIncomeOccurrences(), this.loadIncomes(), this.loadForecastRows()]);
+
+        if (this.incomeForm.forecastOccurrenceId === occurrence.id) {
+          this.incomeForm.forecastOccurrenceId = null;
+        }
+      } else {
+        await Promise.all([this.loadPaymentOccurrences(), this.loadPayments(), this.loadForecastRows()]);
+
+        if (this.paymentForm.forecastOccurrenceId === occurrence.id) {
+          this.paymentForm.forecastOccurrenceId = null;
+        }
+      }
+
+      this.successMessage = 'Forecast occurrence discarded successfully.';
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error, 'Unable to discard the forecast occurrence.');
+    }
+  }
+
+  public clearPaymentForecastOccurrence(): void {
+    this.paymentForm.forecastOccurrenceId = null;
   }
 
   public cancelPaymentEdit(): void {
@@ -223,8 +310,9 @@ export class App implements OnInit {
     this.clearMessages();
 
     try {
-      await this.moneyTrackerApiService.deletePayment(payment.id);
-      await this.loadPayments();
+      const occurrenceAction = this.resolveOccurrenceDeleteAction(payment.description, payment.forecastOccurrenceId, payment.forecastExpectedDate);
+      await this.moneyTrackerApiService.deletePayment(payment.id, occurrenceAction);
+      await Promise.all([this.loadPayments(), this.loadPaymentOccurrences()]);
       this.successMessage = 'Payment deleted successfully.';
 
       if (this.editingPaymentId === payment.id) {
@@ -245,6 +333,12 @@ export class App implements OnInit {
       return;
     }
 
+    if (!this.forecastForm.isIncome && !this.forecastForm.paymentCategoryId) {
+      this.errorMessage = 'Expense forecasts require a payment category.';
+      this.successMessage = '';
+      return;
+    }
+
     this.isSavingForecast = true;
     this.clearMessages();
 
@@ -253,6 +347,7 @@ export class App implements OnInit {
       forecastRecurrenceRuleTypeId: selectedRecurrenceTypeId,
       interval: isOneTime ? 1 : this.forecastForm.interval,
       description: this.forecastForm.description.trim(),
+      paymentCategoryId: this.forecastForm.isIncome ? '' : this.forecastForm.paymentCategoryId,
     };
 
     try {
@@ -264,7 +359,12 @@ export class App implements OnInit {
         this.successMessage = 'Forecast created successfully.';
       }
 
-      await Promise.all([this.loadForecastDefinitions(), this.loadForecastRows()]);
+      await Promise.all([
+        this.loadForecastDefinitions(),
+        this.loadForecastRows(),
+        this.loadPaymentOccurrences(),
+        this.loadIncomeOccurrences(),
+      ]);
       this.resetForecastForm();
     } catch (error) {
       this.errorMessage = this.getErrorMessage(error, 'Unable to save the forecast.');
@@ -300,7 +400,7 @@ export class App implements OnInit {
         this.successMessage = 'Category created successfully.';
       }
 
-      await Promise.all([this.loadCategories(), this.loadPayments()]);
+      await Promise.all([this.loadCategories(), this.loadPayments(), this.loadForecastDefinitions(), this.loadForecastRows(), this.loadPaymentOccurrences()]);
       this.resetCategoryForm();
     } catch (error) {
       this.errorMessage = this.getErrorMessage(error, 'Unable to save the category.');
@@ -333,7 +433,7 @@ export class App implements OnInit {
 
     try {
       await this.moneyTrackerApiService.deleteCategory(category.id);
-      await Promise.all([this.loadCategories(), this.loadPayments()]);
+      await Promise.all([this.loadCategories(), this.loadPayments(), this.loadForecastDefinitions(), this.loadForecastRows(), this.loadPaymentOccurrences()]);
       this.successMessage = 'Category deleted successfully.';
 
       if (this.editingCategoryId === category.id) {
@@ -342,6 +442,10 @@ export class App implements OnInit {
 
       if (this.paymentForm.paymentCategoryId === category.id) {
         this.paymentForm.paymentCategoryId = '';
+      }
+
+      if (this.forecastForm.paymentCategoryId === category.id) {
+        this.forecastForm.paymentCategoryId = '';
       }
     } catch (error) {
       this.errorMessage = this.getErrorMessage(error, 'Unable to delete the category.');
@@ -358,6 +462,7 @@ export class App implements OnInit {
       recurrenceEnd: definition.recurrenceEnd ? this.toInputDate(definition.recurrenceEnd) : '',
       interval: definition.interval,
       isIncome: definition.isIncome,
+      paymentCategoryId: definition.paymentCategoryId ?? '',
     };
     this.successMessage = '';
     this.errorMessage = '';
@@ -377,7 +482,12 @@ export class App implements OnInit {
 
     try {
       await this.moneyTrackerApiService.deleteForecastDefinition(definition.id);
-      await Promise.all([this.loadForecastDefinitions(), this.loadForecastRows()]);
+      await Promise.all([
+        this.loadForecastDefinitions(),
+        this.loadForecastRows(),
+        this.loadPaymentOccurrences(),
+        this.loadIncomeOccurrences(),
+      ]);
       this.successMessage = 'Forecast deleted successfully.';
 
       if (this.editingForecastId === definition.id) {
@@ -401,12 +511,32 @@ export class App implements OnInit {
     if (this.isOneTimeRecurrenceTypeSelected()) {
       this.forecastForm.interval = 1;
     }
+
+    if (this.forecastForm.isIncome) {
+      this.forecastForm.paymentCategoryId = '';
+    }
   }
 
   public getRecurrenceSummary(definition: ForecastDefinition): string {
-    return this.isOneTimeRecurrenceTypeId(definition.forecastRecurrenceRuleTypeId)
-      ? 'One time'
-      : `Every ${definition.interval} day${definition.interval > 1 ? 's' : ''}`;
+    const type = this.forecastRecurrenceRuleTypes.find((x) => x.id === definition.forecastRecurrenceRuleTypeId);
+    if (!type) {
+      return definition.interval === 1 ? 'Every 1 occurrence' : `Every ${definition.interval} occurrences`;
+    }
+
+    switch (type.code) {
+      case 'O':
+        return 'One time';
+      case 'D':
+        return `Every ${definition.interval} day${definition.interval > 1 ? 's' : ''}`;
+      case 'W':
+        return `Every ${definition.interval} week${definition.interval > 1 ? 's' : ''}`;
+      case 'M':
+        return `Every ${definition.interval} month${definition.interval > 1 ? 's' : ''}`;
+      case 'Y':
+        return `Every ${definition.interval} year${definition.interval > 1 ? 's' : ''}`;
+      default:
+        return `Every ${definition.interval}`;
+    }
   }
 
   public async submitIncome(): Promise<void> {
@@ -422,6 +552,7 @@ export class App implements OnInit {
     const model: IncomeFormModel = {
       ...this.incomeForm,
       description: this.incomeForm.description.trim(),
+      forecastOccurrenceId: this.incomeForm.forecastOccurrenceId || null,
     };
 
     try {
@@ -433,7 +564,7 @@ export class App implements OnInit {
         this.successMessage = 'Income created successfully.';
       }
 
-      await this.loadIncomes();
+      await Promise.all([this.loadIncomes(), this.loadIncomeOccurrences()]);
       this.resetIncomeForm();
     } catch (error) {
       this.errorMessage = this.getErrorMessage(error, 'Unable to save the income.');
@@ -446,11 +577,27 @@ export class App implements OnInit {
     this.editingIncomeId = income.id;
     this.incomeForm = {
       description: income.description,
+      forecastOccurrenceId: income.forecastOccurrenceId ?? null,
       amount: income.amount,
       date: this.toInputDate(income.date),
     };
     this.successMessage = '';
     this.errorMessage = '';
+  }
+
+  public startIncomeFromOccurrence(occurrence: ForecastOccurrenceRow): void {
+    this.editingIncomeId = null;
+    this.incomeForm = {
+      description: occurrence.description,
+      forecastOccurrenceId: occurrence.id,
+      amount: occurrence.amount,
+      date: occurrence.expectedDate,
+    };
+    this.clearMessages();
+  }
+
+  public clearIncomeForecastOccurrence(): void {
+    this.incomeForm.forecastOccurrenceId = null;
   }
 
   public cancelIncomeEdit(): void {
@@ -466,8 +613,9 @@ export class App implements OnInit {
     this.clearMessages();
 
     try {
-      await this.moneyTrackerApiService.deleteIncome(income.id);
-      await this.loadIncomes();
+      const occurrenceAction = this.resolveOccurrenceDeleteAction(income.description, income.forecastOccurrenceId, income.forecastExpectedDate);
+      await this.moneyTrackerApiService.deleteIncome(income.id, occurrenceAction);
+      await Promise.all([this.loadIncomes(), this.loadIncomeOccurrences()]);
       this.successMessage = 'Income deleted successfully.';
 
       if (this.editingIncomeId === income.id) {
@@ -545,7 +693,7 @@ export class App implements OnInit {
   public onPaymentMonthChanged(month: string): void {
     this.paymentFilters.month = month;
     this.paymentQuery.month = month;
-    void this.loadPayments();
+    void Promise.all([this.loadPayments(), this.loadPaymentOccurrences()]);
   }
 
   public get selectedPaymentMonth(): string {
@@ -558,13 +706,13 @@ export class App implements OnInit {
     this.paymentQuery.descriptionFilter = this.paymentFilters.descriptionFilter.trim() || undefined;
     this.paymentQuery.minAmount = this.paymentFilters.minAmount ?? undefined;
     this.paymentQuery.maxAmount = this.paymentFilters.maxAmount ?? undefined;
-    void this.loadPayments();
+    void Promise.all([this.loadPayments(), this.loadPaymentOccurrences()]);
   }
 
   public onIncomeMonthChanged(month: string): void {
     this.incomeFilters.month = month;
     this.incomeQuery.month = month;
-    void this.loadIncomes();
+    void Promise.all([this.loadIncomes(), this.loadIncomeOccurrences()]);
   }
 
   public get selectedIncomeMonth(): string {
@@ -576,7 +724,7 @@ export class App implements OnInit {
     this.incomeQuery.descriptionFilter = this.incomeFilters.descriptionFilter.trim() || undefined;
     this.incomeQuery.minAmount = this.incomeFilters.minAmount ?? undefined;
     this.incomeQuery.maxAmount = this.incomeFilters.maxAmount ?? undefined;
-    void this.loadIncomes();
+    void Promise.all([this.loadIncomes(), this.loadIncomeOccurrences()]);
   }
 
   public resetPaymentFilters(): void {
@@ -592,7 +740,7 @@ export class App implements OnInit {
     this.paymentQuery.minAmount = undefined;
     this.paymentQuery.maxAmount = undefined;
 
-    void this.loadPayments();
+    void Promise.all([this.loadPayments(), this.loadPaymentOccurrences()]);
   }
 
   public resetIncomeFilters(): void {
@@ -606,7 +754,7 @@ export class App implements OnInit {
     this.incomeQuery.minAmount = undefined;
     this.incomeQuery.maxAmount = undefined;
 
-    void this.loadIncomes();
+    void Promise.all([this.loadIncomes(), this.loadIncomeOccurrences()]);
   }
 
   private async loadCategories(): Promise<void> {
@@ -616,6 +764,10 @@ export class App implements OnInit {
 
       if (this.paymentForm.paymentCategoryId && !this.categories.some((x) => x.id === this.paymentForm.paymentCategoryId)) {
         this.paymentForm.paymentCategoryId = '';
+      }
+
+      if (this.forecastForm.paymentCategoryId && !this.categories.some((x) => x.id === this.forecastForm.paymentCategoryId)) {
+        this.forecastForm.paymentCategoryId = '';
       }
     });
   }
@@ -664,6 +816,20 @@ export class App implements OnInit {
     });
   }
 
+  private async loadPaymentOccurrences(): Promise<void> {
+    const occurrences = await this.moneyTrackerApiService.getForecastOccurrences(this.paymentQuery.month, false);
+    this.ngZone.run(() => {
+      this.paymentOccurrences = [...occurrences].sort((left, right) => left.expectedDate.localeCompare(right.expectedDate));
+    });
+  }
+
+  private async loadIncomeOccurrences(): Promise<void> {
+    const occurrences = await this.moneyTrackerApiService.getForecastOccurrences(this.incomeQuery.month, true);
+    this.ngZone.run(() => {
+      this.incomeOccurrences = [...occurrences].sort((left, right) => left.expectedDate.localeCompare(right.expectedDate));
+    });
+  }
+
   private async loadForecastRecurrenceRuleTypes(): Promise<void> {
     const types = await this.moneyTrackerApiService.getForecastRecurrenceRuleTypes();
 
@@ -708,6 +874,7 @@ export class App implements OnInit {
     return {
       description: '',
       paymentCategoryId: '',
+      forecastOccurrenceId: null,
       amount: null,
       date: this.toInputDate(new Date()),
       isOneShot: true,
@@ -717,6 +884,7 @@ export class App implements OnInit {
   private createEmptyIncomeForm(): IncomeFormModel {
     return {
       description: '',
+      forecastOccurrenceId: null,
       amount: null,
       date: this.toInputDate(new Date()),
     };
@@ -731,6 +899,7 @@ export class App implements OnInit {
       recurrenceEnd: '',
       interval: 1,
       isIncome: false,
+      paymentCategoryId: '',
     };
   }
 
@@ -744,6 +913,34 @@ export class App implements OnInit {
   private isOneTimeRecurrenceTypeId(forecastRecurrenceRuleTypeId: string): boolean {
     const type = this.forecastRecurrenceRuleTypes.find((x) => x.id === forecastRecurrenceRuleTypeId);
     return type?.code === 'O';
+  }
+
+  private resolveOccurrenceDeleteAction(description: string, forecastOccurrenceId?: string | null, forecastExpectedDate?: string | null): OccurrenceDeleteAction | undefined {
+    if (!forecastOccurrenceId || !forecastExpectedDate || !this.isPastDate(forecastExpectedDate)) {
+      return undefined;
+    }
+
+    const reopen = confirm(
+      `"${description}" is linked to a past forecast occurrence scheduled on ${this.toDisplayDate(forecastExpectedDate)}.\n\nSelect OK to move it back to pending.\nSelect Cancel to skip the occurrence.`
+    );
+
+    return reopen ? 'Reopen' : 'Skip';
+  }
+
+  private isPastDate(value: string): boolean {
+    const parsed = new Date(`${value.slice(0, 10)}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+      return false;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return parsed < today;
+  }
+
+  private toDisplayDate(value: string): string {
+    const parsed = new Date(`${value.slice(0, 10)}T00:00:00`);
+    return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
   }
 
   private addDays(date: Date, days: number): Date {
@@ -807,5 +1004,13 @@ export class App implements OnInit {
         void error;
       }
     }
+  }
+
+  public onDialogConfirmed(): void {
+    this.confirmationDialogService.confirm();
+  }
+
+  public onDialogCancelled(): void {
+    this.confirmationDialogService.cancel();
   }
 }

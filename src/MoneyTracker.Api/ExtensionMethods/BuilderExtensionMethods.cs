@@ -14,6 +14,7 @@ namespace MoneyTracker.ApiService.ExtensionMethods
             builder.Services.AddScoped<IncomeService>();
             builder.Services.AddScoped<PaymentCategoryService>();
             builder.Services.AddScoped<ForecastService>();
+            builder.Services.AddHostedService<ForecastOccurrenceReconciliationService>();
             builder.Services.AddScoped<JwtTokenService>();
             builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         }

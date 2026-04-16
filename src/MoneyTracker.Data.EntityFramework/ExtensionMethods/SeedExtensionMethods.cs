@@ -14,6 +14,7 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
         {
             await db.SeedSystemUserAsync(logger, cancellationToken);
             await db.SeedDefaultDataAsync(forecastRecurrenceRuleTypes, actor, logger, cancellationToken);
+            await db.SeedDefaultDataAsync(forecastOccurrenceStatuses, actor, logger, cancellationToken);
         }
 
         public static async Task SeedDefaultDataAsync(this MoneyTrackerDbContext db, string actor, ILogger logger, IConfiguration configuration, CancellationToken cancellationToken)
@@ -21,6 +22,7 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
             await db.SeedSystemUserAsync(logger, cancellationToken);
             await db.SeedAdminUserAsync(logger, configuration, cancellationToken);
             await db.SeedDefaultDataAsync(forecastRecurrenceRuleTypes, actor, logger, cancellationToken);
+            await db.SeedDefaultDataAsync(forecastOccurrenceStatuses, actor, logger, cancellationToken);
         }
 
         private static async Task SeedSystemUserAsync(this MoneyTrackerDbContext db, ILogger logger, CancellationToken cancellationToken)
@@ -143,6 +145,14 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
                 new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Week", Code = ForecastRecurrenceRuleType.Week, OrderIndex = 3 },
                 new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Month", Code = ForecastRecurrenceRuleType.Month, OrderIndex = 4 },
                 new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Year", Code = ForecastRecurrenceRuleType.Year, OrderIndex = 5 }
+        };
+
+        private static ForecastOccurrenceStatus[] forecastOccurrenceStatuses =
+        {
+                new ForecastOccurrenceStatus { Id = ForecastOccurrenceStatus.PendingId, Name = "Pending", Code = ForecastOccurrenceStatus.Pending, OrderIndex = 1 },
+                new ForecastOccurrenceStatus { Id = ForecastOccurrenceStatus.ConfirmedId, Name = "Confirmed", Code = ForecastOccurrenceStatus.Confirmed, OrderIndex = 2 },
+                new ForecastOccurrenceStatus { Id = ForecastOccurrenceStatus.SkippedId, Name = "Skipped", Code = ForecastOccurrenceStatus.Skipped, OrderIndex = 3 },
+                new ForecastOccurrenceStatus { Id = ForecastOccurrenceStatus.CancelledId, Name = "Cancelled", Code = ForecastOccurrenceStatus.Cancelled, OrderIndex = 4 }
         };
     }
 }

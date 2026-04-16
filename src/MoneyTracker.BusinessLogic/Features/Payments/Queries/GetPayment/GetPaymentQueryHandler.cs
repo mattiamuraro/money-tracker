@@ -52,6 +52,8 @@ public class GetPaymentQueryHandler
                 Description = p.Description,
                 PaymentCategoryId = p.PaymentCategoryId,
                 Category = p.PaymentCategory.Name,
+                ForecastOccurrenceId = p.ForecastOccurrenceId,
+                ForecastExpectedDate = p.ForecastOccurrence != null ? p.ForecastOccurrence.ExpectedDate : null,
                 Amount = p.Amount,
                 Date = p.Date,
                 IsOneShot = p.IsOneShot
