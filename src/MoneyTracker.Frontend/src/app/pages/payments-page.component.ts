@@ -81,11 +81,15 @@ export class PaymentsPageComponent {
   }
 
   get monthIncomeTotal(): number {
-    return this.app.incomeTotal;
+    const incomeSum = this.app.incomes.reduce((total, income) => total + Number(income.amount ?? 0), 0);
+    const forecastSum = this.filteredIncomeOccurrences.reduce((total, occurrence) => total + Number(occurrence.amount ?? 0), 0);
+    return incomeSum + forecastSum;
   }
 
   get monthPaymentTotal(): number {
-    return this.app.paymentTotal;
+    const paymentSum = this.app.payments.reduce((total, payment) => total + Number(payment.amount ?? 0), 0);
+    const forecastSum = this.filteredPaymentOccurrences.reduce((total, occurrence) => total + Number(occurrence.amount ?? 0), 0);
+    return paymentSum + forecastSum;
   }
 
   get monthNetTotal(): number {
