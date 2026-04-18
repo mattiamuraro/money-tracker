@@ -5,7 +5,7 @@ using MoneyTracker.Data;
 using MoneyTracker.Data.Base;
 using MoneyTracker.Data.EntityFramework;
 
-namespace MoneyTracker.BusinessLogic.Services
+namespace MoneyTracker.Api.Services
 {
     public class ForecastService
     {
@@ -18,11 +18,20 @@ namespace MoneyTracker.BusinessLogic.Services
             _logger = logger;
         }
 
-        public async Task<List<ForecastRow>> GetForecastRowAsync(DateOnly startDate, DateOnly endDate, CancellationToken cancellationToken)
+        public async Task<IResult> GetForecastRowAsync(DateOnly? startDate, DateOnly? endDate, CancellationToken cancellationToken)
         {
+            var start = startDate ?? DateOnly.FromDateTime(DateTime.Today);
+            var end = endDate ?? DateOnly.FromDateTime(DateTime.Today.AddMonths(1));
+
+            if (end < start)
+                return Results.BadRequest(new { message = "End date must be greater than or equal to start date." });
+
+            if ((end.ToDateTime(TimeOnly.MinValue) - start.ToDateTime(TimeOnly.MinValue)).TotalDays > 366)
+                return Results.BadRequest(new { message = "Date range cannot exceed 366 days." });
+
             await SynchronizeOccurrencesAsync(cancellationToken);
 
-            return await _dbContext.ForecastOccurrences
+            var forecasts = await _dbContext.ForecastOccurrences
                 .AsNoTracking()
                 .Include(x => x.PaymentCategory)
                 .Where(x => x.ForecastOccurrenceStatusId == ForecastOccurrenceStatus.PendingId && x.ExpectedDate >= startDate && x.ExpectedDate <= endDate)
@@ -40,6 +49,8 @@ namespace MoneyTracker.BusinessLogic.Services
                     Category = x.PaymentCategory != null ? x.PaymentCategory.Name : null
                 })
                 .ToListAsync(cancellationToken);
+
+            return Results.Ok(forecasts);
         }
 
         public async Task<IResult> GetPendingOccurrencesAsync(ForecastOccurrenceQuery query, CancellationToken cancellationToken)
@@ -214,31 +225,6 @@ namespace MoneyTracker.BusinessLogic.Services
             }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
-        }
-
-        public async Task<IResult> GetForecastRecurrenceRuleTypesAsync(CancellationToken cancellationToken)
-        {
-            try
-            {
-                var types = await _dbContext.ForecastRecurrenceRuleTypes
-                    .OrderBy(x => x.OrderIndex)
-                    .Select(x => new ForecastRecurrenceRuleTypeDto
-                    {
-                        Id = x.Id,
-                        Name = x.Name,
-                        Code = x.Code
-                    })
-                    .ToListAsync(cancellationToken);
-
-                return Results.Ok(types);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving forecast recurrence rule types");
-                return Results.Problem(
-                    statusCode: StatusCodes.Status500InternalServerError,
-                    title: "Error retrieving forecast recurrence rule types");
-            }
         }
 
         public async Task<IResult> GetForecastDefinitionsAsync(CancellationToken cancellationToken)

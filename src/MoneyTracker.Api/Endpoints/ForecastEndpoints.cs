@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Contracts;
 using MoneyTracker.Api.Endpoints.Forecasts.Contracts;
+using MoneyTracker.Api.Services;
 using MoneyTracker.BusinessLogic.Features.Forecasts.Models;
-using MoneyTracker.BusinessLogic.Services;
 
 namespace MoneyTracker.Api.Endpoints
 {
@@ -16,30 +16,11 @@ namespace MoneyTracker.Api.Endpoints
 
             // GET all forecasts for a date range
             group.MapGet("/", static async ([FromServices] ForecastService forecastService, [FromQuery] DateOnly? startDate, [FromQuery] DateOnly? endDate, CancellationToken cancellationToken) =>
-            {
-                var start = startDate ?? DateOnly.FromDateTime(DateTime.Today);
-                var end = endDate ?? DateOnly.FromDateTime(DateTime.Today.AddMonths(1));
-
-                if (end < start)
-                    return Results.BadRequest(new { message = "End date must be greater than or equal to start date." });
-
-                if ((end.ToDateTime(TimeOnly.MinValue) - start.ToDateTime(TimeOnly.MinValue)).TotalDays > 366)
-                    return Results.BadRequest(new { message = "Date range cannot exceed 366 days." });
-
-                var forecasts = await forecastService.GetForecastRowAsync(start, end, cancellationToken);
-                return Results.Ok(forecasts);
-            })
+                    await forecastService.GetForecastRowAsync(startDate, endDate, cancellationToken))
                 .WithName("GetForecasts")
                 .WithDescription("Retrieves forecasts for a given date range")
                 .Produces<List<ForecastRow>>(StatusCodes.Status200OK)
                 .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
-
-            group.MapGet("/recurrence-rule-types", static async ([FromServices] ForecastService forecastService, CancellationToken cancellationToken) =>
-                    await forecastService.GetForecastRecurrenceRuleTypesAsync(cancellationToken))
-                .WithName("GetForecastRecurrenceRuleTypes")
-                .WithDescription("Retrieves forecast recurrence rule types")
-                .Produces<List<ForecastRecurrenceRuleTypeDto>>(StatusCodes.Status200OK)
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
             group.MapGet("/definitions", static async ([FromServices] ForecastService forecastService, CancellationToken cancellationToken) =>

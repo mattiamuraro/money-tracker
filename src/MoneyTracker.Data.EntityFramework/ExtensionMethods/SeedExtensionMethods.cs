@@ -10,19 +10,12 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
 {
     public static class SeedExtensionMethods
     {
-        public static async Task SeedDefaultDataAsync(this MoneyTrackerDbContext db, string actor, ILogger logger, CancellationToken cancellationToken)
-        {
-            await db.SeedSystemUserAsync(logger, cancellationToken);
-            await db.SeedDefaultDataAsync(forecastRecurrenceRuleTypes, actor, logger, cancellationToken);
-            await db.SeedDefaultDataAsync(forecastOccurrenceStatuses, actor, logger, cancellationToken);
-        }
-
-        public static async Task SeedDefaultDataAsync(this MoneyTrackerDbContext db, string actor, ILogger logger, IConfiguration configuration, CancellationToken cancellationToken)
+        public static async Task SeedDefaultDataAsync(this MoneyTrackerDbContext db, ILogger logger, IConfiguration configuration, CancellationToken cancellationToken)
         {
             await db.SeedSystemUserAsync(logger, cancellationToken);
             await db.SeedAdminUserAsync(logger, configuration, cancellationToken);
-            await db.SeedDefaultDataAsync(forecastRecurrenceRuleTypes, actor, logger, cancellationToken);
-            await db.SeedDefaultDataAsync(forecastOccurrenceStatuses, actor, logger, cancellationToken);
+            await db.SeedDefaultDataAsync(forecastRecurrenceRuleTypes, logger, cancellationToken);
+            await db.SeedDefaultDataAsync(forecastOccurrenceStatuses, logger, cancellationToken);
         }
 
         private static async Task SeedSystemUserAsync(this MoneyTrackerDbContext db, ILogger logger, CancellationToken cancellationToken)
@@ -77,7 +70,7 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
             logger.LogInformation("Seeded admin user '{Username}'.", username);
         }
 
-        private static async Task SeedDefaultDataAsync<T>(this MoneyTrackerDbContext db, T[] entities, string actor, ILogger logger, CancellationToken cancellationToken) where T : BaseContextEntity
+        private static async Task SeedDefaultDataAsync<T>(this MoneyTrackerDbContext db, T[] entities, ILogger logger, CancellationToken cancellationToken) where T : BaseContextEntity
         {
             logger.LogInformation("Seeding default data...");
 

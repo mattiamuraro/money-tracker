@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace MoneyTracker.ApiService.Middleware;
+namespace MoneyTracker.Api.Middleware;
 
 /// <summary>
 /// Middleware for logging HTTP requests and responses

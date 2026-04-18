@@ -14,10 +14,7 @@ public static class IncomeEndpoints
             .WithTags("Incomes")
             .RequireAuthorization();
 
-        group.MapGet("/", static async (
-                [FromServices] IncomeService incomeService,
-                [AsParameters] IncomeFilterQuery incomeFilterQuery,
-                CancellationToken cancellationToken) =>
+        group.MapGet("/", static async ([FromServices] IncomeService incomeService, [AsParameters] IncomeFilterQuery incomeFilterQuery, CancellationToken cancellationToken) =>
             await incomeService.GetIncomesAsync(incomeFilterQuery, cancellationToken))
             .WithName("GetIncomes")
             .WithDescription("Retrieves incomes with required month filtering and pagination")
@@ -25,10 +22,7 @@ public static class IncomeEndpoints
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
-        group.MapGet("/{id:guid}", static async (
-                [FromServices] IncomeService incomeService,
-                Guid id,
-                CancellationToken cancellationToken) =>
+        group.MapGet("/{id:guid}", static async ([FromServices] IncomeService incomeService, Guid id, CancellationToken cancellationToken) =>
             await incomeService.GetIncomeByIdAsync(id, cancellationToken))
             .WithName("GetIncomeById")
             .WithDescription("Retrieves a specific income by ID")
@@ -36,10 +30,7 @@ public static class IncomeEndpoints
             .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
             .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
-        group.MapPost("/", static async (
-                [FromServices] IncomeService incomeService,
-                CreateIncomeRequest request,
-                CancellationToken cancellationToken) =>
+        group.MapPost("/", static async ([FromServices] IncomeService incomeService, CreateIncomeRequest request, CancellationToken cancellationToken) =>
             await incomeService.CreateIncomeAsync(request, cancellationToken))
             .WithName("CreateIncome")
             .WithDescription("Creates a new income")
@@ -48,11 +39,7 @@ public static class IncomeEndpoints
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
-        group.MapPut("/{id:guid}", static async (
-                [FromServices] IncomeService incomeService,
-                Guid id,
-                UpdateIncomeRequest request,
-                CancellationToken cancellationToken) =>
+        group.MapPut("/{id:guid}", static async ([FromServices] IncomeService incomeService, Guid id, UpdateIncomeRequest request, CancellationToken cancellationToken) =>
             await incomeService.UpdateIncomeAsync(id, request, cancellationToken))
             .WithName("UpdateIncome")
             .WithDescription("Updates an income")
@@ -62,11 +49,7 @@ public static class IncomeEndpoints
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
-        group.MapDelete("/{id:guid}", static async (
-                [FromServices] IncomeService incomeService,
-                Guid id,
-                [FromQuery] string? occurrenceAction,
-                CancellationToken cancellationToken) =>
+        group.MapDelete("/{id:guid}", static async ([FromServices] IncomeService incomeService, Guid id, [FromQuery] string? occurrenceAction, CancellationToken cancellationToken) =>
             await incomeService.DeleteIncomeAsync(id, occurrenceAction, cancellationToken))
             .WithName("DeleteIncome")
             .WithDescription("Deletes an income")

@@ -155,7 +155,7 @@ export class MoneyTrackerApiService {
 
   getForecastRecurrenceRuleTypes(): Promise<ForecastRecurrenceRuleTypeOption[]> {
     return firstValueFrom(
-      this.httpClient.get<ForecastRecurrenceRuleTypeOption[]>(`${this.apiBaseUrl}/forecasts/recurrence-rule-types`)
+      this.httpClient.get<ForecastRecurrenceRuleTypeOption[]>(`${this.apiBaseUrl}/forecast-recurrence-rule-types`)
     );
   }
 
