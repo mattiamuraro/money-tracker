@@ -3,6 +3,7 @@ using MoneyTracker.Api.Contracts;
 using MoneyTracker.Api.Endpoints.Incomes.Contracts;
 using MoneyTracker.Api.Services;
 using MoneyTracker.BusinessLogic.Shared.Models;
+using BusinessIncomeRow = MoneyTracker.BusinessLogic.Features.Incomes.Models.IncomeRow;
 
 namespace MoneyTracker.Api.Endpoints;
 
@@ -18,7 +19,7 @@ public static class IncomeEndpoints
             await incomeService.GetIncomesAsync(incomeFilterQuery, cancellationToken))
             .WithName("GetIncomes")
             .WithDescription("Retrieves incomes with required month filtering and pagination")
-            .Produces<PaginatedResponse<IncomeRow>>(StatusCodes.Status200OK)
+            .Produces<PaginatedResponse<BusinessIncomeRow>>(StatusCodes.Status200OK)
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
@@ -26,7 +27,7 @@ public static class IncomeEndpoints
             await incomeService.GetIncomeByIdAsync(id, cancellationToken))
             .WithName("GetIncomeById")
             .WithDescription("Retrieves a specific income by ID")
-            .Produces<IncomeRow>(StatusCodes.Status200OK)
+            .Produces<BusinessIncomeRow>(StatusCodes.Status200OK)
             .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
             .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
@@ -37,6 +38,7 @@ public static class IncomeEndpoints
             .Accepts<CreateIncomeRequest>("application/json")
             .Produces<Guid>(StatusCodes.Status201Created)
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
+            .ProducesValidationProblem()
             .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
         group.MapPut("/{id:guid}", static async ([FromServices] IncomeService incomeService, Guid id, UpdateIncomeRequest request, CancellationToken cancellationToken) =>
@@ -46,7 +48,7 @@ public static class IncomeEndpoints
             .Accepts<UpdateIncomeRequest>("application/json")
             .Produces(StatusCodes.Status204NoContent)
             .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
-            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
+            .ProducesValidationProblem()
             .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
         group.MapDelete("/{id:guid}", static async ([FromServices] IncomeService incomeService, Guid id, [FromQuery] string? occurrenceAction, CancellationToken cancellationToken) =>

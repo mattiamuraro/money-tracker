@@ -1,8 +1,10 @@
-using Microsoft.EntityFrameworkCore;
+using FluentValidation;
 using MoneyTracker.Api.Endpoints.Incomes.Contracts;
-using MoneyTracker.BusinessLogic.Shared.Models;
+using MoneyTracker.BusinessLogic.Features.Incomes.CreateIncome;
+using MoneyTracker.BusinessLogic.Features.Incomes.DeleteIncome;
+using MoneyTracker.BusinessLogic.Features.Incomes.UpdateIncome;
+using MoneyTracker.BusinessLogic.Features.Incomes.GetIncome;
 using MoneyTracker.Data;
-using MoneyTracker.Data.EntityFramework;
 using System.Security.Claims;
 
 namespace MoneyTracker.Api.Services;
@@ -10,16 +12,31 @@ namespace MoneyTracker.Api.Services;
 public class IncomeService
 {
     private readonly HttpContext _httpContext;
-    private readonly MoneyTrackerDbContext _dbContext;
+    private readonly GetIncomeQueryHandler _getIncomeQueryHandler;
+    private readonly CreateIncomeCommandHandler _createIncomeCommandHandler;
+    private readonly UpdateIncomeCommandHandler _updateIncomeCommandHandler;
+    private readonly DeleteIncomeCommandHandler _deleteIncomeCommandHandler;
+    private readonly IValidator<CreateIncomeCommand> _createIncomeCommandValidator;
+    private readonly IValidator<UpdateIncomeCommand> _updateIncomeCommandValidator;
     private readonly ILogger<IncomeService> _logger;
 
     public IncomeService(
         IHttpContextAccessor httpContextAccessor,
-        MoneyTrackerDbContext dbContext,
+        GetIncomeQueryHandler getIncomeQueryHandler,
+        CreateIncomeCommandHandler createIncomeCommandHandler,
+        UpdateIncomeCommandHandler updateIncomeCommandHandler,
+        DeleteIncomeCommandHandler deleteIncomeCommandHandler,
+        IValidator<CreateIncomeCommand> createIncomeCommandValidator,
+        IValidator<UpdateIncomeCommand> updateIncomeCommandValidator,
         ILogger<IncomeService> logger)
     {
         _httpContext = httpContextAccessor.HttpContext!;
-        _dbContext = dbContext;
+        _getIncomeQueryHandler = getIncomeQueryHandler;
+        _createIncomeCommandHandler = createIncomeCommandHandler;
+        _updateIncomeCommandHandler = updateIncomeCommandHandler;
+        _deleteIncomeCommandHandler = deleteIncomeCommandHandler;
+        _createIncomeCommandValidator = createIncomeCommandValidator;
+        _updateIncomeCommandValidator = updateIncomeCommandValidator;
         _logger = logger;
     }
 
@@ -30,43 +47,19 @@ public class IncomeService
             filterQuery.Validate();
             var (year, month) = filterQuery.GetRequiredYearMonth();
 
-            var query = _dbContext.Incomes.AsQueryable();
+            var query = new GetIncomeQuery(
+                filterQuery.DescriptionFilter,
+                filterQuery.MinAmount,
+                filterQuery.MaxAmount,
+                year,
+                month,
+                filterQuery.PageNumber ?? 1,
+                filterQuery.PageSize ?? 20,
+                filterQuery.SortBy,
+                filterQuery.SortOrder);
 
-            query = query.Where(x => x.Date.Year == year && x.Date.Month == month);
-
-            if (!string.IsNullOrWhiteSpace(filterQuery.DescriptionFilter))
-                query = query.Where(x => x.Description.Contains(filterQuery.DescriptionFilter));
-
-            if (filterQuery.MinAmount.HasValue)
-                query = query.Where(x => x.Amount >= filterQuery.MinAmount.Value);
-
-            if (filterQuery.MaxAmount.HasValue)
-                query = query.Where(x => x.Amount <= filterQuery.MaxAmount.Value);
-
-            query = ApplySorting(query, filterQuery.SortBy, filterQuery.SortOrder);
-
-            var totalItems = await query.CountAsync(cancellationToken);
-            var items = await query
-                .Skip(((filterQuery.PageNumber ?? 1) - 1) * (filterQuery.PageSize ?? 20))
-                .Take(filterQuery.PageSize ?? 20)
-                .Select(x => new IncomeRow
-                {
-                    Id = x.Id,
-                    Description = x.Description,
-                    ForecastOccurrenceId = x.ForecastOccurrenceId,
-                    ForecastExpectedDate = x.ForecastOccurrence != null ? x.ForecastOccurrence.ExpectedDate : null,
-                    Amount = x.Amount,
-                    Date = x.Date,
-                })
-                .ToListAsync(cancellationToken);
-
-            return Results.Ok(new PaginatedResponse<IncomeRow>
-            {
-                Items = items,
-                PageNumber = filterQuery.PageNumber ?? 1,
-                PageSize = filterQuery.PageSize ?? 20,
-                TotalItems = totalItems,
-            });
+            var result = await _getIncomeQueryHandler.Handle(query, cancellationToken);
+            return Results.Ok(result);
         }
         catch (ArgumentException ex)
         {
@@ -85,18 +78,9 @@ public class IncomeService
     {
         try
         {
-            var income = await _dbContext.Incomes
-                .Where(x => x.Id == id)
-                .Select(x => new IncomeRow
-                {
-                    Id = x.Id,
-                    Description = x.Description,
-                    ForecastOccurrenceId = x.ForecastOccurrenceId,
-                    ForecastExpectedDate = x.ForecastOccurrence != null ? x.ForecastOccurrence.ExpectedDate : null,
-                    Amount = x.Amount,
-                    Date = x.Date,
-                })
-                .FirstOrDefaultAsync(cancellationToken);
+            var query = new GetIncomeQuery { Id = id, PageSize = 1 };
+            var result = await _getIncomeQueryHandler.Handle(query, cancellationToken);
+            var income = result.Items.FirstOrDefault();
 
             return income is null ? Results.NotFound() : Results.Ok(income);
         }
@@ -111,66 +95,31 @@ public class IncomeService
 
     public async Task<IResult> CreateIncomeAsync(CreateIncomeRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Description))
-            return Results.BadRequest(new { message = "Description is required." });
-
-        if (request.Description.Length > 100)
-            return Results.BadRequest(new { message = "Description must not exceed 100 characters." });
-
-        if (request.Amount <= 0)
-            return Results.BadRequest(new { message = "Amount must be greater than 0." });
-
         try
         {
             var idempotencyKey = _httpContext.Request.Headers["X-Idempotency-Key"].ToString();
-            if (!string.IsNullOrWhiteSpace(idempotencyKey))
+            var command = new CreateIncomeCommand
             {
-                var existing = await _dbContext.Incomes
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken);
-
-                if (existing is not null)
-                    return Results.Created($"/api/v1/incomes/{existing.Id}", existing.Id);
-            }
-
-            var occurrence = request.ForecastOccurrenceId.HasValue
-                ? await _dbContext.ForecastOccurrences.FirstOrDefaultAsync(
-                    x => x.Id == request.ForecastOccurrenceId.Value && x.IsIncome,
-                    cancellationToken)
-                : null;
-
-            if (request.ForecastOccurrenceId.HasValue)
-            {
-                if (occurrence == null)
-                    return Results.BadRequest(new { message = $"ForecastOccurrence with id {request.ForecastOccurrenceId.Value} not found." });
-
-                if (occurrence.ForecastOccurrenceStatusId != ForecastOccurrenceStatus.PendingId)
-                    return Results.BadRequest(new { message = $"ForecastOccurrence with id {request.ForecastOccurrenceId.Value} is not pending." });
-            }
-
-            var currentUserId = GetCurrentUserId();
-            var income = new Income
-            {
-                Id = Guid.NewGuid(),
-                Description = request.Description.Trim(),
+                Description = request.Description,
                 ForecastOccurrenceId = request.ForecastOccurrenceId,
                 Amount = request.Amount,
                 Date = request.Date,
-                IdempotencyKey = string.IsNullOrWhiteSpace(idempotencyKey) ? request.IdempotencyKey : idempotencyKey,
-                CreatedById = currentUserId,
-                ModifiedById = currentUserId,
+                CreatedById = GetCurrentUserId(),
+                IdempotencyKey = string.IsNullOrWhiteSpace(idempotencyKey) ? request.IdempotencyKey : idempotencyKey
             };
 
-            if (occurrence != null)
-            {
-                occurrence.ForecastOccurrenceStatusId = ForecastOccurrenceStatus.ConfirmedId;
-                occurrence.ValidatedAt = DateTime.UtcNow;
-            }
+            await _createIncomeCommandValidator.ValidateAndThrowAsync(command, cancellationToken);
 
-            _dbContext.Incomes.Add(income);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return Results.Created($"/api/v1/incomes/{income.Id}", income.Id);
+            var id = await _createIncomeCommandHandler.Handle(command, cancellationToken);
+            return Results.Created($"/api/v1/incomes/{id}", id);
+        }
+        catch (ValidationException ex)
+        {
+            return Results.ValidationProblem(ToValidationErrors(ex));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Results.BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -183,32 +132,26 @@ public class IncomeService
 
     public async Task<IResult> UpdateIncomeAsync(Guid id, UpdateIncomeRequest request, CancellationToken cancellationToken)
     {
-        if (request.Description is { Length: > 100 })
-            return Results.BadRequest(new { message = "Description must not exceed 100 characters." });
-
-        if (request.Amount.HasValue && request.Amount.Value <= 0)
-            return Results.BadRequest(new { message = "Amount must be greater than 0." });
-
         try
         {
-            var income = await _dbContext.Incomes.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-            if (income is null)
-                return Results.NotFound();
+            var command = new UpdateIncomeCommand
+            {
+                IncomeId = id,
+                Description = request.Description,
+                Amount = request.Amount,
+                Date = request.Date,
+                ModifiedById = GetCurrentUserId()
+            };
 
-            if (!string.IsNullOrWhiteSpace(request.Description))
-                income.Description = request.Description.Trim();
+            await _updateIncomeCommandValidator.ValidateAndThrowAsync(command, cancellationToken);
 
-            if (request.Amount.HasValue)
-                income.Amount = request.Amount.Value;
+            var updated = await _updateIncomeCommandHandler.Handle(command, cancellationToken);
 
-            if (request.Date.HasValue)
-                income.Date = request.Date.Value;
-
-            income.ModifiedById = GetCurrentUserId();
-            income.ModifiedAt = DateTime.UtcNow;
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            return Results.NoContent();
+            return updated ? Results.NoContent() : Results.NotFound();
+        }
+        catch (ValidationException ex)
+        {
+            return Results.ValidationProblem(ToValidationErrors(ex));
         }
         catch (Exception ex)
         {
@@ -226,26 +169,15 @@ public class IncomeService
             if (!TryParseOccurrenceAction(occurrenceAction, out var parsedAction))
                 return Results.BadRequest(new { message = "Occurrence action must be Auto, Reopen, or Skip." });
 
-            var income = await _dbContext.Incomes.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-            if (income is null)
-                return Results.NotFound();
-
-            if (income.ForecastOccurrenceId.HasValue)
+            var command = new DeleteIncomeCommand
             {
-                var occurrence = await _dbContext.ForecastOccurrences
-                    .FirstOrDefaultAsync(x => x.Id == income.ForecastOccurrenceId.Value, cancellationToken);
+                IncomeId = id,
+                DeletedBy = GetCurrentUserId(),
+                OccurrenceAction = parsedAction
+            };
 
-                if (occurrence != null)
-                {
-                    occurrence.ForecastOccurrenceStatusId = ResolveOccurrenceStatusId(occurrence.ExpectedDate, parsedAction);
-                    occurrence.ValidatedAt = null;
-                }
-            }
-
-            income.Delete(GetCurrentUserId());
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return Results.NoContent();
+            var deleted = await _deleteIncomeCommandHandler.Handle(command, cancellationToken);
+            return deleted ? Results.NoContent() : Results.NotFound();
         }
         catch (Exception ex)
         {
@@ -254,6 +186,12 @@ public class IncomeService
                 statusCode: StatusCodes.Status500InternalServerError,
                 title: "Error deleting income");
         }
+    }
+
+    private Guid GetCurrentUserId()
+    {
+        var userIdClaim = _httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(userIdClaim, out var userId) ? userId : SystemUsers.SystemUserId;
     }
 
     private static bool TryParseOccurrenceAction(string? occurrenceAction, out ForecastOccurrenceDeleteAction action)
@@ -267,33 +205,12 @@ public class IncomeService
         return Enum.TryParse(occurrenceAction, true, out action);
     }
 
-    private static Guid ResolveOccurrenceStatusId(DateOnly expectedDate, ForecastOccurrenceDeleteAction action)
+    private static Dictionary<string, string[]> ToValidationErrors(ValidationException exception)
     {
-        return action switch
-        {
-            ForecastOccurrenceDeleteAction.Reopen => ForecastOccurrenceStatus.PendingId,
-            ForecastOccurrenceDeleteAction.Skip => ForecastOccurrenceStatus.SkippedId,
-            _ => expectedDate >= DateOnly.FromDateTime(DateTime.Today)
-                ? ForecastOccurrenceStatus.PendingId
-                : ForecastOccurrenceStatus.SkippedId
-        };
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = _httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return Guid.TryParse(userIdClaim, out var userId) ? userId : SystemUsers.SystemUserId;
-    }
-
-    private static IQueryable<Income> ApplySorting(IQueryable<Income> query, string? sortBy, string? sortOrder)
-    {
-        var isDescending = sortOrder?.ToLowerInvariant() == "desc";
-
-        return (sortBy?.ToLowerInvariant()) switch
-        {
-            "amount" => isDescending ? query.OrderByDescending(x => x.Amount) : query.OrderBy(x => x.Amount),
-            "description" => isDescending ? query.OrderByDescending(x => x.Description) : query.OrderBy(x => x.Description),
-            _ => isDescending ? query.OrderByDescending(x => x.Date) : query.OrderBy(x => x.Date),
-        };
+        return exception.Errors
+            .GroupBy(error => error.PropertyName)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(error => error.ErrorMessage).ToArray());
     }
 }

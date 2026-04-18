@@ -1,5 +1,5 @@
 using Xunit;
-using MoneyTracker.BusinessLogic.Features.Payments.Queries.GetPaymentHistory;
+using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
 
 namespace MoneyTracker.Tests.Features.Payments.Queries;
 

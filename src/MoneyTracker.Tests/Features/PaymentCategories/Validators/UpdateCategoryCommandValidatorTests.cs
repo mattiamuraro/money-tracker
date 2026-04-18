@@ -1,6 +1,5 @@
 using FluentValidation.TestHelper;
-using MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.UpdateCategory;
-using MoneyTracker.BusinessLogic.Features.PaymentCategories.Validators;
+using MoneyTracker.BusinessLogic.Features.PaymentCategories.UpdateCategory;
 using Xunit;
 
 namespace MoneyTracker.Tests.Features.PaymentCategories.Validators;

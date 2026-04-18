@@ -1,10 +1,10 @@
 using FluentValidation;
 using MoneyTracker.Api.Endpoints.PaymentCategories.Contracts;
-using MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.CreateCategory;
-using MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.DeleteCategory;
-using MoneyTracker.BusinessLogic.Features.PaymentCategories.Commands.UpdateCategory;
-using MoneyTracker.BusinessLogic.Features.PaymentCategories.Queries.GetAllCategories;
-using MoneyTracker.BusinessLogic.Features.PaymentCategories.Queries.GetCategoryById;
+using MoneyTracker.BusinessLogic.Features.PaymentCategories.CreateCategory;
+using MoneyTracker.BusinessLogic.Features.PaymentCategories.DeleteCategory;
+using MoneyTracker.BusinessLogic.Features.PaymentCategories.UpdateCategory;
+using MoneyTracker.BusinessLogic.Features.PaymentCategories.GetAllCategories;
+using MoneyTracker.BusinessLogic.Features.PaymentCategories.GetCategoryById;
 
 namespace MoneyTracker.Api.Services
 {

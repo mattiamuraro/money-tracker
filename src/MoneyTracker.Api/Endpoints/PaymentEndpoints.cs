@@ -1,9 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Contracts;
 using MoneyTracker.Api.Endpoints.Payments.Contracts;
 using MoneyTracker.Api.Services;
-using MoneyTracker.BusinessLogic.Features.Payments.Commands.CreatePayment;
-using MoneyTracker.BusinessLogic.Features.Payments.Commands.UpdatePayment;
+using MoneyTracker.BusinessLogic.Features.Payments.CreatePayment;
+using MoneyTracker.BusinessLogic.Features.Payments.UpdatePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.Models;
 using MoneyTracker.BusinessLogic.Shared.Models;
 

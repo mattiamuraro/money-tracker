@@ -1,20 +1,50 @@
-using Microsoft.EntityFrameworkCore;
 using MoneyTracker.Api.Endpoints.Forecasts.Contracts;
-using MoneyTracker.BusinessLogic.Features.Forecasts.Models;
-using MoneyTracker.Data;
-using MoneyTracker.Data.Base;
-using MoneyTracker.Data.EntityFramework;
+using MoneyTracker.BusinessLogic.Features.Forecasts.CreateForecastDefinition;
+using MoneyTracker.BusinessLogic.Features.Forecasts.DeleteForecastDefinition;
+using MoneyTracker.BusinessLogic.Features.Forecasts.DiscardPendingForecastOccurrence;
+using MoneyTracker.BusinessLogic.Features.Forecasts.SynchronizeForecastOccurrences;
+using MoneyTracker.BusinessLogic.Features.Forecasts.UpdateForecastDefinition;
+using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastDefinitionById;
+using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastDefinitions;
+using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRows;
+using MoneyTracker.BusinessLogic.Features.Forecasts.GetPendingForecastOccurrences;
 
 namespace MoneyTracker.Api.Services
 {
     public class ForecastService
     {
-        private readonly MoneyTrackerDbContext _dbContext;
+        private readonly GetForecastRowsQueryHandler _getForecastRowsQueryHandler;
+        private readonly GetPendingForecastOccurrencesQueryHandler _getPendingForecastOccurrencesQueryHandler;
+        private readonly DiscardPendingForecastOccurrenceCommandHandler _discardPendingForecastOccurrenceCommandHandler;
+        private readonly SynchronizeForecastOccurrencesCommandHandler _synchronizeForecastOccurrencesCommandHandler;
+        private readonly GetForecastDefinitionsQueryHandler _getForecastDefinitionsQueryHandler;
+        private readonly GetForecastDefinitionByIdQueryHandler _getForecastDefinitionByIdQueryHandler;
+        private readonly CreateForecastDefinitionCommandHandler _createForecastDefinitionCommandHandler;
+        private readonly UpdateForecastDefinitionCommandHandler _updateForecastDefinitionCommandHandler;
+        private readonly DeleteForecastDefinitionCommandHandler _deleteForecastDefinitionCommandHandler;
         private readonly ILogger<ForecastService> _logger;
 
-        public ForecastService(MoneyTrackerDbContext dbContext, ILogger<ForecastService> logger)
+        public ForecastService(
+            GetForecastRowsQueryHandler getForecastRowsQueryHandler,
+            GetPendingForecastOccurrencesQueryHandler getPendingForecastOccurrencesQueryHandler,
+            DiscardPendingForecastOccurrenceCommandHandler discardPendingForecastOccurrenceCommandHandler,
+            SynchronizeForecastOccurrencesCommandHandler synchronizeForecastOccurrencesCommandHandler,
+            GetForecastDefinitionsQueryHandler getForecastDefinitionsQueryHandler,
+            GetForecastDefinitionByIdQueryHandler getForecastDefinitionByIdQueryHandler,
+            CreateForecastDefinitionCommandHandler createForecastDefinitionCommandHandler,
+            UpdateForecastDefinitionCommandHandler updateForecastDefinitionCommandHandler,
+            DeleteForecastDefinitionCommandHandler deleteForecastDefinitionCommandHandler,
+            ILogger<ForecastService> logger)
         {
-            _dbContext = dbContext;
+            _getForecastRowsQueryHandler = getForecastRowsQueryHandler;
+            _getPendingForecastOccurrencesQueryHandler = getPendingForecastOccurrencesQueryHandler;
+            _discardPendingForecastOccurrenceCommandHandler = discardPendingForecastOccurrenceCommandHandler;
+            _synchronizeForecastOccurrencesCommandHandler = synchronizeForecastOccurrencesCommandHandler;
+            _getForecastDefinitionsQueryHandler = getForecastDefinitionsQueryHandler;
+            _getForecastDefinitionByIdQueryHandler = getForecastDefinitionByIdQueryHandler;
+            _createForecastDefinitionCommandHandler = createForecastDefinitionCommandHandler;
+            _updateForecastDefinitionCommandHandler = updateForecastDefinitionCommandHandler;
+            _deleteForecastDefinitionCommandHandler = deleteForecastDefinitionCommandHandler;
             _logger = logger;
         }
 
@@ -29,28 +59,22 @@ namespace MoneyTracker.Api.Services
             if ((end.ToDateTime(TimeOnly.MinValue) - start.ToDateTime(TimeOnly.MinValue)).TotalDays > 366)
                 return Results.BadRequest(new { message = "Date range cannot exceed 366 days." });
 
-            await SynchronizeOccurrencesAsync(cancellationToken);
+            try
+            {
+                await SynchronizeOccurrencesAsync(cancellationToken);
 
-            var forecasts = await _dbContext.ForecastOccurrences
-                .AsNoTracking()
-                .Include(x => x.PaymentCategory)
-                .Where(x => x.ForecastOccurrenceStatusId == ForecastOccurrenceStatus.PendingId && x.ExpectedDate >= startDate && x.ExpectedDate <= endDate)
-                .OrderBy(x => x.ExpectedDate)
-                .ThenBy(x => x.Description)
-                .Select(x => new ForecastRow
-                {
-                    Id = x.Id,
-                    ForecastDefinitionId = x.ForecastDefinitionId,
-                    Description = x.Description,
-                    Amount = x.Amount,
-                    Date = x.ExpectedDate,
-                    IsIncome = x.IsIncome,
-                    PaymentCategoryId = x.PaymentCategoryId,
-                    Category = x.PaymentCategory != null ? x.PaymentCategory.Name : null
-                })
-                .ToListAsync(cancellationToken);
+                var query = new GetForecastRowsQuery(start, end);
+                var forecasts = await _getForecastRowsQueryHandler.Handle(query, cancellationToken);
 
-            return Results.Ok(forecasts);
+                return Results.Ok(forecasts);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving forecast rows");
+                return Results.Problem(
+                    statusCode: StatusCodes.Status500InternalServerError,
+                    title: "Error retrieving forecast rows");
+            }
         }
 
         public async Task<IResult> GetPendingOccurrencesAsync(ForecastOccurrenceQuery query, CancellationToken cancellationToken)
@@ -60,27 +84,8 @@ namespace MoneyTracker.Api.Services
                 var (year, month) = query.GetRequiredYearMonth();
                 await SynchronizeOccurrencesAsync(cancellationToken);
 
-                var items = await _dbContext.ForecastOccurrences
-                    .AsNoTracking()
-                    .Include(x => x.PaymentCategory)
-                    .Where(x => x.ForecastOccurrenceStatusId == ForecastOccurrenceStatus.PendingId
-                        && x.IsIncome == query.IsIncome
-                        && x.ExpectedDate.Year == year
-                        && x.ExpectedDate.Month == month)
-                    .OrderBy(x => x.ExpectedDate)
-                    .ThenBy(x => x.Description)
-                    .Select(x => new ForecastOccurrenceRow
-                    {
-                        Id = x.Id,
-                        ForecastDefinitionId = x.ForecastDefinitionId,
-                        Description = x.Description,
-                        Amount = x.Amount,
-                        ExpectedDate = x.ExpectedDate,
-                        IsIncome = x.IsIncome,
-                        PaymentCategoryId = x.PaymentCategoryId,
-                        Category = x.PaymentCategory != null ? x.PaymentCategory.Name : null
-                    })
-                    .ToListAsync(cancellationToken);
+                var queryRequest = new GetPendingForecastOccurrencesQuery(year, month, query.IsIncome);
+                var items = await _getPendingForecastOccurrencesQueryHandler.Handle(queryRequest, cancellationToken);
 
                 return Results.Ok(items);
             }
@@ -101,20 +106,17 @@ namespace MoneyTracker.Api.Services
         {
             try
             {
-                var occurrence = await _dbContext.ForecastOccurrences
-                    .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+                var command = new DiscardPendingForecastOccurrenceCommand(id);
+                var discarded = await _discardPendingForecastOccurrenceCommandHandler.Handle(command, cancellationToken);
 
-                if (occurrence is null)
+                if (!discarded)
                     return Results.NotFound();
 
-                if (occurrence.ForecastOccurrenceStatusId != ForecastOccurrenceStatus.PendingId)
-                    return Results.BadRequest(new { message = "Only pending forecast occurrences can be discarded." });
-
-                occurrence.ForecastOccurrenceStatusId = ForecastOccurrenceStatus.SkippedId;
-                occurrence.ValidatedAt = null;
-
-                await _dbContext.SaveChangesAsync(cancellationToken);
                 return Results.NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -127,127 +129,16 @@ namespace MoneyTracker.Api.Services
 
         public async Task SynchronizeOccurrencesAsync(CancellationToken cancellationToken)
         {
-            var (startDate, endDate) = GetSynchronizationWindow();
-            var expectedOccurrences = new Dictionary<OccurrenceKey, OccurrenceSeed>();
-
-            var forecastExpenses = await _dbContext.ForecastExpenses
-                .AsNoTracking()
-                .Include(x => x.ForecastRecurrenceRuleType)
-                .Include(x => x.PaymentCategory)
-                .Where(x => x.IsActive && x.RecurrenceStart <= endDate && (x.RecurrenceEnd == null || x.RecurrenceEnd >= startDate))
-                .ToListAsync(cancellationToken);
-
-            foreach (var forecast in forecastExpenses)
-            {
-                foreach (var recurrence in forecast.GetRecurrences(startDate, endDate))
-                {
-                    expectedOccurrences[new OccurrenceKey(forecast.Id, false, recurrence)] = new OccurrenceSeed(
-                        forecast.Id,
-                        false,
-                        forecast.Description,
-                        forecast.Amount,
-                        recurrence,
-                        forecast.PaymentCategoryId,
-                        forecast.PaymentCategory.Name);
-                }
-            }
-
-            var forecastIncomes = await _dbContext.ForecastIncomes
-                .AsNoTracking()
-                .Include(x => x.ForecastRecurrenceRuleType)
-                .Where(x => x.IsActive && x.RecurrenceStart <= endDate && (x.RecurrenceEnd == null || x.RecurrenceEnd >= startDate))
-                .ToListAsync(cancellationToken);
-
-            foreach (var forecast in forecastIncomes)
-            {
-                foreach (var recurrence in forecast.GetRecurrences(startDate, endDate))
-                {
-                    expectedOccurrences[new OccurrenceKey(forecast.Id, true, recurrence)] = new OccurrenceSeed(
-                        forecast.Id,
-                        true,
-                        forecast.Description,
-                        forecast.Amount,
-                        recurrence,
-                        null,
-                        null);
-                }
-            }
-
-            var existingOccurrences = await _dbContext.ForecastOccurrences
-                .Where(x => x.ExpectedDate >= startDate && x.ExpectedDate <= endDate)
-                .ToListAsync(cancellationToken);
-
-            var existingLookup = existingOccurrences.ToDictionary(
-                x => new OccurrenceKey(x.ForecastDefinitionId, x.IsIncome, x.ExpectedDate),
-                x => x);
-
-            foreach (var existingOccurrence in existingOccurrences)
-            {
-                var key = new OccurrenceKey(existingOccurrence.ForecastDefinitionId, existingOccurrence.IsIncome, existingOccurrence.ExpectedDate);
-
-                if (!expectedOccurrences.TryGetValue(key, out var seed))
-                {
-                    if (existingOccurrence.ForecastOccurrenceStatusId == ForecastOccurrenceStatus.PendingId)
-                    {
-                        existingOccurrence.ForecastOccurrenceStatusId = ForecastOccurrenceStatus.CancelledId;
-                        existingOccurrence.ValidatedAt = null;
-                    }
-
-                    continue;
-                }
-
-                if (existingOccurrence.ForecastOccurrenceStatusId is var statusId && (statusId == ForecastOccurrenceStatus.PendingId || statusId == ForecastOccurrenceStatus.CancelledId))
-                {
-                    existingOccurrence.Description = seed.Description;
-                    existingOccurrence.Amount = seed.Amount;
-                    existingOccurrence.PaymentCategoryId = seed.PaymentCategoryId;
-                    existingOccurrence.ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId;
-                    existingOccurrence.ValidatedAt = null;
-                }
-            }
-
-            foreach (var (key, seed) in expectedOccurrences)
-            {
-                if (existingLookup.ContainsKey(key))
-                    continue;
-
-                _dbContext.ForecastOccurrences.Add(new ForecastOccurrence
-                {
-                    Id = Guid.NewGuid(),
-                    ForecastDefinitionId = seed.ForecastDefinitionId,
-                    IsIncome = seed.IsIncome,
-                    Description = seed.Description,
-                    Amount = seed.Amount,
-                    ExpectedDate = seed.ExpectedDate,
-                    PaymentCategoryId = seed.PaymentCategoryId,
-                    ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId
-                });
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            var command = new SynchronizeForecastOccurrencesCommand();
+            await _synchronizeForecastOccurrencesCommandHandler.Handle(command, cancellationToken);
         }
 
         public async Task<IResult> GetForecastDefinitionsAsync(CancellationToken cancellationToken)
         {
             try
             {
-                var expenses = await _dbContext.ForecastExpenses
-                    .AsNoTracking()
-                    .Include(x => x.ForecastRecurrenceRuleType)
-                    .Include(x => x.PaymentCategory)
-                    .Where(x => x.IsActive)
-                    .ToListAsync(cancellationToken);
-                var incomes = await _dbContext.ForecastIncomes
-                    .AsNoTracking()
-                    .Include(x => x.ForecastRecurrenceRuleType)
-                    .Where(x => x.IsActive)
-                    .ToListAsync(cancellationToken);
-
-                var definitions = expenses.Select(ToDefinitionDto)
-                    .Concat(incomes.Select(x => ToDefinitionDto(x, true)))
-                    .OrderBy(x => x.RecurrenceStart)
-                    .ThenBy(x => x.Description)
-                    .ToList();
+                var query = new GetForecastDefinitionsQuery();
+                var definitions = await _getForecastDefinitionsQueryHandler.Handle(query, cancellationToken);
 
                 return Results.Ok(definitions);
             }
@@ -264,24 +155,10 @@ namespace MoneyTracker.Api.Services
         {
             try
             {
-                var expense = await _dbContext.ForecastExpenses
-                    .AsNoTracking()
-                    .Include(x => x.ForecastRecurrenceRuleType)
-                    .Include(x => x.PaymentCategory)
-                    .FirstOrDefaultAsync(x => x.Id == id && x.IsActive, cancellationToken);
+                var query = new GetForecastDefinitionByIdQuery(id);
+                var definition = await _getForecastDefinitionByIdQueryHandler.Handle(query, cancellationToken);
 
-                if (expense != null)
-                    return Results.Ok(ToDefinitionDto(expense));
-
-                var income = await _dbContext.ForecastIncomes
-                    .AsNoTracking()
-                    .Include(x => x.ForecastRecurrenceRuleType)
-                    .FirstOrDefaultAsync(x => x.Id == id && x.IsActive, cancellationToken);
-
-                if (income != null)
-                    return Results.Ok(ToDefinitionDto(income, true));
-
-                return Results.NotFound();
+                return definition == null ? Results.NotFound() : Results.Ok(definition);
             }
             catch (Exception ex)
             {
@@ -296,22 +173,26 @@ namespace MoneyTracker.Api.Services
         {
             try
             {
-                var validationError = await ValidateForecastRequestAsync(request.IsIncome, request.PaymentCategoryId, request.RecurrenceStart, request.RecurrenceEnd, cancellationToken);
-                if (validationError != null)
-                    return validationError;
+                var command = new CreateForecastDefinitionCommand
+                {
+                    ForecastRecurrenceRuleTypeId = request.ForecastRecurrenceRuleTypeId,
+                    Description = request.Description,
+                    Amount = request.Amount,
+                    RecurrenceStart = request.RecurrenceStart,
+                    RecurrenceEnd = request.RecurrenceEnd,
+                    Interval = request.Interval,
+                    IsIncome = request.IsIncome,
+                    PaymentCategoryId = request.PaymentCategoryId
+                };
 
-                var recurrenceRuleType = await GetRecurrenceRuleTypeAsync(request.ForecastRecurrenceRuleTypeId, cancellationToken);
-                var forecast = CreateForecastEntity(request, recurrenceRuleType);
-
-                if (request.IsIncome)
-                    _dbContext.ForecastIncomes.Add((ForecastIncome)forecast);
-                else
-                    _dbContext.ForecastExpenses.Add((ForecastExpense)forecast);
-
-                await _dbContext.SaveChangesAsync(cancellationToken);
+                var id = await _createForecastDefinitionCommandHandler.Handle(command, cancellationToken);
                 await SynchronizeOccurrencesAsync(cancellationToken);
 
-                return Results.Created($"/api/v1/forecasts/definitions/{forecast.Id}", forecast.Id);
+                return Results.Created($"/api/v1/forecasts/definitions/{id}", id);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -326,35 +207,29 @@ namespace MoneyTracker.Api.Services
         {
             try
             {
-                var validationError = await ValidateForecastRequestAsync(request.IsIncome, request.PaymentCategoryId, request.RecurrenceStart, request.RecurrenceEnd, cancellationToken);
-                if (validationError != null)
-                    return validationError;
-
-                var recurrenceRuleType = await GetRecurrenceRuleTypeAsync(request.ForecastRecurrenceRuleTypeId, cancellationToken);
-
-                var expense = await _dbContext.ForecastExpenses
-                    .Include(x => x.ForecastRecurrenceRuleType)
-                    .FirstOrDefaultAsync(x => x.Id == id && x.IsActive, cancellationToken);
-
-                if (expense != null)
+                var command = new UpdateForecastDefinitionCommand
                 {
-                    await UpdateForecastAsync(id, expense, request, recurrenceRuleType, false, cancellationToken);
-                    await SynchronizeOccurrencesAsync(cancellationToken);
-                    return Results.NoContent();
-                }
+                    Id = id,
+                    ForecastRecurrenceRuleTypeId = request.ForecastRecurrenceRuleTypeId,
+                    Description = request.Description,
+                    Amount = request.Amount,
+                    RecurrenceStart = request.RecurrenceStart,
+                    RecurrenceEnd = request.RecurrenceEnd,
+                    Interval = request.Interval,
+                    IsIncome = request.IsIncome,
+                    PaymentCategoryId = request.PaymentCategoryId
+                };
 
-                var income = await _dbContext.ForecastIncomes
-                    .Include(x => x.ForecastRecurrenceRuleType)
-                    .FirstOrDefaultAsync(x => x.Id == id && x.IsActive, cancellationToken);
+                var updated = await _updateForecastDefinitionCommandHandler.Handle(command, cancellationToken);
+                if (!updated)
+                    return Results.NotFound();
 
-                if (income != null)
-                {
-                    await UpdateForecastAsync(id, income, request, recurrenceRuleType, true, cancellationToken);
-                    await SynchronizeOccurrencesAsync(cancellationToken);
-                    return Results.NoContent();
-                }
-
-                return Results.NotFound();
+                await SynchronizeOccurrencesAsync(cancellationToken);
+                return Results.NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -369,29 +244,14 @@ namespace MoneyTracker.Api.Services
         {
             try
             {
-                var expense = await _dbContext.ForecastExpenses
-                    .FirstOrDefaultAsync(x => x.Id == id && x.IsActive, cancellationToken);
+                var command = new DeleteForecastDefinitionCommand(id);
+                var deleted = await _deleteForecastDefinitionCommandHandler.Handle(command, cancellationToken);
 
-                if (expense != null)
-                {
-                    expense.IsActive = false;
-                    await _dbContext.SaveChangesAsync(cancellationToken);
-                    await SynchronizeOccurrencesAsync(cancellationToken);
-                    return Results.NoContent();
-                }
+                if (!deleted)
+                    return Results.NotFound();
 
-                var income = await _dbContext.ForecastIncomes
-                    .FirstOrDefaultAsync(x => x.Id == id && x.IsActive, cancellationToken);
-
-                if (income != null)
-                {
-                    income.IsActive = false;
-                    await _dbContext.SaveChangesAsync(cancellationToken);
-                    await SynchronizeOccurrencesAsync(cancellationToken);
-                    return Results.NoContent();
-                }
-
-                return Results.NotFound();
+                await SynchronizeOccurrencesAsync(cancellationToken);
+                return Results.NoContent();
             }
             catch (Exception ex)
             {
@@ -401,167 +261,5 @@ namespace MoneyTracker.Api.Services
                     title: "Error deleting forecast definition");
             }
         }
-
-        private async Task<IResult?> ValidateForecastRequestAsync(bool isIncome, Guid? paymentCategoryId, DateOnly recurrenceStart, DateOnly? recurrenceEnd, CancellationToken cancellationToken)
-        {
-            if (recurrenceEnd.HasValue && recurrenceEnd.Value < recurrenceStart)
-                return Results.BadRequest(new { message = "Recurrence end date cannot be earlier than recurrence start date." });
-
-            if (isIncome)
-                return null;
-
-            if (!paymentCategoryId.HasValue || paymentCategoryId == Guid.Empty)
-                return Results.BadRequest(new { message = "Expense forecasts require a payment category." });
-
-            var categoryExists = await _dbContext.PaymentCategories.AnyAsync(x => x.Id == paymentCategoryId.Value, cancellationToken);
-            if (!categoryExists)
-                return Results.BadRequest(new { message = "The requested payment category does not exist." });
-
-            return null;
-        }
-
-        private async Task UpdateForecastAsync(Guid id, BaseForecast existingForecast, UpdateForecastRequest request, ForecastRecurrenceRuleType recurrenceRuleType, bool isIncome, CancellationToken cancellationToken)
-        {
-            if (isIncome == request.IsIncome)
-            {
-                ApplyForecastValues(existingForecast, request, recurrenceRuleType);
-                await _dbContext.SaveChangesAsync(cancellationToken);
-                return;
-            }
-
-            existingForecast.IsActive = false;
-
-            BaseForecast replacement = request.IsIncome
-                ? new ForecastIncome
-                {
-                    Description = existingForecast.Description
-                }
-                : new ForecastExpense
-                {
-                    Description = existingForecast.Description
-                };
-
-            replacement.Id = id;
-            replacement.CreatedAt = existingForecast.CreatedAt;
-            replacement.CreatedById = existingForecast.CreatedById;
-            replacement.IsActive = true;
-
-            ApplyForecastValues(replacement, request, recurrenceRuleType);
-
-            if (isIncome)
-            {
-                _dbContext.ForecastExpenses.Add((ForecastExpense)replacement);
-            }
-            else
-            {
-                _dbContext.ForecastIncomes.Add((ForecastIncome)replacement);
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-        }
-
-        private static void ApplyForecastValues(BaseForecast forecast, UpdateForecastRequest request, ForecastRecurrenceRuleType recurrenceRuleType)
-        {
-            forecast.Description = request.Description;
-            forecast.Amount = request.Amount;
-            forecast.RecurrenceStart = request.RecurrenceStart;
-            forecast.RecurrenceEnd = request.RecurrenceEnd;
-            forecast.Interval = request.Interval;
-            forecast.ForecastRecurrenceRuleTypeId = recurrenceRuleType.Id;
-            forecast.ForecastRecurrenceRuleType = recurrenceRuleType;
-            forecast.IsActive = true;
-
-            if (forecast is ForecastExpense expense)
-                expense.PaymentCategoryId = request.PaymentCategoryId ?? Guid.Empty;
-        }
-
-        private static BaseForecast CreateForecastEntity(CreateForecastRequest request, ForecastRecurrenceRuleType recurrenceRuleType)
-        {
-            BaseForecast forecast = request.IsIncome
-                ? new ForecastIncome
-                {
-                    Description = request.Description
-                }
-                : new ForecastExpense
-                {
-                    Description = request.Description,
-                    PaymentCategoryId = request.PaymentCategoryId ?? Guid.Empty
-                };
-
-            forecast.Id = Guid.NewGuid();
-            forecast.Description = request.Description;
-            forecast.Amount = request.Amount;
-            forecast.RecurrenceStart = request.RecurrenceStart;
-            forecast.RecurrenceEnd = request.RecurrenceEnd;
-            forecast.Interval = request.Interval;
-            forecast.ForecastRecurrenceRuleTypeId = recurrenceRuleType.Id;
-            forecast.ForecastRecurrenceRuleType = recurrenceRuleType;
-            forecast.IsActive = true;
-
-            return forecast;
-        }
-
-        private static ForecastDefinitionDto ToDefinitionDto(ForecastExpense forecast)
-        {
-            return new ForecastDefinitionDto
-            {
-                Id = forecast.Id,
-                ForecastRecurrenceRuleTypeId = forecast.ForecastRecurrenceRuleTypeId,
-                Description = forecast.Description,
-                Amount = forecast.Amount,
-                RecurrenceStart = forecast.RecurrenceStart,
-                RecurrenceEnd = forecast.RecurrenceEnd,
-                Interval = forecast.Interval ?? 1,
-                IsIncome = false,
-                PaymentCategoryId = forecast.PaymentCategoryId,
-                Category = forecast.PaymentCategory.Name
-            };
-        }
-
-        private static ForecastDefinitionDto ToDefinitionDto(BaseForecast forecast, bool isIncome)
-        {
-            return new ForecastDefinitionDto
-            {
-                Id = forecast.Id,
-                ForecastRecurrenceRuleTypeId = forecast.ForecastRecurrenceRuleTypeId,
-                Description = forecast.Description,
-                Amount = forecast.Amount,
-                RecurrenceStart = forecast.RecurrenceStart,
-                RecurrenceEnd = forecast.RecurrenceEnd,
-                Interval = forecast.Interval ?? 1,
-                IsIncome = isIncome
-            };
-        }
-
-        private async Task<ForecastRecurrenceRuleType> GetRecurrenceRuleTypeAsync(Guid forecastRecurrenceRuleTypeId, CancellationToken cancellationToken)
-        {
-            var requestedId = forecastRecurrenceRuleTypeId;
-
-            if (requestedId == Guid.Empty)
-            {
-                var dayRuleType = await _dbContext.ForecastRecurrenceRuleTypes
-                    .FirstOrDefaultAsync(x => x.Code == ForecastRecurrenceRuleType.Day, cancellationToken);
-
-                return dayRuleType
-                    ?? throw new InvalidOperationException("Default recurrence rule type 'Day' was not found.");
-            }
-
-            var recurrenceRuleType = await _dbContext.ForecastRecurrenceRuleTypes
-                .FirstOrDefaultAsync(x => x.Id == requestedId, cancellationToken);
-
-            return recurrenceRuleType
-                ?? throw new InvalidOperationException($"Forecast recurrence rule type '{requestedId}' was not found.");
-        }
-
-        private static (DateOnly StartDate, DateOnly EndDate) GetSynchronizationWindow()
-        {
-            var today = DateOnly.FromDateTime(DateTime.Today);
-            var startDate = new DateOnly(today.Year, today.Month, 1);
-            var endDate = startDate.AddMonths(3).AddDays(-1);
-            return (startDate, endDate);
-        }
-
-        private readonly record struct OccurrenceKey(Guid ForecastDefinitionId, bool IsIncome, DateOnly ExpectedDate);
-        private readonly record struct OccurrenceSeed(Guid ForecastDefinitionId, bool IsIncome, string Description, decimal Amount, DateOnly ExpectedDate, Guid? PaymentCategoryId, string? Category);
     }
 }

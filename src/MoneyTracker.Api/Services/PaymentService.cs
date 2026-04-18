@@ -1,9 +1,9 @@
 using FluentValidation;
 using MoneyTracker.Api.Endpoints.Payments.Contracts;
-using MoneyTracker.BusinessLogic.Features.Payments.Commands.CreatePayment;
-using MoneyTracker.BusinessLogic.Features.Payments.Commands.DeletePayment;
-using MoneyTracker.BusinessLogic.Features.Payments.Commands.UpdatePayment;
-using MoneyTracker.BusinessLogic.Features.Payments.Queries.GetPaymentHistory;
+using MoneyTracker.BusinessLogic.Features.Payments.CreatePayment;
+using MoneyTracker.BusinessLogic.Features.Payments.DeletePayment;
+using MoneyTracker.BusinessLogic.Features.Payments.UpdatePayment;
+using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
 using MoneyTracker.Data;
 using System.Security.Claims;
 
