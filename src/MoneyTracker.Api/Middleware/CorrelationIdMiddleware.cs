@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace MoneyTracker.ApiService.Middleware;
+namespace MoneyTracker.Api.Middleware;
 
 /// <summary>
 /// Middleware for handling request correlation IDs across microservices

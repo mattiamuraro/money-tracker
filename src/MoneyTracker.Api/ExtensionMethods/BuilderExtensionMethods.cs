@@ -1,22 +1,16 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using MoneyTracker.Api.Auth;
-using MoneyTracker.Api.Services;
+using MoneyTracker.Api.BackgroundServices;
+using MoneyTracker.Api.Endpoints.Auth.Services;
 using MoneyTracker.Data;
 
-namespace MoneyTracker.ApiService.ExtensionMethods
+namespace MoneyTracker.Api.ExtensionMethods
 {
     internal static class BuilderExtensionMethods
     {
         internal static void AddServices(this WebApplicationBuilder builder)
         {
-            builder.Services.AddScoped<PaymentService>();
-            builder.Services.AddScoped<IncomeService>();
-            builder.Services.AddScoped<PaymentCategoryService>();
-            builder.Services.AddScoped<ForecastRecurrenceRuleTypeService>();
-            builder.Services.AddScoped<ForecastService>();
             builder.Services.AddHostedService<ForecastOccurrenceReconciliationService>();
             builder.Services.AddScoped<JwtTokenService>();
-            builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         }
     }

@@ -1,4 +1,6 @@
-namespace MoneyTracker.Api.Services;
+using MoneyTracker.BusinessLogic.Features.Forecasts.SynchronizeForecastOccurrences;
+
+namespace MoneyTracker.Api.BackgroundServices;
 
 public class ForecastOccurrenceReconciliationService : BackgroundService
 {
@@ -30,8 +32,8 @@ public class ForecastOccurrenceReconciliationService : BackgroundService
         try
         {
             using var scope = _serviceProvider.CreateScope();
-            var forecastService = scope.ServiceProvider.GetRequiredService<ForecastService>();
-            await forecastService.SynchronizeOccurrencesAsync(cancellationToken);
+            var handler = scope.ServiceProvider.GetRequiredService<SynchronizeForecastOccurrencesCommandHandler>();
+            await handler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

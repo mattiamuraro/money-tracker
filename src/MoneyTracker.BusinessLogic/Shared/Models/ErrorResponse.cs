@@ -1,4 +1,4 @@
-namespace MoneyTracker.Api.Contracts;
+namespace MoneyTracker.BusinessLogic.Shared.Models;
 
 /// <summary>
 /// Standard error response for all API errors

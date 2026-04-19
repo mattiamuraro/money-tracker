@@ -1,7 +1,7 @@
 using Xunit;
 using MoneyTracker.Api.Endpoints.Payments.Contracts;
 
-namespace MoneyTracker.Tests.DTOs;
+namespace MoneyTracker.Api.Tests.Endpoints.Payments.Contracts;
 
 /// <summary>
 /// Unit tests for PaginationQuery

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MoneyTracker.Data.EntityFramework;
 using MoneyTracker.Data.MigrationService;
+using MoneyTracker.ServiceDefaults;
 
 
 var builder = Host.CreateApplicationBuilder(args);

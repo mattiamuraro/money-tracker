@@ -1,7 +1,6 @@
-using Xunit;
-using MoneyTracker.Api.Contracts;
+using MoneyTracker.BusinessLogic.Shared.Models;
 
-namespace MoneyTracker.Tests.DTOs;
+namespace MoneyTracker.BusinessLogic.Tests.Shared.Models;
 
 public class ErrorResponseTests
 {

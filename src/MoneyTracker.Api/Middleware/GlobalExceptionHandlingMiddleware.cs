@@ -1,6 +1,6 @@
-using MoneyTracker.Api.Contracts;
+using MoneyTracker.BusinessLogic.Shared.Models;
 
-namespace MoneyTracker.ApiService.Middleware;
+namespace MoneyTracker.Api.Middleware;
 
 /// <summary>
 /// Global exception handling middleware
