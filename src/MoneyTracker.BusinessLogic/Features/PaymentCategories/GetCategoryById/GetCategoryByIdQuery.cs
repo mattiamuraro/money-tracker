@@ -1,5 +1,3 @@
-using MoneyTracker.BusinessLogic.Features.PaymentCategories.Models;
-
 namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.GetCategoryById
 {
     /// <summary>

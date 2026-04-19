@@ -1,4 +1,4 @@
-using MoneyTracker.BusinessLogic.Features.PaymentCategories.Models;
+using MoneyTracker.BusinessLogic.Features.PaymentCategories.GetAllCategories;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.GetCategoryById
@@ -28,11 +28,7 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.GetCategoryById
             {
                 Id = category.Id,
                 Name = category.Name,
-                Code = category.Code,
-                CreatedAt = category.CreatedAt,
-                CreatedById = category.CreatedById,
-                ModifiedAt = category.ModifiedAt,
-                ModifiedById = category.ModifiedById
+                Code = category.Code
             };
         }
     }

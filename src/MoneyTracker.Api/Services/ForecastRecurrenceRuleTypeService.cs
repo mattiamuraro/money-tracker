@@ -1,17 +1,17 @@
-using Microsoft.EntityFrameworkCore;
-using MoneyTracker.BusinessLogic.Features.Forecasts.Models;
-using MoneyTracker.Data.EntityFramework;
+using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRecurrenceRuleTypes;
 
 namespace MoneyTracker.Api.Services
 {
     public class ForecastRecurrenceRuleTypeService
     {
-        private readonly MoneyTrackerDbContext _dbContext;
+        private readonly GetForecastRecurrenceRuleTypesQueryHandler _getForecastRecurrenceRuleTypesQueryHandler;
         private readonly ILogger<ForecastRecurrenceRuleTypeService> _logger;
 
-        public ForecastRecurrenceRuleTypeService(MoneyTrackerDbContext dbContext, ILogger<ForecastRecurrenceRuleTypeService> logger)
+        public ForecastRecurrenceRuleTypeService(
+            GetForecastRecurrenceRuleTypesQueryHandler getForecastRecurrenceRuleTypesQueryHandler,
+            ILogger<ForecastRecurrenceRuleTypeService> logger)
         {
-            _dbContext = dbContext;
+            _getForecastRecurrenceRuleTypesQueryHandler = getForecastRecurrenceRuleTypesQueryHandler;
             _logger = logger;
         }
 
@@ -19,16 +19,8 @@ namespace MoneyTracker.Api.Services
         {
             try
             {
-                var types = await _dbContext.ForecastRecurrenceRuleTypes
-                    .AsNoTracking()
-                    .OrderBy(x => x.OrderIndex)
-                    .Select(x => new ForecastRecurrenceRuleTypeDto
-                    {
-                        Id = x.Id,
-                        Name = x.Name,
-                        Code = x.Code
-                    })
-                    .ToListAsync(cancellationToken);
+                var query = new GetForecastRecurrenceRuleTypesQuery();
+                var types = await _getForecastRecurrenceRuleTypesQueryHandler.Handle(query, cancellationToken);
 
                 return Results.Ok(types);
             }

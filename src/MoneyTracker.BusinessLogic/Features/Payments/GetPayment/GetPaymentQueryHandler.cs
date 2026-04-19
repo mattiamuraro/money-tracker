@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using MoneyTracker.BusinessLogic.Features.Payments.Models;
+using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
 using MoneyTracker.BusinessLogic.Shared.Models;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;

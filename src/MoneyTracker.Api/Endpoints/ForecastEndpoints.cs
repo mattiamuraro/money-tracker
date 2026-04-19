@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Contracts;
 using MoneyTracker.Api.Endpoints.Forecasts.Contracts;
 using MoneyTracker.Api.Services;
-using MoneyTracker.BusinessLogic.Features.Forecasts.Models;
+using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastDefinitionById;
+using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRows;
+using MoneyTracker.BusinessLogic.Features.Forecasts.GetPendingForecastOccurrences;
 
 namespace MoneyTracker.Api.Endpoints
 {

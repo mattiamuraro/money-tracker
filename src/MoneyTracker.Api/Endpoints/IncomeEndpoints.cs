@@ -3,7 +3,7 @@ using MoneyTracker.Api.Contracts;
 using MoneyTracker.Api.Endpoints.Incomes.Contracts;
 using MoneyTracker.Api.Services;
 using MoneyTracker.BusinessLogic.Shared.Models;
-using BusinessIncomeRow = MoneyTracker.BusinessLogic.Features.Incomes.Models.IncomeRow;
+using BusinessIncomeRow = MoneyTracker.BusinessLogic.Features.Incomes.GetIncome.IncomeRow;
 
 namespace MoneyTracker.Api.Endpoints;
 

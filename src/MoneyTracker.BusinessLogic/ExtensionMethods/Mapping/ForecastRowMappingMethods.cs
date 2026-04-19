@@ -1,4 +1,4 @@
-﻿using MoneyTracker.BusinessLogic.Features.Forecasts.Models;
+using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRows;
 using MoneyTracker.Data.Base;
 
 namespace MoneyTracker.BusinessLogic.ExtensionMethods.Mapping

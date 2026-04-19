@@ -9,6 +9,7 @@ using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastDefinitionById;
 using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastDefinitions;
 using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRows;
 using MoneyTracker.BusinessLogic.Features.Forecasts.GetPendingForecastOccurrences;
+using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRecurrenceRuleTypes;
 using MoneyTracker.BusinessLogic.Features.Incomes.CreateIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.DeleteIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.UpdateIncome;
@@ -49,6 +50,7 @@ public static class BusinessLogicServiceCollectionExtensions
 
         services.AddScoped<GetForecastRowsQueryHandler>();
         services.AddScoped<GetPendingForecastOccurrencesQueryHandler>();
+        services.AddScoped<GetForecastRecurrenceRuleTypesQueryHandler>();
         services.AddScoped<GetForecastDefinitionsQueryHandler>();
         services.AddScoped<GetForecastDefinitionByIdQueryHandler>();
         services.AddScoped<SynchronizeForecastOccurrencesCommandHandler>();

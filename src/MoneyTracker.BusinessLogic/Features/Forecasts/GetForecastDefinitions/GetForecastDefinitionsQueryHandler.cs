@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using MoneyTracker.BusinessLogic.Features.Forecasts.Models;
 using MoneyTracker.Data;
-using MoneyTracker.Data.Base;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastDefinitions;
@@ -15,7 +13,7 @@ public class GetForecastDefinitionsQueryHandler
         _dbContext = dbContext;
     }
 
-    public async Task<List<ForecastDefinitionDto>> Handle(GetForecastDefinitionsQuery request, CancellationToken cancellationToken)
+    public async Task<List<ForecastDefinitionRow>> Handle(GetForecastDefinitionsQuery request, CancellationToken cancellationToken)
     {
         var expenses = await _dbContext.ForecastExpenses
             .AsNoTracking()
@@ -29,16 +27,16 @@ public class GetForecastDefinitionsQueryHandler
             .Where(x => x.IsActive)
             .ToListAsync(cancellationToken);
 
-        return expenses.Select(ToDefinitionDto)
-            .Concat(incomes.Select(x => ToDefinitionDto(x, true)))
+        return expenses.Select(ToForecastDefinitionRow)
+            .Concat(incomes.Select(ToForecastDefinitionRow))
             .OrderBy(x => x.RecurrenceStart)
             .ThenBy(x => x.Description)
             .ToList();
     }
 
-    private static ForecastDefinitionDto ToDefinitionDto(ForecastExpense forecast)
+    private static ForecastDefinitionRow ToForecastDefinitionRow(ForecastExpense forecast)
     {
-        return new ForecastDefinitionDto
+        return new ForecastDefinitionRow
         {
             Id = forecast.Id,
             ForecastRecurrenceRuleTypeId = forecast.ForecastRecurrenceRuleTypeId,
@@ -53,18 +51,18 @@ public class GetForecastDefinitionsQueryHandler
         };
     }
 
-    private static ForecastDefinitionDto ToDefinitionDto(BaseForecast forecast, bool isIncome)
+    private static ForecastDefinitionRow ToForecastDefinitionRow(ForecastIncome income)
     {
-        return new ForecastDefinitionDto
+        return new ForecastDefinitionRow
         {
-            Id = forecast.Id,
-            ForecastRecurrenceRuleTypeId = forecast.ForecastRecurrenceRuleTypeId,
-            Description = forecast.Description,
-            Amount = forecast.Amount,
-            RecurrenceStart = forecast.RecurrenceStart,
-            RecurrenceEnd = forecast.RecurrenceEnd,
-            Interval = forecast.Interval ?? 1,
-            IsIncome = isIncome
+            Id = income.Id,
+            ForecastRecurrenceRuleTypeId = income.ForecastRecurrenceRuleTypeId,
+            Description = income.Description,
+            Amount = income.Amount,
+            RecurrenceStart = income.RecurrenceStart,
+            RecurrenceEnd = income.RecurrenceEnd,
+            Interval = income.Interval ?? 1,
+            IsIncome = true
         };
     }
 }

@@ -1,4 +1,4 @@
-namespace MoneyTracker.BusinessLogic.Features.Forecasts.Models;
+namespace MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastDefinitionById;
 
 public class ForecastDefinitionDto
 {
@@ -11,5 +11,4 @@ public class ForecastDefinitionDto
     public int Interval { get; set; }
     public bool IsIncome { get; set; }
     public Guid? PaymentCategoryId { get; set; }
-    public string? Category { get; set; }
 }

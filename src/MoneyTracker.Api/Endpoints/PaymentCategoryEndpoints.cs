@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Contracts;
 using MoneyTracker.Api.Endpoints.PaymentCategories.Contracts;
 using MoneyTracker.Api.Services;
-using MoneyTracker.BusinessLogic.Features.PaymentCategories.Models;
+using MoneyTracker.BusinessLogic.Features.PaymentCategories.GetAllCategories;
 
 namespace MoneyTracker.Api.Endpoints
 {

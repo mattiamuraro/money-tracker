@@ -1,4 +1,4 @@
-namespace MoneyTracker.BusinessLogic.Features.Forecasts.Models;
+namespace MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRows;
 
 public class ForecastRow
 {

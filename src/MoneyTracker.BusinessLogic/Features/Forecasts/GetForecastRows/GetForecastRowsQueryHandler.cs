@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using MoneyTracker.BusinessLogic.Features.Forecasts.Models;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 

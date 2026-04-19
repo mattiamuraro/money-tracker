@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using MoneyTracker.BusinessLogic.Features.Forecasts.Models;
 using MoneyTracker.Data;
 using MoneyTracker.Data.Base;
 using MoneyTracker.Data.EntityFramework;
@@ -31,7 +30,7 @@ public class GetForecastDefinitionByIdQueryHandler
             .Include(x => x.ForecastRecurrenceRuleType)
             .FirstOrDefaultAsync(x => x.Id == request.Id && x.IsActive, cancellationToken);
 
-        return income != null ? ToDefinitionDto(income, true) : null;
+        return income != null ? ToDefinitionDto(income) : null;
     }
 
     private static ForecastDefinitionDto ToDefinitionDto(ForecastExpense forecast)
@@ -46,23 +45,22 @@ public class GetForecastDefinitionByIdQueryHandler
             RecurrenceEnd = forecast.RecurrenceEnd,
             Interval = forecast.Interval ?? 1,
             IsIncome = false,
-            PaymentCategoryId = forecast.PaymentCategoryId,
-            Category = forecast.PaymentCategory.Name
+            PaymentCategoryId = forecast.PaymentCategoryId
         };
     }
 
-    private static ForecastDefinitionDto ToDefinitionDto(BaseForecast forecast, bool isIncome)
+    private static ForecastDefinitionDto ToDefinitionDto(ForecastIncome income)
     {
         return new ForecastDefinitionDto
         {
-            Id = forecast.Id,
-            ForecastRecurrenceRuleTypeId = forecast.ForecastRecurrenceRuleTypeId,
-            Description = forecast.Description,
-            Amount = forecast.Amount,
-            RecurrenceStart = forecast.RecurrenceStart,
-            RecurrenceEnd = forecast.RecurrenceEnd,
-            Interval = forecast.Interval ?? 1,
-            IsIncome = isIncome
+            Id = income.Id,
+            ForecastRecurrenceRuleTypeId = income.ForecastRecurrenceRuleTypeId,
+            Description = income.Description,
+            Amount = income.Amount,
+            RecurrenceStart = income.RecurrenceStart,
+            RecurrenceEnd = income.RecurrenceEnd,
+            Interval = income.Interval ?? 1,
+            IsIncome = true
         };
     }
 }

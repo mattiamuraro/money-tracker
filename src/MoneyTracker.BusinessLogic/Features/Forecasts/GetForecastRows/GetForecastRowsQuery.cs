@@ -1,5 +1,3 @@
-using MoneyTracker.BusinessLogic.Features.Forecasts.Models;
-
 namespace MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRows;
 
 /// <summary>

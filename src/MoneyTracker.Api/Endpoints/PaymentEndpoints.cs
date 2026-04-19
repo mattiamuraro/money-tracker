@@ -4,7 +4,7 @@ using MoneyTracker.Api.Endpoints.Payments.Contracts;
 using MoneyTracker.Api.Services;
 using MoneyTracker.BusinessLogic.Features.Payments.CreatePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.UpdatePayment;
-using MoneyTracker.BusinessLogic.Features.Payments.Models;
+using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
 using MoneyTracker.BusinessLogic.Shared.Models;
 
 namespace MoneyTracker.Api.Endpoints

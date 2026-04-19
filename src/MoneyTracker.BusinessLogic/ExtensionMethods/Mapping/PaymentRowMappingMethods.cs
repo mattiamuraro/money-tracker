@@ -1,4 +1,4 @@
-﻿using MoneyTracker.BusinessLogic.Features.Payments.Models;
+using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
 using MoneyTracker.Data;
 
 namespace MoneyTracker.BusinessLogic.ExtensionMethods.Mapping

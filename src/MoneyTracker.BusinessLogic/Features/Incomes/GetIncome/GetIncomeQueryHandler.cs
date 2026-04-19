@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using MoneyTracker.BusinessLogic.Features.Incomes.Models;
+using MoneyTracker.BusinessLogic.Features.Incomes.GetIncome;
 using MoneyTracker.BusinessLogic.Shared.Models;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
