@@ -1,9 +1,10 @@
+using Xunit;
+
 namespace MoneyTracker.Data.Tests;
 
-[TestFixture]
 public class BaseForecastTests
 {
-    [Test]
+    [Fact]
     public void GetRecurrences_Should_Return_Expected_Dates_In_Range()
     {
         var actorId = Guid.NewGuid();
@@ -36,15 +37,15 @@ public class BaseForecastTests
 
         var recurrences = forecast.GetRecurrences(new DateOnly(2026, 4, 5), new DateOnly(2026, 4, 25));
 
-        Assert.That(recurrences, Is.EqualTo(new List<DateOnly>
+        Assert.Equal(new List<DateOnly>
         {
             new(2026, 4, 8),
             new(2026, 4, 15),
             new(2026, 4, 22)
-        }));
+        }, recurrences);
     }
 
-    [Test]
+    [Fact]
     public void GetRecurrences_Should_Stop_When_No_Next_Occurrence()
     {
         var actorId = Guid.NewGuid();
@@ -77,7 +78,7 @@ public class BaseForecastTests
 
         var recurrences = forecast.GetRecurrences(new DateOnly(2026, 3, 1), new DateOnly(2026, 5, 1));
 
-        Assert.That(recurrences, Has.Count.EqualTo(1));
-        Assert.That(recurrences[0], Is.EqualTo(new DateOnly(2026, 4, 1)));
+        Assert.Single(recurrences);
+        Assert.Equal(new DateOnly(2026, 4, 1), recurrences[0]);
     }
 }

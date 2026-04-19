@@ -1,9 +1,10 @@
+using Xunit;
+
 namespace MoneyTracker.Data.Tests;
 
-[TestFixture]
 public class PaymentModelTests
 {
-    [Test]
+    [Fact]
     public void Payment_CanBeCreated()
     {
         var actorId = Guid.NewGuid();
@@ -24,12 +25,12 @@ public class PaymentModelTests
         };
 
         // Assert
-        Assert.That(payment.Description, Is.EqualTo("Test Payment"));
-        Assert.That(payment.Amount, Is.EqualTo(100.00m));
-        Assert.That(payment.IsOneShot, Is.True);
+        Assert.Equal("Test Payment", payment.Description);
+        Assert.Equal(100.00m, payment.Amount);
+        Assert.True(payment.IsOneShot);
     }
 
-    [Test]
+    [Fact]
     public void Payment_HasMaxLengthConstraintOnDescription()
     {
         var actorId = Guid.NewGuid();
@@ -49,10 +50,10 @@ public class PaymentModelTests
         };
 
         // Assert - should have exceeded max length
-        Assert.That(payment.Description.Length, Is.GreaterThan(100));
+        Assert.True(payment.Description.Length > 100);
     }
 
-    [Test]
+    [Fact]
     public void Payment_HasPaymentCategoryNavigation()
     {
         var actorId = Guid.NewGuid();
@@ -84,8 +85,8 @@ public class PaymentModelTests
         };
 
         // Assert
-        Assert.That(payment.PaymentCategory, Is.Not.Null);
-        Assert.That(payment.PaymentCategory!.Name, Is.EqualTo("Food"));
+        Assert.NotNull(payment.PaymentCategory);
+        Assert.Equal("Food", payment.PaymentCategory!.Name);
     }
 }
 

@@ -2,7 +2,7 @@ using Xunit;
 using FluentValidation.TestHelper;
 using MoneyTracker.BusinessLogic.Features.Payments.UpdatePayment;
 
-namespace MoneyTracker.Tests.Features.Payments.Validators;
+namespace MoneyTracker.BusinessLogic.Tests.Features.Payments.Validators;
 
 /// <summary>
 /// Unit tests for UpdatePaymentCommandValidator

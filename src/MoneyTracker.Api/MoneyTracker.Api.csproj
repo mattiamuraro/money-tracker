@@ -9,8 +9,6 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\MoneyTracker.BusinessLogic\MoneyTracker.BusinessLogic.csproj" />
-		<ProjectReference Include="..\MoneyTracker.Data.EntityFramework\MoneyTracker.Data.EntityFramework.csproj" />
-		<ProjectReference Include="..\MoneyTracker.Data\MoneyTracker.Data.csproj" />
 		<ProjectReference Include="..\MoneyTracker.ServiceDefaults\MoneyTracker.ServiceDefaults.csproj" />
 	</ItemGroup>
 

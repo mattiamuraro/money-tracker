@@ -1,7 +1,7 @@
 using Xunit;
 using MoneyTracker.BusinessLogic.Shared.Models;
 
-namespace MoneyTracker.Tests.DTOs;
+namespace MoneyTracker.BusinessLogic.Tests.Shared.Models;
 
 /// <summary>
 /// Unit tests for PaginatedResponse

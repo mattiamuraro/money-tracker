@@ -2,7 +2,7 @@ using Xunit;
 using MoneyTracker.BusinessLogic.ExtensionMethods.Mapping;
 using MoneyTracker.Data;
 
-namespace MoneyTracker.Tests.ExtensionMethods.Mapping;
+namespace MoneyTracker.BusinessLogic.Tests.ExtensionMethods.Mapping;
 
 public class PaymentRowMappingMethodsTests
 {

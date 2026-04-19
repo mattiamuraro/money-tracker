@@ -1,7 +1,7 @@
 using Xunit;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
 
-namespace MoneyTracker.Tests.Features.Payments.Queries;
+namespace MoneyTracker.BusinessLogic.Tests.Features.Payments.Queries;
 
 public class GetPaymentQueryTests
 {

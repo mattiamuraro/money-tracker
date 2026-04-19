@@ -1,27 +1,25 @@
 using Microsoft.EntityFrameworkCore;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework.Tests.TestFixtures;
+using Xunit;
 
 namespace MoneyTracker.Data.EntityFramework.Tests;
 
-[TestFixture]
-public class SoftDeleteQueryFilterTests
+public class SoftDeleteQueryFilterTests : IDisposable
 {
-    private InMemoryDbContextFixture _fixture = null!;
+    private readonly InMemoryDbContextFixture _fixture;
 
-    [SetUp]
-    public void Setup()
+    public SoftDeleteQueryFilterTests()
     {
         _fixture = new InMemoryDbContextFixture();
     }
 
-    [TearDown]
-    public void TearDown()
+    public void Dispose()
     {
         _fixture.Dispose();
     }
 
-    [Test]
+    [Fact]
     public async Task Payments_Query_Should_Exclude_SoftDeleted_Records()
     {
         using var dbContext = _fixture.CreateDbContext();
@@ -76,8 +74,8 @@ public class SoftDeleteQueryFilterTests
         var visiblePayments = dbContext.Payments.ToList();
         var allPayments = dbContext.Payments.IgnoreQueryFilters().ToList();
 
-        Assert.That(visiblePayments, Has.Count.EqualTo(1));
-        Assert.That(visiblePayments[0].Description, Is.EqualTo("Active"));
-        Assert.That(allPayments, Has.Count.EqualTo(2));
+        Assert.Single(visiblePayments);
+        Assert.Equal("Active", visiblePayments[0].Description);
+        Assert.Equal(2, allPayments.Count);
     }
 }

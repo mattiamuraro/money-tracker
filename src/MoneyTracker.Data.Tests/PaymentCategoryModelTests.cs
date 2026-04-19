@@ -1,9 +1,12 @@
+using System;
+using System.Collections.Generic;
+using Xunit;
+
 namespace MoneyTracker.Data.Tests
 {
-    [TestFixture]
     public class PaymentCategoryModelTests
     {
-        [Test]
+        [Fact]
         public void PaymentCategory_CanBeCreated()
         {
             var actorId = Guid.NewGuid();
@@ -21,11 +24,11 @@ namespace MoneyTracker.Data.Tests
             };
 
             // Assert
-            Assert.That(category.Name, Is.EqualTo("Food"));
-            Assert.That(category.Code, Is.EqualTo("FOOD"));
+            Assert.Equal("Food", category.Name);
+            Assert.Equal("FOOD", category.Code);
         }
 
-        [Test]
+        [Fact]
         public void PaymentCategory_CanHaveMultiplePayments()
         {
             var actorId = Guid.NewGuid();
@@ -73,10 +76,10 @@ namespace MoneyTracker.Data.Tests
             category.Payments.Add(payment2);
 
             // Assert
-            Assert.That(category.Payments, Has.Count.EqualTo(2));
+            Assert.Equal(2, category.Payments.Count);
         }
 
-        [Test]
+        [Fact]
         public void PaymentCategory_HasConstraints()
         {
             var actorId = Guid.NewGuid();
@@ -94,8 +97,8 @@ namespace MoneyTracker.Data.Tests
             };
 
             // Assert
-            Assert.That(category.Name.Length, Is.GreaterThan(50));
-            Assert.That(category.Code.Length, Is.GreaterThan(5));
+            Assert.True(category.Name.Length > 50);
+            Assert.True(category.Code.Length > 5);
         }
     }
 }

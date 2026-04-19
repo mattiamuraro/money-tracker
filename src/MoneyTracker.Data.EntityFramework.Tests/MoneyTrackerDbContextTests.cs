@@ -2,40 +2,36 @@ using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 using MoneyTracker.Data.EntityFramework.Tests.TestFixtures;
 using Microsoft.EntityFrameworkCore;
+using Xunit;
 
 namespace MoneyTracker.Data.EntityFramework.Tests;
 
-[TestFixture]
-public class MoneyTrackerDbContextTests
+public class MoneyTrackerDbContextTests : IDisposable
 {
-    private InMemoryDbContextFixture _fixture = null!;
-    private MoneyTrackerDbContext _dbContext = null!;
+    private readonly InMemoryDbContextFixture _fixture;
+    private readonly MoneyTrackerDbContext _dbContext;
 
-    [SetUp]
-    public void Setup()
+    public MoneyTrackerDbContextTests()
     {
         _fixture = new InMemoryDbContextFixture();
         _dbContext = _fixture.CreateDbContext();
     }
 
-    [TearDown]
-    public void TearDown()
+    public void Dispose()
     {
-        _dbContext?.Dispose();
-        _fixture?.Dispose();
+        _dbContext.Dispose();
+        _fixture.Dispose();
     }
 
-    [Test]
+    [Fact]
     public void DbContext_CanCreateDatabase()
     {
-        // Assert
-        Assert.That(_dbContext.Database.ProviderName, Is.EqualTo("Microsoft.EntityFrameworkCore.InMemory"));
+        Assert.Equal("Microsoft.EntityFrameworkCore.InMemory", _dbContext.Database.ProviderName);
     }
 
-    [Test]
+    [Fact]
     public async Task DbContext_CanAddPaymentCategory()
     {
-        // Arrange
         var category = new PaymentCategory
         {
             Id = Guid.NewGuid(),
@@ -47,20 +43,17 @@ public class MoneyTrackerDbContextTests
             ModifiedById = Guid.NewGuid()
         };
 
-        // Act
         _dbContext.PaymentCategories.Add(category);
         await _dbContext.SaveChangesAsync();
 
-        // Assert
         var savedCategory = _dbContext.PaymentCategories.FirstOrDefault(c => c.Id == category.Id);
-        Assert.That(savedCategory, Is.Not.Null);
-        Assert.That(savedCategory!.Name, Is.EqualTo("Food"));
+        Assert.NotNull(savedCategory);
+        Assert.Equal("Food", savedCategory!.Name);
     }
 
-    [Test]
+    [Fact]
     public async Task DbContext_CanAddPayment()
     {
-        // Arrange
         var categoryId = Guid.NewGuid();
         var category = new PaymentCategory
         {
@@ -87,26 +80,23 @@ public class MoneyTrackerDbContextTests
             ModifiedById = Guid.NewGuid()
         };
 
-        // Act
         _dbContext.PaymentCategories.Add(category);
         _dbContext.Payments.Add(payment);
         await _dbContext.SaveChangesAsync();
 
-        // Assert
         var savedPayment = _dbContext.Payments
             .Where(p => p.Id == payment.Id)
             .Select(p => new { p.Description, p.Amount, Category = p.PaymentCategory.Name })
             .FirstOrDefault();
 
-        Assert.That(savedPayment, Is.Not.Null);
-        Assert.That(savedPayment!.Description, Is.EqualTo("Groceries"));
-        Assert.That(savedPayment.Amount, Is.EqualTo(50.00m));
+        Assert.NotNull(savedPayment);
+        Assert.Equal("Groceries", savedPayment!.Description);
+        Assert.Equal(50.00m, savedPayment.Amount);
     }
 
-    [Test]
+    [Fact]
     public async Task DbContext_CanUpdatePayment()
     {
-        // Arrange
         var categoryId = Guid.NewGuid();
         var category = new PaymentCategory
         {
@@ -138,24 +128,22 @@ public class MoneyTrackerDbContextTests
         _dbContext.Payments.Add(payment);
         await _dbContext.SaveChangesAsync();
 
-        // Act
         var paymentToUpdate = _dbContext.Payments.FirstOrDefault(p => p.Id == paymentId);
-        Assert.That(paymentToUpdate, Is.Not.Null);
+        Assert.NotNull(paymentToUpdate);
 
         paymentToUpdate!.Description = "Updated Groceries";
         paymentToUpdate.Amount = 75.50m;
         await _dbContext.SaveChangesAsync();
 
-        // Assert
         var updatedPayment = _dbContext.Payments.FirstOrDefault(p => p.Id == paymentId);
-        Assert.That(updatedPayment!.Description, Is.EqualTo("Updated Groceries"));
-        Assert.That(updatedPayment.Amount, Is.EqualTo(75.50m));
+        Assert.NotNull(updatedPayment);
+        Assert.Equal("Updated Groceries", updatedPayment!.Description);
+        Assert.Equal(75.50m, updatedPayment.Amount);
     }
 
-    [Test]
+    [Fact]
     public async Task DbContext_CanDeletePayment()
     {
-        // Arrange
         var categoryId = Guid.NewGuid();
         var category = new PaymentCategory
         {
@@ -187,22 +175,19 @@ public class MoneyTrackerDbContextTests
         _dbContext.Payments.Add(payment);
         await _dbContext.SaveChangesAsync();
 
-        // Act
         var paymentToDelete = _dbContext.Payments.FirstOrDefault(p => p.Id == paymentId);
-        Assert.That(paymentToDelete, Is.Not.Null);
+        Assert.NotNull(paymentToDelete);
 
         _dbContext.Payments.Remove(paymentToDelete!);
         await _dbContext.SaveChangesAsync();
 
-        // Assert
         var deletedPayment = _dbContext.Payments.FirstOrDefault(p => p.Id == paymentId);
-        Assert.That(deletedPayment, Is.Null);
+        Assert.Null(deletedPayment);
     }
 
-    [Test]
+    [Fact]
     public async Task DbContext_CanQueryPaymentsByCategory()
     {
-        // Arrange
         var category1 = new PaymentCategory
         {
             Id = Guid.NewGuid(),
@@ -258,20 +243,17 @@ public class MoneyTrackerDbContextTests
         _dbContext.Payments.Add(payment2);
         await _dbContext.SaveChangesAsync();
 
-        // Act
         var foodPayments = _dbContext.Payments
             .Where(p => p.PaymentCategoryId == category1.Id)
             .ToList();
 
-        // Assert
-        Assert.That(foodPayments, Has.Count.EqualTo(1));
-        Assert.That(foodPayments.First().Description, Is.EqualTo("Groceries"));
+        Assert.Single(foodPayments);
+        Assert.Equal("Groceries", foodPayments.First().Description);
     }
 
-    [Test]
+    [Fact]
     public async Task DbContext_CanQueryPaymentsByDateRange()
     {
-        // Arrange
         var categoryId = Guid.NewGuid();
         var category = new PaymentCategory
         {
@@ -317,13 +299,11 @@ public class MoneyTrackerDbContextTests
         _dbContext.Payments.Add(payment2);
         await _dbContext.SaveChangesAsync();
 
-        // Act
         var paymentsInRange = _dbContext.Payments
             .Where(p => p.Date >= today && p.Date < today.AddDays(2))
             .ToList();
 
-        // Assert
-        Assert.That(paymentsInRange, Has.Count.EqualTo(1));
-        Assert.That(paymentsInRange.First().Description, Is.EqualTo("Recent Payment"));
+        Assert.Single(paymentsInRange);
+        Assert.Equal("Recent Payment", paymentsInRange.First().Description);
     }
 }

@@ -1,9 +1,10 @@
+using Xunit;
+
 namespace MoneyTracker.Data.Tests;
 
-[TestFixture]
 public class SoftDeleteEntityTests
 {
-    [Test]
+    [Fact]
     public void Delete_Should_Set_Deleted_Fields()
     {
         var actorId = Guid.NewGuid();
@@ -24,12 +25,12 @@ public class SoftDeleteEntityTests
 
         payment.Delete(deletedBy);
 
-        Assert.That(payment.IsDeleted, Is.True);
-        Assert.That(payment.DeletedBy, Is.EqualTo(deletedBy));
-        Assert.That(payment.DeletedAt, Is.Not.Null);
+        Assert.True(payment.IsDeleted);
+        Assert.Equal(deletedBy, payment.DeletedBy);
+        Assert.NotNull(payment.DeletedAt);
     }
 
-    [Test]
+    [Fact]
     public void Restore_Should_Clear_Deleted_Fields()
     {
         var actorId = Guid.NewGuid();
@@ -50,7 +51,7 @@ public class SoftDeleteEntityTests
         payment.Delete(Guid.NewGuid());
         payment.Restore();
 
-        Assert.That(payment.DeletedAt, Is.Null);
-        Assert.That(payment.DeletedBy, Is.Null);
+        Assert.Null(payment.DeletedAt);
+        Assert.Null(payment.DeletedBy);
     }
 }
