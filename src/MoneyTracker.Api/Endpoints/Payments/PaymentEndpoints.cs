@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.Payments.Contracts;
+using MoneyTracker.Api.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Features.Payments.CreatePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.DeletePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
@@ -80,7 +81,7 @@ namespace MoneyTracker.Api.Endpoints.Payments
                 {
                     try
                     {
-                        command.CreatedById = EndpointHelpers.GetCurrentUserId(httpContext);
+                        command.CreatedById = httpContext.GetCurrentUserId();
                         var idempotencyKey = httpContext.Request.Headers["X-Idempotency-Key"].ToString();
                         if (!string.IsNullOrEmpty(idempotencyKey))
                             command.IdempotencyKey = idempotencyKey;
@@ -91,7 +92,7 @@ namespace MoneyTracker.Api.Endpoints.Payments
                     }
                     catch (ValidationException ex)
                     {
-                        return Results.ValidationProblem(EndpointHelpers.ToValidationErrors(ex));
+                        return Results.ValidationProblem(ex.ToValidationErrors());
                     }
                     catch (InvalidOperationException ex)
                     {
@@ -115,14 +116,14 @@ namespace MoneyTracker.Api.Endpoints.Payments
                     try
                     {
                         command.PaymentId = id;
-                        command.ModifiedById = EndpointHelpers.GetCurrentUserId(httpContext);
+                        command.ModifiedById = httpContext.GetCurrentUserId();
                         await validator.ValidateAndThrowAsync(command, cancellationToken);
                         var result = await handler.Handle(command, cancellationToken);
                         return !result ? Results.NotFound() : Results.NoContent();
                     }
                     catch (ValidationException ex)
                     {
-                        return Results.ValidationProblem(EndpointHelpers.ToValidationErrors(ex));
+                        return Results.ValidationProblem(ex.ToValidationErrors());
                     }
                     catch (Exception)
                     {
@@ -142,13 +143,13 @@ namespace MoneyTracker.Api.Endpoints.Payments
                 {
                     try
                     {
-                        if (!EndpointHelpers.TryParseOccurrenceAction(occurrenceAction, out var parsedAction))
+                        if (!occurrenceAction.TryParseOccurrenceAction(out var parsedAction))
                             return Results.BadRequest(new { message = "Occurrence action must be Auto, Reopen, or Skip." });
 
                         var command = new DeletePaymentCommand
                         {
                             PaymentId = id,
-                            DeletedBy = EndpointHelpers.GetCurrentUserId(httpContext),
+                            DeletedBy = httpContext.GetCurrentUserId(),
                             OccurrenceAction = parsedAction
                         };
                         var result = await handler.Handle(command, cancellationToken);

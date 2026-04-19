@@ -1,19 +1,18 @@
 using FluentValidation;
-using MoneyTracker.BusinessLogic.Features.Incomes.DeleteIncome;
 using MoneyTracker.Data;
 using System.Security.Claims;
 
-namespace MoneyTracker.Api.Endpoints;
+namespace MoneyTracker.Api.ExtensionMethods;
 
 internal static class EndpointHelpers
 {
-    internal static Guid GetCurrentUserId(HttpContext httpContext)
+    internal static Guid GetCurrentUserId(this HttpContext httpContext)
     {
         var userIdClaim = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
         return Guid.TryParse(userIdClaim, out var userId) ? userId : SystemUsers.SystemUserId;
     }
 
-    internal static bool TryParseOccurrenceAction(string? occurrenceAction, out ForecastOccurrenceDeleteAction action)
+    internal static bool TryParseOccurrenceAction(this string? occurrenceAction, out ForecastOccurrenceDeleteAction action)
     {
         if (string.IsNullOrWhiteSpace(occurrenceAction))
         {
@@ -24,7 +23,7 @@ internal static class EndpointHelpers
         return Enum.TryParse(occurrenceAction, true, out action);
     }
 
-    internal static Dictionary<string, string[]> ToValidationErrors(ValidationException exception)
+    internal static Dictionary<string, string[]> ToValidationErrors(this ValidationException exception)
     {
         return exception.Errors
             .GroupBy(e => e.PropertyName)

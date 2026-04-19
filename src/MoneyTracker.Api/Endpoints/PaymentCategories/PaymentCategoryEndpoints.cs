@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.PaymentCategories.Contracts;
+using MoneyTracker.Api.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.CreateCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.DeleteCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.GetAllCategories;
@@ -67,7 +68,7 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                     }
                     catch (ValidationException ex)
                     {
-                        return Results.ValidationProblem(EndpointHelpers.ToValidationErrors(ex));
+                        return Results.ValidationProblem(ex.ToValidationErrors());
                     }
                     catch (InvalidOperationException)
                     {
@@ -97,7 +98,7 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                     }
                     catch (ValidationException ex)
                     {
-                        return Results.ValidationProblem(EndpointHelpers.ToValidationErrors(ex));
+                        return Results.ValidationProblem(ex.ToValidationErrors());
                     }
                     catch (InvalidOperationException)
                     {

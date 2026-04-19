@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.Incomes.Contracts;
+using MoneyTracker.Api.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Features.Incomes.CreateIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.DeleteIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.GetIncome;
@@ -83,7 +84,7 @@ public static class IncomeEndpoints
                         ForecastOccurrenceId = request.ForecastOccurrenceId,
                         Amount = request.Amount,
                         Date = request.Date,
-                        CreatedById = EndpointHelpers.GetCurrentUserId(httpContext),
+                        CreatedById = httpContext.GetCurrentUserId(),
                         IdempotencyKey = string.IsNullOrWhiteSpace(idempotencyKey) ? request.IdempotencyKey : idempotencyKey
                     };
                     await validator.ValidateAndThrowAsync(command, cancellationToken);
@@ -92,7 +93,7 @@ public static class IncomeEndpoints
                 }
                 catch (ValidationException ex)
                 {
-                    return Results.ValidationProblem(EndpointHelpers.ToValidationErrors(ex));
+                    return Results.ValidationProblem(ex.ToValidationErrors());
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -121,7 +122,7 @@ public static class IncomeEndpoints
                         Description = request.Description,
                         Amount = request.Amount,
                         Date = request.Date,
-                        ModifiedById = EndpointHelpers.GetCurrentUserId(httpContext)
+                        ModifiedById = httpContext.GetCurrentUserId()
                     };
                     await validator.ValidateAndThrowAsync(command, cancellationToken);
                     var updated = await handler.Handle(command, cancellationToken);
@@ -129,7 +130,7 @@ public static class IncomeEndpoints
                 }
                 catch (ValidationException ex)
                 {
-                    return Results.ValidationProblem(EndpointHelpers.ToValidationErrors(ex));
+                    return Results.ValidationProblem(ex.ToValidationErrors());
                 }
                 catch (Exception)
                 {
@@ -148,13 +149,13 @@ public static class IncomeEndpoints
             {
                 try
                 {
-                    if (!EndpointHelpers.TryParseOccurrenceAction(occurrenceAction, out var parsedAction))
+                    if (!occurrenceAction.TryParseOccurrenceAction(out var parsedAction))
                         return Results.BadRequest(new { message = "Occurrence action must be Auto, Reopen, or Skip." });
 
                     var command = new DeleteIncomeCommand
                     {
                         IncomeId = id,
-                        DeletedBy = EndpointHelpers.GetCurrentUserId(httpContext),
+                        DeletedBy = httpContext.GetCurrentUserId(),
                         OccurrenceAction = parsedAction
                     };
                     var deleted = await handler.Handle(command, cancellationToken);
