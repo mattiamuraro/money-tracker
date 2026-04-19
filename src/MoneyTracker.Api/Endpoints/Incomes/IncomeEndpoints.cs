@@ -7,6 +7,7 @@ using MoneyTracker.BusinessLogic.Features.Incomes.DeleteIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.GetIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.UpdateIncome;
 using MoneyTracker.BusinessLogic.Shared.Models;
+using ApiIncomeRow = MoneyTracker.Api.Endpoints.Incomes.Contracts.IncomeRow;
 using BusinessIncomeRow = MoneyTracker.BusinessLogic.Features.Incomes.GetIncome.IncomeRow;
 
 namespace MoneyTracker.Api.Endpoints.Incomes;
@@ -36,40 +37,56 @@ public static class IncomeEndpoints
                         incomeFilterQuery.SortBy,
                         incomeFilterQuery.SortOrder);
                     var result = await handler.Handle(query, cancellationToken);
-                    return Results.Ok(result);
+                    var response = new PaginatedResponse<ApiIncomeRow>
+                    {
+                        Items = result.Items.Select(i => new ApiIncomeRow
+                        {
+                            Id = i.Id,
+                            Description = i.Description,
+                            ForecastOccurrenceId = i.ForecastOccurrenceId,
+                            ForecastExpectedDate = i.ForecastExpectedDate,
+                            Amount = i.Amount,
+                            Date = i.Date
+                        }).ToList(),
+                        TotalItems = result.TotalItems,
+                        PageNumber = result.PageNumber,
+                        PageSize = result.PageSize
+                    };
+                    return Results.Ok(response);
                 }
                 catch (ArgumentException ex)
                 {
-                    return Results.BadRequest(new { message = ex.Message });
-                }
-                catch (Exception)
-                {
-                    return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error retrieving incomes");
+                    return Results.BadRequest(new ErrorResponse { Message = ex.Message });
                 }
             })
             .WithName("GetIncomes")
             .WithDescription("Retrieves incomes with required month filtering and pagination")
-            .Produces<PaginatedResponse<BusinessIncomeRow>>(StatusCodes.Status200OK)
+            .Produces<PaginatedResponse<ApiIncomeRow>>(StatusCodes.Status200OK)
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
             .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
         group.MapGet("/{id:guid}", static async ([FromServices] GetIncomeQueryHandler handler, Guid id, CancellationToken cancellationToken) =>
             {
-                try
+                var query = new GetIncomeQuery { Id = id, PageSize = 1 };
+                var result = await handler.Handle(query, cancellationToken);
+                var income = result.Items.FirstOrDefault();
+                if (income is null)
+                    return Results.NotFound();
+
+                var response = new ApiIncomeRow
                 {
-                    var query = new GetIncomeQuery { Id = id, PageSize = 1 };
-                    var result = await handler.Handle(query, cancellationToken);
-                    var income = result.Items.FirstOrDefault();
-                    return income is null ? Results.NotFound() : Results.Ok(income);
-                }
-                catch (Exception)
-                {
-                    return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error retrieving income");
-                }
+                    Id = income.Id,
+                    Description = income.Description,
+                    ForecastOccurrenceId = income.ForecastOccurrenceId,
+                    ForecastExpectedDate = income.ForecastExpectedDate,
+                    Amount = income.Amount,
+                    Date = income.Date
+                };
+                return Results.Ok(response);
             })
             .WithName("GetIncomeById")
             .WithDescription("Retrieves a specific income by ID")
-            .Produces<BusinessIncomeRow>(StatusCodes.Status200OK)
+            .Produces<ApiIncomeRow>(StatusCodes.Status200OK)
             .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
             .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
@@ -94,14 +111,6 @@ public static class IncomeEndpoints
                 catch (ValidationException ex)
                 {
                     return Results.ValidationProblem(ex.ToValidationErrors());
-                }
-                catch (InvalidOperationException ex)
-                {
-                    return Results.BadRequest(new { message = ex.Message });
-                }
-                catch (Exception)
-                {
-                    return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error creating income");
                 }
             })
             .WithName("CreateIncome")
@@ -132,10 +141,6 @@ public static class IncomeEndpoints
                 {
                     return Results.ValidationProblem(ex.ToValidationErrors());
                 }
-                catch (Exception)
-                {
-                    return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error updating income");
-                }
             })
             .WithName("UpdateIncome")
             .WithDescription("Updates an income")
@@ -147,24 +152,17 @@ public static class IncomeEndpoints
 
         group.MapDelete("/{id:guid}", static async (HttpContext httpContext, [FromServices] DeleteIncomeCommandHandler handler, Guid id, [FromQuery] string? occurrenceAction, CancellationToken cancellationToken) =>
             {
-                try
-                {
-                    if (!occurrenceAction.TryParseOccurrenceAction(out var parsedAction))
-                        return Results.BadRequest(new { message = "Occurrence action must be Auto, Reopen, or Skip." });
+                if (!occurrenceAction.TryParseOccurrenceAction(out var parsedAction))
+                    return Results.BadRequest(new ErrorResponse { Message = "Occurrence action must be Auto, Reopen, or Skip." });
 
-                    var command = new DeleteIncomeCommand
-                    {
-                        IncomeId = id,
-                        DeletedBy = httpContext.GetCurrentUserId(),
-                        OccurrenceAction = parsedAction
-                    };
-                    var deleted = await handler.Handle(command, cancellationToken);
-                    return deleted ? Results.NoContent() : Results.NotFound();
-                }
-                catch (Exception)
+                var command = new DeleteIncomeCommand
                 {
-                    return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error deleting income");
-                }
+                    IncomeId = id,
+                    DeletedBy = httpContext.GetCurrentUserId(),
+                    OccurrenceAction = parsedAction
+                };
+                var deleted = await handler.Handle(command, cancellationToken);
+                return deleted ? Results.NoContent() : Results.NotFound();
             })
             .WithName("DeleteIncome")
             .WithDescription("Deletes an income")

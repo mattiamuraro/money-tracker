@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using MoneyTracker.Api.Endpoints.ForecastRecurrenceRuleTypes.Contracts;
 using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRecurrenceRuleTypes;
 using MoneyTracker.BusinessLogic.Shared.Models;
 
@@ -14,21 +15,18 @@ namespace MoneyTracker.Api.Endpoints.ForecastRecurrenceRuleTypes
 
             group.MapGet("/", static async ([FromServices] GetForecastRecurrenceRuleTypesQueryHandler handler, CancellationToken cancellationToken) =>
                 {
-                    try
+                    var types = await handler.Handle(new GetForecastRecurrenceRuleTypesQuery(), cancellationToken);
+                    var response = types.Select(t => new ForecastRecurrenceRuleTypeResponse
                     {
-                        var types = await handler.Handle(new GetForecastRecurrenceRuleTypesQuery(), cancellationToken);
-                        return Results.Ok(types);
-                    }
-                    catch (Exception)
-                    {
-                        return Results.Problem(
-                            statusCode: StatusCodes.Status500InternalServerError,
-                            title: "Error retrieving forecast recurrence rule types");
-                    }
+                        Id = t.Id,
+                        Name = t.Name,
+                        Code = t.Code
+                    });
+                    return Results.Ok(response);
                 })
                 .WithName("GetForecastRecurrenceRuleTypes")
                 .WithDescription("Retrieves forecast recurrence rule types")
-                .Produces<List<ForecastRecurrenceRuleTypeDto>>(StatusCodes.Status200OK)
+                .Produces<List<ForecastRecurrenceRuleTypeResponse>>(StatusCodes.Status200OK)
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
             return app;

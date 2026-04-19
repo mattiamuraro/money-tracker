@@ -1,5 +1,7 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using MoneyTracker.BusinessLogic.Features.Auth.Login;
+using MoneyTracker.BusinessLogic.Features.Auth.Register;
 using MoneyTracker.BusinessLogic.Features.Forecasts.CreateForecastDefinition;
 using MoneyTracker.BusinessLogic.Features.Forecasts.DeleteForecastDefinition;
 using MoneyTracker.BusinessLogic.Features.Forecasts.DiscardPendingForecastOccurrence;
@@ -71,6 +73,8 @@ public static class BusinessLogicServiceCollectionExtensions
         services.AddScoped<IValidator<UpdateIncomeCommand>, UpdateIncomeCommandValidator>();
         services.AddScoped<IValidator<CreateCategoryCommand>, CreateCategoryCommandValidator>();
         services.AddScoped<IValidator<UpdateCategoryCommand>, UpdateCategoryCommandValidator>();
+        services.AddScoped<IValidator<LoginCommand>, LoginCommandValidator>();
+        services.AddScoped<IValidator<RegisterCommand>, RegisterCommandValidator>();
 
         return services;
     }

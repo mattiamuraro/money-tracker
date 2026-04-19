@@ -32,60 +32,77 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                     var end = endDate ?? DateOnly.FromDateTime(DateTime.Today.AddMonths(1));
 
                     if (end < start)
-                        return Results.BadRequest(new { message = "End date must be greater than or equal to start date." });
+                        return Results.BadRequest(new ErrorResponse { Message = "End date must be greater than or equal to start date." });
 
                     if ((end.ToDateTime(TimeOnly.MinValue) - start.ToDateTime(TimeOnly.MinValue)).TotalDays > 366)
-                        return Results.BadRequest(new { message = "Date range cannot exceed 366 days." });
+                        return Results.BadRequest(new ErrorResponse { Message = "Date range cannot exceed 366 days." });
 
-                    try
+                    await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
+                    var forecasts = await getForecastRowsHandler.Handle(new GetForecastRowsQuery(start, end), cancellationToken);
+                    var response = forecasts.Select(f => new ForecastRowResponse
                     {
-                        await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
-                        var forecasts = await getForecastRowsHandler.Handle(new GetForecastRowsQuery(start, end), cancellationToken);
-                        return Results.Ok(forecasts);
-                    }
-                    catch (Exception)
-                    {
-                        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error retrieving forecast rows");
-                    }
+                        Id = f.Id,
+                        ForecastDefinitionId = f.ForecastDefinitionId,
+                        Description = f.Description,
+                        Amount = f.Amount,
+                        Date = f.Date,
+                        IsIncome = f.IsIncome,
+                        PaymentCategoryId = f.PaymentCategoryId,
+                        Category = f.Category
+                    });
+                    return Results.Ok(response);
                 })
                 .WithName("GetForecasts")
                 .WithDescription("Retrieves forecasts for a given date range")
-                .Produces<List<ForecastRow>>(StatusCodes.Status200OK)
+                .Produces<List<ForecastRowResponse>>(StatusCodes.Status200OK)
                 .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
             group.MapGet("/definitions", static async ([FromServices] GetForecastDefinitionsQueryHandler handler, CancellationToken cancellationToken) =>
                 {
-                    try
+                    var definitions = await handler.Handle(new GetForecastDefinitionsQuery(), cancellationToken);
+                    var response = definitions.Select(d => new ForecastDefinitionResponse
                     {
-                        var definitions = await handler.Handle(new GetForecastDefinitionsQuery(), cancellationToken);
-                        return Results.Ok(definitions);
-                    }
-                    catch (Exception)
-                    {
-                        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error retrieving forecast definitions");
-                    }
+                        Id = d.Id,
+                        ForecastRecurrenceRuleTypeId = d.ForecastRecurrenceRuleTypeId,
+                        Description = d.Description,
+                        Amount = d.Amount,
+                        RecurrenceStart = d.RecurrenceStart,
+                        RecurrenceEnd = d.RecurrenceEnd,
+                        Interval = d.Interval,
+                        IsIncome = d.IsIncome,
+                        PaymentCategoryId = d.PaymentCategoryId
+                    });
+                    return Results.Ok(response);
                 })
                 .WithName("GetForecastDefinitions")
                 .WithDescription("Retrieves all forecast definitions")
-                .Produces<List<ForecastDefinitionDto>>(StatusCodes.Status200OK)
+                .Produces<List<ForecastDefinitionResponse>>(StatusCodes.Status200OK)
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
             group.MapGet("/definitions/{id:guid}", static async ([FromServices] GetForecastDefinitionByIdQueryHandler handler, Guid id, CancellationToken cancellationToken) =>
                 {
-                    try
+                    var definition = await handler.Handle(new GetForecastDefinitionByIdQuery(id), cancellationToken);
+                    if (definition == null)
+                        return Results.NotFound();
+
+                    var response = new ForecastDefinitionResponse
                     {
-                        var definition = await handler.Handle(new GetForecastDefinitionByIdQuery(id), cancellationToken);
-                        return definition == null ? Results.NotFound() : Results.Ok(definition);
-                    }
-                    catch (Exception)
-                    {
-                        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error retrieving forecast definition");
-                    }
+                        Id = definition.Id,
+                        ForecastRecurrenceRuleTypeId = definition.ForecastRecurrenceRuleTypeId,
+                        Description = definition.Description,
+                        Amount = definition.Amount,
+                        RecurrenceStart = definition.RecurrenceStart,
+                        RecurrenceEnd = definition.RecurrenceEnd,
+                        Interval = definition.Interval,
+                        IsIncome = definition.IsIncome,
+                        PaymentCategoryId = definition.PaymentCategoryId
+                    };
+                    return Results.Ok(response);
                 })
                 .WithName("GetForecastDefinitionById")
                 .WithDescription("Retrieves a specific forecast definition by ID")
-                .Produces<ForecastDefinitionDto>(StatusCodes.Status200OK)
+                .Produces<ForecastDefinitionResponse>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status404NotFound)
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
@@ -95,31 +112,20 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                     CreateForecastRequest request,
                     CancellationToken cancellationToken) =>
                 {
-                    try
+                    var command = new CreateForecastDefinitionCommand
                     {
-                        var command = new CreateForecastDefinitionCommand
-                        {
-                            ForecastRecurrenceRuleTypeId = request.ForecastRecurrenceRuleTypeId,
-                            Description = request.Description,
-                            Amount = request.Amount,
-                            RecurrenceStart = request.RecurrenceStart,
-                            RecurrenceEnd = request.RecurrenceEnd,
-                            Interval = request.Interval,
-                            IsIncome = request.IsIncome,
-                            PaymentCategoryId = request.PaymentCategoryId
-                        };
-                        var id = await createHandler.Handle(command, cancellationToken);
-                        await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
-                        return Results.Created($"/api/v1/forecasts/definitions/{id}", id);
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        return Results.BadRequest(new { message = ex.Message });
-                    }
-                    catch (Exception)
-                    {
-                        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error creating forecast definition");
-                    }
+                        ForecastRecurrenceRuleTypeId = request.ForecastRecurrenceRuleTypeId,
+                        Description = request.Description,
+                        Amount = request.Amount,
+                        RecurrenceStart = request.RecurrenceStart,
+                        RecurrenceEnd = request.RecurrenceEnd,
+                        Interval = request.Interval,
+                        IsIncome = request.IsIncome,
+                        PaymentCategoryId = request.PaymentCategoryId
+                    };
+                    var id = await createHandler.Handle(command, cancellationToken);
+                    await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
+                    return Results.Created($"/api/v1/forecasts/definitions/{id}", id);
                 })
                 .WithName("CreateForecastDefinition")
                 .WithDescription("Creates a new forecast definition")
@@ -135,35 +141,24 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                     UpdateForecastRequest request,
                     CancellationToken cancellationToken) =>
                 {
-                    try
+                    var command = new UpdateForecastDefinitionCommand
                     {
-                        var command = new UpdateForecastDefinitionCommand
-                        {
-                            Id = id,
-                            ForecastRecurrenceRuleTypeId = request.ForecastRecurrenceRuleTypeId,
-                            Description = request.Description,
-                            Amount = request.Amount,
-                            RecurrenceStart = request.RecurrenceStart,
-                            RecurrenceEnd = request.RecurrenceEnd,
-                            Interval = request.Interval,
-                            IsIncome = request.IsIncome,
-                            PaymentCategoryId = request.PaymentCategoryId
-                        };
-                        var updated = await updateHandler.Handle(command, cancellationToken);
-                        if (!updated)
-                            return Results.NotFound();
+                        Id = id,
+                        ForecastRecurrenceRuleTypeId = request.ForecastRecurrenceRuleTypeId,
+                        Description = request.Description,
+                        Amount = request.Amount,
+                        RecurrenceStart = request.RecurrenceStart,
+                        RecurrenceEnd = request.RecurrenceEnd,
+                        Interval = request.Interval,
+                        IsIncome = request.IsIncome,
+                        PaymentCategoryId = request.PaymentCategoryId
+                    };
+                    var updated = await updateHandler.Handle(command, cancellationToken);
+                    if (!updated)
+                        return Results.NotFound();
 
-                        await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
-                        return Results.NoContent();
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        return Results.BadRequest(new { message = ex.Message });
-                    }
-                    catch (Exception)
-                    {
-                        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error updating forecast definition");
-                    }
+                    await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
+                    return Results.NoContent();
                 })
                 .WithName("UpdateForecastDefinition")
                 .WithDescription("Updates an existing forecast definition")
@@ -179,19 +174,12 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                     Guid id,
                     CancellationToken cancellationToken) =>
                 {
-                    try
-                    {
-                        var deleted = await deleteHandler.Handle(new DeleteForecastDefinitionCommand(id), cancellationToken);
-                        if (!deleted)
-                            return Results.NotFound();
+                    var deleted = await deleteHandler.Handle(new DeleteForecastDefinitionCommand(id), cancellationToken);
+                    if (!deleted)
+                        return Results.NotFound();
 
-                        await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
-                        return Results.NoContent();
-                    }
-                    catch (Exception)
-                    {
-                        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error deleting forecast definition");
-                    }
+                    await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
+                    return Results.NoContent();
                 })
                 .WithName("DeleteForecastDefinition")
                 .WithDescription("Deletes a forecast definition")
@@ -210,38 +198,34 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                         var (year, month) = query.GetRequiredYearMonth();
                         await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
                         var items = await handler.Handle(new GetPendingForecastOccurrencesQuery(year, month, query.IsIncome), cancellationToken);
-                        return Results.Ok(items);
+                        var response = items.Select(o => new ForecastOccurrenceResponse
+                        {
+                            Id = o.Id,
+                            ForecastDefinitionId = o.ForecastDefinitionId,
+                            Description = o.Description,
+                            Amount = o.Amount,
+                            ExpectedDate = o.ExpectedDate,
+                            IsIncome = o.IsIncome,
+                            PaymentCategoryId = o.PaymentCategoryId,
+                            Category = o.Category
+                        });
+                        return Results.Ok(response);
                     }
                     catch (ArgumentException ex)
                     {
-                        return Results.BadRequest(new { message = ex.Message });
-                    }
-                    catch (Exception)
-                    {
-                        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error retrieving forecast occurrences");
+                        return Results.BadRequest(new ErrorResponse { Message = ex.Message });
                     }
                 })
                 .WithName("GetForecastOccurrences")
                 .WithDescription("Retrieves pending forecast occurrences for a month and type")
-                .Produces<List<ForecastOccurrenceRow>>(StatusCodes.Status200OK)
+                .Produces<List<ForecastOccurrenceResponse>>(StatusCodes.Status200OK)
                 .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
             group.MapDelete("/occurrences/{id:guid}", static async ([FromServices] DiscardPendingForecastOccurrenceCommandHandler handler, Guid id, CancellationToken cancellationToken) =>
                 {
-                    try
-                    {
-                        var discarded = await handler.Handle(new DiscardPendingForecastOccurrenceCommand(id), cancellationToken);
-                        return !discarded ? Results.NotFound() : Results.NoContent();
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        return Results.BadRequest(new { message = ex.Message });
-                    }
-                    catch (Exception)
-                    {
-                        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error discarding forecast occurrence");
-                    }
+                    var discarded = await handler.Handle(new DiscardPendingForecastOccurrenceCommand(id), cancellationToken);
+                    return !discarded ? Results.NotFound() : Results.NoContent();
                 })
                 .WithName("DiscardForecastOccurrence")
                 .WithDescription("Discards a pending forecast occurrence")

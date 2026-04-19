@@ -22,37 +22,38 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
             // GET all categories
             group.MapGet("/", static async ([FromServices] GetAllCategoriesQueryHandler handler, CancellationToken cancellationToken) =>
                 {
-                    try
+                    var result = await handler.Handle(new GetAllCategoriesQuery(), cancellationToken);
+                    var response = result.Select(c => new PaymentCategoryResponse
                     {
-                        var result = await handler.Handle(new GetAllCategoriesQuery(), cancellationToken);
-                        return Results.Ok(result);
-                    }
-                    catch (Exception)
-                    {
-                        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error retrieving payment categories");
-                    }
+                        Id = c.Id,
+                        Name = c.Name,
+                        Code = c.Code
+                    });
+                    return Results.Ok(response);
                 })
                 .WithName("GetAllCategories")
                 .WithDescription("Retrieves all payment categories")
-                .Produces<IEnumerable<PaymentCategoryDto>>(StatusCodes.Status200OK)
+                .Produces<IEnumerable<PaymentCategoryResponse>>(StatusCodes.Status200OK)
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
             // GET category by ID
             group.MapGet("/{id:guid}", async ([FromServices] GetCategoryByIdQueryHandler handler, Guid id, CancellationToken cancellationToken) =>
                 {
-                    try
+                    var result = await handler.Handle(new GetCategoryByIdQuery(id), cancellationToken);
+                    if (result == null)
+                        return Results.NotFound();
+
+                    var response = new PaymentCategoryResponse
                     {
-                        var result = await handler.Handle(new GetCategoryByIdQuery(id), cancellationToken);
-                        return result == null ? Results.NotFound() : Results.Ok(result);
-                    }
-                    catch (Exception)
-                    {
-                        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error retrieving payment category");
-                    }
+                        Id = result.Id,
+                        Name = result.Name,
+                        Code = result.Code
+                    };
+                    return Results.Ok(response);
                 })
                 .WithName("GetCategoryById")
                 .WithDescription("Retrieves a specific payment category by ID")
-                .Produces<PaymentCategoryDto>(StatusCodes.Status200OK)
+                .Produces<PaymentCategoryResponse>(StatusCodes.Status200OK)
                 .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
@@ -69,14 +70,6 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                     catch (ValidationException ex)
                     {
                         return Results.ValidationProblem(ex.ToValidationErrors());
-                    }
-                    catch (InvalidOperationException)
-                    {
-                        return Results.BadRequest(new { message = "A category with this code already exists." });
-                    }
-                    catch (Exception)
-                    {
-                        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error creating payment category");
                     }
                 })
                 .WithName("CreateCategory")
@@ -100,14 +93,6 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                     {
                         return Results.ValidationProblem(ex.ToValidationErrors());
                     }
-                    catch (InvalidOperationException)
-                    {
-                        return Results.BadRequest(new { message = "A category with this code already exists." });
-                    }
-                    catch (Exception)
-                    {
-                        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error updating payment category");
-                    }
                 })
                 .WithName("UpdateCategory")
                 .WithDescription("Updates an existing payment category")
@@ -120,19 +105,8 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
             // DELETE category
             group.MapDelete("/{id:guid}", async ([FromServices] DeleteCategoryCommandHandler handler, Guid id, CancellationToken cancellationToken) =>
                 {
-                    try
-                    {
-                        var result = await handler.Handle(new DeleteCategoryCommand(id), cancellationToken);
-                        return !result ? Results.NotFound() : Results.NoContent();
-                    }
-                    catch (InvalidOperationException ex)
-                    {
-                        return Results.BadRequest(new { message = ex.Message });
-                    }
-                    catch (Exception)
-                    {
-                        return Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: "Error deleting payment category");
-                    }
+                    var result = await handler.Handle(new DeleteCategoryCommand(id), cancellationToken);
+                    return !result ? Results.NotFound() : Results.NoContent();
                 })
                 .WithName("DeleteCategory")
                 .WithDescription("Deletes a payment category")
