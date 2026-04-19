@@ -13,5 +13,6 @@
     <Build />
     <Deploy />
   </Project>
+  <Project Path="MoneyTracker.ReconciliationWorker/MoneyTracker.ReconciliationWorker.csproj" />
   <Project Path="MoneyTracker.ServiceDefaults/MoneyTracker.ServiceDefaults.csproj" />
 </Solution>

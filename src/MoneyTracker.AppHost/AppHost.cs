@@ -13,6 +13,10 @@ var api = builder.AddProject<Projects.MoneyTracker_Api>("moneytracker-api")
                  .WithHttpHealthCheck("/health")
                  .WaitFor(migrationService);
 
+var reconciliationWorker = builder.AddProject<Projects.MoneyTracker_ReconciliationWorker>("moneytracker-reconciliation-worker")
+       .WithReference(sqlDatabse)
+       .WaitFor(migrationService);
+
 var frontend = builder.AddExecutable("moneytracker-frontend", "node", "../MoneyTracker.Frontend", "./start.mjs")
                       .WithReference(api)
                       .WithEnvironment("MONEYTRACKER_API_URL", api.GetEndpoint("https"))

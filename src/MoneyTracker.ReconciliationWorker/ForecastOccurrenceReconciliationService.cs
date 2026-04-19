@@ -1,6 +1,6 @@
 using MoneyTracker.BusinessLogic.Features.Forecasts.SynchronizeForecastOccurrences;
 
-namespace MoneyTracker.Api.BackgroundServices;
+namespace MoneyTracker.ReconciliationWorker;
 
 public class ForecastOccurrenceReconciliationService : BackgroundService
 {
