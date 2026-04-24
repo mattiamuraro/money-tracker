@@ -1,4 +1,5 @@
 using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRows;
+using Xunit;
 
 namespace MoneyTracker.BusinessLogic.Tests.Features.Forecasts.Queries;
 
