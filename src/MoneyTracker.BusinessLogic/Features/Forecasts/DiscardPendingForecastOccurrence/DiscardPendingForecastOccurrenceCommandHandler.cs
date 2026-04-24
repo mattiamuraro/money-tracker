@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 
@@ -13,13 +14,13 @@ public class DiscardPendingForecastOccurrenceCommandHandler
         _dbContext = dbContext;
     }
 
-    public async Task<bool> Handle(DiscardPendingForecastOccurrenceCommand request, CancellationToken cancellationToken)
+    public async Task Handle(DiscardPendingForecastOccurrenceCommand request, CancellationToken cancellationToken)
     {
         var occurrence = await _dbContext.ForecastOccurrences
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (occurrence is null)
-            return false;
+            throw new EntityNotFoundException($"Forecast Occurrence with id {request.Id} not found");
 
         if (occurrence.ForecastOccurrenceStatusId != ForecastOccurrenceStatus.PendingId)
             throw new InvalidOperationException("Only pending forecast occurrences can be discarded.");
@@ -28,6 +29,5 @@ public class DiscardPendingForecastOccurrenceCommandHandler
         occurrence.ValidatedAt = null;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
-        return true;
     }
 }

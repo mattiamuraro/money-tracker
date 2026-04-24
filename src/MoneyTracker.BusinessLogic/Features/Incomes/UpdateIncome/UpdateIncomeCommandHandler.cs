@@ -1,40 +1,41 @@
+using FluentValidation;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.Incomes.UpdateIncome;
 
 public class UpdateIncomeCommandHandler
 {
+    private readonly IValidator<UpdateIncomeCommand> _validator;
     private readonly MoneyTrackerDbContext _dbContext;
 
-    public UpdateIncomeCommandHandler(MoneyTrackerDbContext dbContext)
+    public UpdateIncomeCommandHandler(IValidator<UpdateIncomeCommand> validator, MoneyTrackerDbContext dbContext)
     {
         _dbContext = dbContext;
+        _validator = validator;
     }
 
-    public async Task<bool> Handle(UpdateIncomeCommand request, CancellationToken cancellationToken)
+    public async Task Handle(UpdateIncomeCommand command, CancellationToken cancellationToken)
     {
+        await _validator.ValidateAndThrowAsync(command, cancellationToken);
+
         var income = await _dbContext.Incomes.FindAsync(
-            new object[] { request.IncomeId },
+            new object[] { command.IncomeId },
             cancellationToken: cancellationToken);
 
         if (income is null)
-            return false;
+            throw new EntityNotFoundException($"Income with id {command.IncomeId} not found");
 
-        if (!string.IsNullOrWhiteSpace(request.Description))
-            income.Description = request.Description.Trim();
+        if (!string.IsNullOrWhiteSpace(command.Description))
+            income.Description = command.Description.Trim();
 
-        if (request.Amount.HasValue)
-            income.Amount = request.Amount.Value;
+        if (command.Amount.HasValue)
+            income.Amount = command.Amount.Value;
 
-        if (request.Date.HasValue)
-            income.Date = request.Date.Value;
-
-        income.ModifiedById = request.ModifiedById;
-        income.ModifiedAt = DateTime.UtcNow;
+        if (command.Date.HasValue)
+            income.Date = command.Date.Value;
 
         _dbContext.Incomes.Update(income);
         await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return true;
     }
 }

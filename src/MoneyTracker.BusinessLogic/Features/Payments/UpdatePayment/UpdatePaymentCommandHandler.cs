@@ -1,4 +1,6 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.Payments.UpdatePayment;
@@ -8,22 +10,26 @@ namespace MoneyTracker.BusinessLogic.Features.Payments.UpdatePayment;
 /// </summary>
 public class UpdatePaymentCommandHandler
 {
+    private readonly IValidator<UpdatePaymentCommand> _validator;
     private readonly MoneyTrackerDbContext _dbContext;
 
-    public UpdatePaymentCommandHandler(MoneyTrackerDbContext dbContext)
+    public UpdatePaymentCommandHandler(IValidator<UpdatePaymentCommand> validator, MoneyTrackerDbContext dbContext)
     {
         _dbContext = dbContext;
+        _validator = validator;
     }
 
-    public async Task<bool> Handle(UpdatePaymentCommand request, CancellationToken cancellationToken)
+    public async Task Handle(UpdatePaymentCommand request, CancellationToken cancellationToken)
     {
+
+        await _validator.ValidateAndThrowAsync(request, cancellationToken);
+
         var payment = await _dbContext.Payments.FindAsync(
             new object[] { request.PaymentId },
             cancellationToken: cancellationToken);
 
         if (payment == null)
-            return false;
-
+            throw new EntityNotFoundException($"Payment with id {request.PaymentId} not found");
         // Aggiorna solo i campi forniti
         if (!string.IsNullOrEmpty(request.Description))
             payment.Description = request.Description;
@@ -54,7 +60,5 @@ public class UpdatePaymentCommandHandler
 
         _dbContext.Payments.Update(payment);
         await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return true;
     }
 }

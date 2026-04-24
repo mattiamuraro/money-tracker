@@ -2,9 +2,8 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using MoneyTracker.Api.Endpoints.Auth.Contracts;
-using MoneyTracker.Api.Endpoints.Auth.Services;
-using MoneyTracker.Api.ExtensionMethods;
-using MoneyTracker.Api.Options;
+using MoneyTracker.Api.Endpoints.Auth.ExtensionMethods;
+using MoneyTracker.BusinessLogic.Common.Options;
 using MoneyTracker.BusinessLogic.Features.Auth.Login;
 using MoneyTracker.BusinessLogic.Features.Auth.Register;
 using MoneyTracker.BusinessLogic.Shared.Models;
@@ -18,28 +17,13 @@ public static class AuthEndpoints
         var group = app.MapGroup("/api/v1/auth")
                     .WithTags("Auth");
 
-        group.MapPost("/login", async ([FromServices] JwtTokenService tokenService, [FromServices] IValidator<LoginCommand> validator, LoginRequest request, CancellationToken cancellationToken) =>
+        group.MapPost("/login", async ([FromServices] LoginCommandHandler handler, LoginRequest request, CancellationToken cancellationToken) =>
             {
-                try
-                {
-                    var command = new LoginCommand
-                    {
-                        Username = request.Username,
-                        Password = request.Password
-                    };
+                var command = request.ToLoginCommand();
+                var result = await handler.Handle(command, cancellationToken);
+                var response = result.ToLoginAuthTokenResponse();
 
-                    await validator.ValidateAndThrowAsync(command, cancellationToken);
-                    var result = await tokenService.LoginAsync(command.Username, command.Password, cancellationToken);
-                    return result switch
-                    {
-                        null => Results.Unauthorized(),
-                        _ => Results.Ok(new AuthTokenResponse { Token = result })
-                    };
-                }
-                catch (ValidationException ex)
-                {
-                    return Results.ValidationProblem(ex.ToValidationErrors());
-                }
+                return Results.Ok(response);
             })
             .WithName("Login")
             .AllowAnonymous()
@@ -49,31 +33,13 @@ public static class AuthEndpoints
             .Produces(StatusCodes.Status401Unauthorized)
             .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
-        group.MapPost("/register", async ([FromServices] JwtTokenService tokenService, [FromServices] IValidator<RegisterCommand> validator, [FromServices] IOptions<AuthOptions> authOptions, RegisterRequest request, CancellationToken cancellationToken) =>
+        group.MapPost("/register", async ([FromServices] RegisterCommandHandler handler, RegisterRequest request, CancellationToken cancellationToken) =>
             {
-                if (!authOptions.Value.AllowRegistration)
-                    return Results.StatusCode(StatusCodes.Status403Forbidden);
+                var command = request.ToRegisterCommand();
+                var result = await handler.Handle(command, cancellationToken);
+                var response = result.ToRegisterAuthTokenResponse();
 
-                try
-                {
-                    var command = new RegisterCommand
-                    {
-                        Username = request.Username,
-                        Password = request.Password
-                    };
-
-                    await validator.ValidateAndThrowAsync(command, cancellationToken);
-                    var token = await tokenService.RegisterAsync(command.Username, command.Password, cancellationToken);
-                    return token switch
-                    {
-                        null => Results.Conflict(new ErrorResponse { Message = "Username is already taken.", StatusCode = 409 }),
-                        _ => Results.Ok(new AuthTokenResponse { Token = token })
-                    };
-                }
-                catch (ValidationException ex)
-                {
-                    return Results.ValidationProblem(ex.ToValidationErrors());
-                }
+                return Results.Ok(response);
             })
             .WithName("Register")
             .AllowAnonymous()

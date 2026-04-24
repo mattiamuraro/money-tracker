@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.ForecastRecurrenceRuleTypes.Contracts;
+using MoneyTracker.Api.Endpoints.ForecastRecurrenceRuleTypes.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRecurrenceRuleTypes;
 using MoneyTracker.BusinessLogic.Shared.Models;
 
@@ -16,12 +17,8 @@ namespace MoneyTracker.Api.Endpoints.ForecastRecurrenceRuleTypes
             group.MapGet("/", static async ([FromServices] GetForecastRecurrenceRuleTypesQueryHandler handler, CancellationToken cancellationToken) =>
                 {
                     var types = await handler.Handle(new GetForecastRecurrenceRuleTypesQuery(), cancellationToken);
-                    var response = types.Select(t => new ForecastRecurrenceRuleTypeResponse
-                    {
-                        Id = t.Id,
-                        Name = t.Name,
-                        Code = t.Code
-                    });
+                    var response = types.Select(t => t.ToForecastRecurrenceRuleTypeResponse());
+
                     return Results.Ok(response);
                 })
                 .WithName("GetForecastRecurrenceRuleTypes")

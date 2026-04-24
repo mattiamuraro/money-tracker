@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.DeleteCategory
@@ -15,14 +16,14 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.DeleteCategory
             _dbContext = dbContext;
         }
 
-        public async Task<bool> Handle(DeleteCategoryCommand request, CancellationToken cancellationToken)
+        public async Task Handle(DeleteCategoryCommand request, CancellationToken cancellationToken)
         {
             var category = await _dbContext.PaymentCategories
                 .Include(c => c.Payments)
                 .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
 
             if (category == null)
-                return false;
+                throw new EntityNotFoundException($"Payment category with id {request.Id} not found");
 
             // Check if category has associated payments
             if (category.Payments.Any())
@@ -30,8 +31,6 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.DeleteCategory
 
             _dbContext.PaymentCategories.Remove(category);
             await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return true;
         }
     }
 }

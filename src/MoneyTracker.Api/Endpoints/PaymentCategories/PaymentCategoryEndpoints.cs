@@ -1,7 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.PaymentCategories.Contracts;
-using MoneyTracker.Api.ExtensionMethods;
+using MoneyTracker.Api.Endpoints.PaymentCategories.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.CreateCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.DeleteCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.GetAllCategories;
@@ -23,12 +23,8 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
             group.MapGet("/", static async ([FromServices] GetAllCategoriesQueryHandler handler, CancellationToken cancellationToken) =>
                 {
                     var result = await handler.Handle(new GetAllCategoriesQuery(), cancellationToken);
-                    var response = result.Select(c => new PaymentCategoryResponse
-                    {
-                        Id = c.Id,
-                        Name = c.Name,
-                        Code = c.Code
-                    });
+                    var response = result.ToPaymentCategoryResponses();
+
                     return Results.Ok(response);
                 })
                 .WithName("GetAllCategories")
@@ -39,16 +35,10 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
             // GET category by ID
             group.MapGet("/{id:guid}", async ([FromServices] GetCategoryByIdQueryHandler handler, Guid id, CancellationToken cancellationToken) =>
                 {
-                    var result = await handler.Handle(new GetCategoryByIdQuery(id), cancellationToken);
-                    if (result == null)
-                        return Results.NotFound();
+                    var query = id.ToGetCategoryByIdQuery();
+                    var result = await handler.Handle(query, cancellationToken);
+                    var response = result.ToPaymentCategoryResponse();
 
-                    var response = new PaymentCategoryResponse
-                    {
-                        Id = result.Id,
-                        Name = result.Name,
-                        Code = result.Code
-                    };
                     return Results.Ok(response);
                 })
                 .WithName("GetCategoryById")
@@ -58,19 +48,12 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
             // POST create category
-            group.MapPost("/", async ([FromServices] CreateCategoryCommandHandler handler, [FromServices] IValidator<CreateCategoryCommand> validator, CreatePaymentCategoryRequest request, CancellationToken cancellationToken) =>
+            group.MapPost("/", async ([FromServices] CreateCategoryCommandHandler handler, CreatePaymentCategoryRequest request, CancellationToken cancellationToken) =>
                 {
-                    try
-                    {
-                        var command = new CreateCategoryCommand { Name = request.Name, Code = request.Code };
-                        await validator.ValidateAndThrowAsync(command, cancellationToken);
-                        var categoryId = await handler.Handle(command, cancellationToken);
-                        return Results.Created($"/api/v1/categories/{categoryId}", categoryId);
-                    }
-                    catch (ValidationException ex)
-                    {
-                        return Results.ValidationProblem(ex.ToValidationErrors());
-                    }
+                    var command = request.ToCreateCategoryCommand();
+                    var categoryId = await handler.Handle(command, cancellationToken);
+
+                    return Results.Created($"/api/v1/categories/{categoryId}", categoryId);
                 })
                 .WithName("CreateCategory")
                 .WithDescription("Creates a new payment category")
@@ -80,19 +63,12 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
             // PUT update category
-            group.MapPut("/{id:guid}", async ([FromServices] UpdateCategoryCommandHandler handler, [FromServices] IValidator<UpdateCategoryCommand> validator, Guid id, UpdatePaymentCategoryRequest request, CancellationToken cancellationToken) =>
+            group.MapPut("/{id:guid}", async ([FromServices] UpdateCategoryCommandHandler handler, Guid id, UpdatePaymentCategoryRequest request, CancellationToken cancellationToken) =>
                 {
-                    try
-                    {
-                        var command = new UpdateCategoryCommand { Id = id, Name = request.Name, Code = request.Code };
-                        await validator.ValidateAndThrowAsync(command, cancellationToken);
-                        var result = await handler.Handle(command, cancellationToken);
-                        return !result ? Results.NotFound() : Results.NoContent();
-                    }
-                    catch (ValidationException ex)
-                    {
-                        return Results.ValidationProblem(ex.ToValidationErrors());
-                    }
+                    var command = request.ToUpdateCategoryCommand(id);
+                    await handler.Handle(command, cancellationToken);
+
+                    return Results.NoContent();
                 })
                 .WithName("UpdateCategory")
                 .WithDescription("Updates an existing payment category")
@@ -105,8 +81,10 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
             // DELETE category
             group.MapDelete("/{id:guid}", async ([FromServices] DeleteCategoryCommandHandler handler, Guid id, CancellationToken cancellationToken) =>
                 {
-                    var result = await handler.Handle(new DeleteCategoryCommand(id), cancellationToken);
-                    return !result ? Results.NotFound() : Results.NoContent();
+                    var command = id.ToDeleteCategoryCommand();
+                    await handler.Handle(command, cancellationToken);
+
+                    return Results.NoContent();
                 })
                 .WithName("DeleteCategory")
                 .WithDescription("Deletes a payment category")

@@ -12,8 +12,7 @@ public class UpdateIncomeCommandValidatorTests
     {
         var command = new UpdateIncomeCommand
         {
-            IncomeId = Guid.Empty,
-            ModifiedById = Guid.NewGuid()
+            IncomeId = Guid.Empty
         };
 
         var result = _validator.TestValidate(command);
@@ -22,27 +21,12 @@ public class UpdateIncomeCommandValidatorTests
     }
 
     [Fact]
-    public void Should_Fail_When_ModifiedById_Is_Empty()
-    {
-        var command = new UpdateIncomeCommand
-        {
-            IncomeId = Guid.NewGuid(),
-            ModifiedById = Guid.Empty
-        };
-
-        var result = _validator.TestValidate(command);
-
-        result.ShouldHaveValidationErrorFor(x => x.ModifiedById);
-    }
-
-    [Fact]
     public void Should_Fail_When_Description_Exceeds_Max_Length()
     {
         var command = new UpdateIncomeCommand
         {
             IncomeId = Guid.NewGuid(),
-            Description = new string('a', 101),
-            ModifiedById = Guid.NewGuid()
+            Description = new string('a', 101)
         };
 
         var result = _validator.TestValidate(command);
@@ -56,8 +40,7 @@ public class UpdateIncomeCommandValidatorTests
         var command = new UpdateIncomeCommand
         {
             IncomeId = Guid.NewGuid(),
-            Description = null,
-            ModifiedById = Guid.NewGuid()
+            Description = null
         };
 
         var result = _validator.TestValidate(command);
@@ -71,8 +54,7 @@ public class UpdateIncomeCommandValidatorTests
         var command = new UpdateIncomeCommand
         {
             IncomeId = Guid.NewGuid(),
-            Amount = 0,
-            ModifiedById = Guid.NewGuid()
+            Amount = 0
         };
 
         var result = _validator.TestValidate(command);
@@ -86,8 +68,7 @@ public class UpdateIncomeCommandValidatorTests
         var command = new UpdateIncomeCommand
         {
             IncomeId = Guid.NewGuid(),
-            Amount = -100,
-            ModifiedById = Guid.NewGuid()
+            Amount = -100
         };
 
         var result = _validator.TestValidate(command);
@@ -101,8 +82,7 @@ public class UpdateIncomeCommandValidatorTests
         var command = new UpdateIncomeCommand
         {
             IncomeId = Guid.NewGuid(),
-            Amount = null,
-            ModifiedById = Guid.NewGuid()
+            Amount = null
         };
 
         var result = _validator.TestValidate(command);
@@ -115,8 +95,7 @@ public class UpdateIncomeCommandValidatorTests
     {
         var command = new UpdateIncomeCommand
         {
-            IncomeId = Guid.NewGuid(),
-            ModifiedById = Guid.NewGuid()
+            IncomeId = Guid.NewGuid()
         };
 
         var result = _validator.TestValidate(command);
@@ -132,8 +111,7 @@ public class UpdateIncomeCommandValidatorTests
             IncomeId = Guid.NewGuid(),
             Description = "Updated salary",
             Amount = 3000,
-            Date = DateTime.UtcNow,
-            ModifiedById = Guid.NewGuid()
+            Date = DateTime.UtcNow
         };
 
         var result = _validator.TestValidate(command);

@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
+using MoneyTracker.BusinessLogic.Common.Services;
 using MoneyTracker.Data;
 using MoneyTracker.Data.Base;
 using MoneyTracker.Data.EntityFramework;
@@ -8,14 +10,18 @@ namespace MoneyTracker.BusinessLogic.Features.Forecasts.UpdateForecastDefinition
 public class UpdateForecastDefinitionCommandHandler
 {
     private readonly MoneyTrackerDbContext _dbContext;
+    private readonly ForecastOccurrencesService _forecastOccurrencesService;
 
     public UpdateForecastDefinitionCommandHandler(MoneyTrackerDbContext dbContext)
     {
         _dbContext = dbContext;
+        _forecastOccurrencesService = new ForecastOccurrencesService(dbContext);
     }
 
-    public async Task<bool> Handle(UpdateForecastDefinitionCommand request, CancellationToken cancellationToken)
+    public async Task Handle(UpdateForecastDefinitionCommand request, CancellationToken cancellationToken)
     {
+
+
         await ValidateForecastRequestAsync(request.IsIncome, request.PaymentCategoryId, request.RecurrenceStart, request.RecurrenceEnd, cancellationToken);
 
         var recurrenceRuleType = await GetRecurrenceRuleTypeAsync(request.ForecastRecurrenceRuleTypeId, cancellationToken);
@@ -27,7 +33,7 @@ public class UpdateForecastDefinitionCommandHandler
         if (expense != null)
         {
             await UpdateForecastAsync(request.Id, expense, request, recurrenceRuleType, false, cancellationToken);
-            return true;
+            return;
         }
 
         var income = await _dbContext.ForecastIncomes
@@ -37,10 +43,10 @@ public class UpdateForecastDefinitionCommandHandler
         if (income != null)
         {
             await UpdateForecastAsync(request.Id, income, request, recurrenceRuleType, true, cancellationToken);
-            return true;
+            return;
         }
 
-        return false;
+        throw new EntityNotFoundException($"No active forecast found with ID '{request.Id}'.");
     }
 
     private async Task ValidateForecastRequestAsync(bool isIncome, Guid? paymentCategoryId, DateOnly recurrenceStart, DateOnly? recurrenceEnd, CancellationToken cancellationToken)
@@ -84,6 +90,7 @@ public class UpdateForecastDefinitionCommandHandler
         if (isIncome == request.IsIncome)
         {
             ApplyForecastValues(existingForecast, request, recurrenceRuleType);
+            await _forecastOccurrencesService.SynchronizeAsync(existingForecast, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
             return;
         }
@@ -116,6 +123,7 @@ public class UpdateForecastDefinitionCommandHandler
             _dbContext.ForecastIncomes.Add((ForecastIncome)replacement);
         }
 
+        await _forecastOccurrencesService.SynchronizeAsync(cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 

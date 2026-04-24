@@ -1,10 +1,11 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.Payments.Contracts;
-using MoneyTracker.Api.ExtensionMethods;
+using MoneyTracker.Api.Endpoints.Payments.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Features.Payments.CreatePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.DeletePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
+using MoneyTracker.BusinessLogic.Features.Payments.GetPaymentById;
 using MoneyTracker.BusinessLogic.Features.Payments.UpdatePayment;
 using MoneyTracker.BusinessLogic.Shared.Models;
 
@@ -21,47 +22,11 @@ namespace MoneyTracker.Api.Endpoints.Payments
             // GET all payments with pagination and filtering
             group.MapGet("/", static async ([FromServices] GetPaymentQueryHandler handler, [AsParameters] PaymentFilterQuery paymentFilterQuery, CancellationToken cancellationToken) =>
                 {
-                    try
-                    {
-                        paymentFilterQuery.Validate();
-                        var (year, month) = paymentFilterQuery.GetRequiredYearMonth();
-                        var query = new GetPaymentQuery(
-                            paymentFilterQuery.CategoryFilter,
-                            paymentFilterQuery.DescriptionFilter,
-                            paymentFilterQuery.CategoryId,
-                            paymentFilterQuery.MinAmount,
-                            paymentFilterQuery.MaxAmount,
-                            year,
-                            month,
-                            paymentFilterQuery.PageNumber ?? 1,
-                            paymentFilterQuery.PageSize ?? 20,
-                            paymentFilterQuery.SortBy,
-                            paymentFilterQuery.SortOrder);
-                        var result = await handler.Handle(query, cancellationToken);
-                        var response = new PaginatedResponse<PaymentRowResponse>
-                        {
-                            Items = result.Items.Select(p => new PaymentRowResponse
-                            {
-                                Id = p.Id,
-                                Description = p.Description,
-                                PaymentCategoryId = p.PaymentCategoryId,
-                                Category = p.Category,
-                                ForecastOccurrenceId = p.ForecastOccurrenceId,
-                                ForecastExpectedDate = p.ForecastExpectedDate,
-                                Amount = p.Amount,
-                                Date = p.Date,
-                                IsOneShot = p.IsOneShot
-                            }).ToList(),
-                            TotalItems = result.TotalItems,
-                            PageNumber = result.PageNumber,
-                            PageSize = result.PageSize
-                        };
-                        return Results.Ok(response);
-                    }
-                    catch (ArgumentException ex)
-                    {
-                        return Results.BadRequest(new ErrorResponse { Message = ex.Message });
-                    }
+                    var query = paymentFilterQuery.ToGetPaymentQuery();
+                    var result = await handler.Handle(query, cancellationToken);
+                    var response = result.ToPaginatedResponse();
+
+                    return Results.Ok(response);
                 })
                 .WithName("GetPayments")
                 .WithDescription("Retrieves all payments with required month filtering and pagination")
@@ -70,26 +35,12 @@ namespace MoneyTracker.Api.Endpoints.Payments
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
             // GET payment by ID
-            group.MapGet("/{id:guid}", async ([FromServices] GetPaymentQueryHandler handler, Guid id, CancellationToken cancellationToken) =>
+            group.MapGet("/{id:guid}", async ([FromServices] GetPaymentByIdQueryHandler handler, Guid id, CancellationToken cancellationToken) =>
                 {
-                    var query = new GetPaymentQuery { Id = id, PageSize = 1 };
-                    var result = await handler.Handle(query, cancellationToken);
-                    var payment = result.Items.FirstOrDefault();
-                    if (payment == null)
-                        return Results.NotFound();
+                    var query = id.ToGetPaymentByIdQuery();
+                    var payment = await handler.Handle(query, cancellationToken);
+                    var response = payment.ToPaymentRowResponse();
 
-                    var response = new PaymentRowResponse
-                    {
-                        Id = payment.Id,
-                        Description = payment.Description,
-                        PaymentCategoryId = payment.PaymentCategoryId,
-                        Category = payment.Category,
-                        ForecastOccurrenceId = payment.ForecastOccurrenceId,
-                        ForecastExpectedDate = payment.ForecastExpectedDate,
-                        Amount = payment.Amount,
-                        Date = payment.Date,
-                        IsOneShot = payment.IsOneShot
-                    };
                     return Results.Ok(response);
                 })
                 .WithName("GetPaymentById")
@@ -99,30 +50,12 @@ namespace MoneyTracker.Api.Endpoints.Payments
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
             // POST create payment
-            group.MapPost("/", async (HttpContext httpContext, [FromServices] CreatePaymentCommandHandler handler, [FromServices] IValidator<CreatePaymentCommand> validator, CreatePaymentRequest request, CancellationToken cancellationToken) =>
+            group.MapPost("/", async (HttpContext httpContext, [FromServices] CreatePaymentCommandHandler handler, CreatePaymentRequest request, CancellationToken cancellationToken) =>
                 {
-                    try
-                    {
-                        var idempotencyKey = httpContext.Request.Headers["X-Idempotency-Key"].ToString();
-                        var command = new CreatePaymentCommand
-                        {
-                            Description = request.Description,
-                            PaymentCategoryId = request.PaymentCategoryId,
-                            ForecastOccurrenceId = request.ForecastOccurrenceId,
-                            Amount = request.Amount,
-                            Date = request.Date,
-                            IsOneShot = request.IsOneShot,
-                            CreatedById = httpContext.GetCurrentUserId(),
-                            IdempotencyKey = string.IsNullOrEmpty(idempotencyKey) ? null : idempotencyKey
-                        };
-                        await validator.ValidateAndThrowAsync(command, cancellationToken);
-                        var id = await handler.Handle(command, cancellationToken);
-                        return Results.Created($"/api/v1/payments/{id}", id);
-                    }
-                    catch (ValidationException ex)
-                    {
-                        return Results.ValidationProblem(ex.ToValidationErrors());
-                    }
+                    var command = request.ToCreatePaymentCommand(httpContext);
+                    var id = await handler.Handle(command, cancellationToken);
+
+                    return Results.Created($"/api/v1/payments/{id}", id);
                 })
                 .WithName("CreatePayment")
                 .WithDescription("Creates a new payment (supports idempotency with X-Idempotency-Key header)")
@@ -132,28 +65,12 @@ namespace MoneyTracker.Api.Endpoints.Payments
                 .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
 
             // PUT update payment
-            group.MapPut("/{id:guid}", async (HttpContext httpContext, [FromServices] UpdatePaymentCommandHandler handler, [FromServices] IValidator<UpdatePaymentCommand> validator, Guid id, UpdatePaymentRequest request, CancellationToken cancellationToken) =>
+            group.MapPut("/{id:guid}", async (HttpContext httpContext, [FromServices] UpdatePaymentCommandHandler handler, Guid id, UpdatePaymentRequest request, CancellationToken cancellationToken) =>
                 {
-                    try
-                    {
-                        var command = new UpdatePaymentCommand
-                        {
-                            PaymentId = id,
-                            Description = request.Description,
-                            PaymentCategoryId = request.PaymentCategoryId,
-                            Amount = request.Amount,
-                            Date = request.Date,
-                            IsOneShot = request.IsOneShot,
-                            ModifiedById = httpContext.GetCurrentUserId()
-                        };
-                        await validator.ValidateAndThrowAsync(command, cancellationToken);
-                        var result = await handler.Handle(command, cancellationToken);
-                        return !result ? Results.NotFound() : Results.NoContent();
-                    }
-                    catch (ValidationException ex)
-                    {
-                        return Results.ValidationProblem(ex.ToValidationErrors());
-                    }
+                    var command = request.ToUpdatePaymentCommand(id, httpContext);
+                    await handler.Handle(command, cancellationToken);
+
+                    return Results.NoContent();
                 })
                 .WithName("UpdatePayment")
                 .WithDescription("Updates an existing payment")
@@ -166,17 +83,10 @@ namespace MoneyTracker.Api.Endpoints.Payments
             // DELETE payment
             group.MapDelete("/{id:guid}", async (HttpContext httpContext, [FromServices] DeletePaymentCommandHandler handler, Guid id, [FromQuery] string? occurrenceAction, CancellationToken cancellationToken) =>
                 {
-                    if (!occurrenceAction.TryParseOccurrenceAction(out var parsedAction))
-                        return Results.BadRequest(new ErrorResponse { Message = "Occurrence action must be Auto, Reopen, or Skip." });
+                    var command = id.ToDeletePaymentCommand(occurrenceAction);
+                    await handler.Handle(command, cancellationToken);
 
-                    var command = new DeletePaymentCommand
-                    {
-                        PaymentId = id,
-                        DeletedBy = httpContext.GetCurrentUserId(),
-                        OccurrenceAction = parsedAction
-                    };
-                    var result = await handler.Handle(command, cancellationToken);
-                    return !result ? Results.NotFound() : Results.NoContent();
+                    return Results.NoContent();
                 })
                 .WithName("DeletePayment")
                 .WithDescription("Deletes a payment")

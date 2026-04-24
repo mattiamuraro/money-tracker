@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.Forecasts.Contracts;
+using MoneyTracker.Api.Endpoints.Forecasts.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Features.Forecasts.CreateForecastDefinition;
 using MoneyTracker.BusinessLogic.Features.Forecasts.DeleteForecastDefinition;
 using MoneyTracker.BusinessLogic.Features.Forecasts.DiscardPendingForecastOccurrence;
@@ -27,31 +28,13 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                     [FromQuery] DateOnly? startDate,
                     [FromQuery] DateOnly? endDate,
                     CancellationToken cancellationToken) =>
-                {
-                    var start = startDate ?? DateOnly.FromDateTime(DateTime.Today);
-                    var end = endDate ?? DateOnly.FromDateTime(DateTime.Today.AddMonths(1));
+            {
+                var query = startDate.GetForecastRowsQuery(endDate);
+                var forecasts = await getForecastRowsHandler.Handle(query, cancellationToken);
+                var response = forecasts.Select(f => f.ToForecastRowResponse());
 
-                    if (end < start)
-                        return Results.BadRequest(new ErrorResponse { Message = "End date must be greater than or equal to start date." });
-
-                    if ((end.ToDateTime(TimeOnly.MinValue) - start.ToDateTime(TimeOnly.MinValue)).TotalDays > 366)
-                        return Results.BadRequest(new ErrorResponse { Message = "Date range cannot exceed 366 days." });
-
-                    await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
-                    var forecasts = await getForecastRowsHandler.Handle(new GetForecastRowsQuery(start, end), cancellationToken);
-                    var response = forecasts.Select(f => new ForecastRowResponse
-                    {
-                        Id = f.Id,
-                        ForecastDefinitionId = f.ForecastDefinitionId,
-                        Description = f.Description,
-                        Amount = f.Amount,
-                        Date = f.Date,
-                        IsIncome = f.IsIncome,
-                        PaymentCategoryId = f.PaymentCategoryId,
-                        Category = f.Category
-                    });
-                    return Results.Ok(response);
-                })
+                return Results.Ok(response);
+            })
                 .WithName("GetForecasts")
                 .WithDescription("Retrieves forecasts for a given date range")
                 .Produces<List<ForecastRowResponse>>(StatusCodes.Status200OK)
@@ -61,18 +44,8 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
             group.MapGet("/definitions", static async ([FromServices] GetForecastDefinitionsQueryHandler handler, CancellationToken cancellationToken) =>
                 {
                     var definitions = await handler.Handle(new GetForecastDefinitionsQuery(), cancellationToken);
-                    var response = definitions.Select(d => new ForecastDefinitionResponse
-                    {
-                        Id = d.Id,
-                        ForecastRecurrenceRuleTypeId = d.ForecastRecurrenceRuleTypeId,
-                        Description = d.Description,
-                        Amount = d.Amount,
-                        RecurrenceStart = d.RecurrenceStart,
-                        RecurrenceEnd = d.RecurrenceEnd,
-                        Interval = d.Interval,
-                        IsIncome = d.IsIncome,
-                        PaymentCategoryId = d.PaymentCategoryId
-                    });
+                    var response = definitions.Select(d => d.ToForecastDefinitionResponse());
+
                     return Results.Ok(response);
                 })
                 .WithName("GetForecastDefinitions")
@@ -83,21 +56,8 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
             group.MapGet("/definitions/{id:guid}", static async ([FromServices] GetForecastDefinitionByIdQueryHandler handler, Guid id, CancellationToken cancellationToken) =>
                 {
                     var definition = await handler.Handle(new GetForecastDefinitionByIdQuery(id), cancellationToken);
-                    if (definition == null)
-                        return Results.NotFound();
+                    var response = definition.ToForecastDefinitionResponse();
 
-                    var response = new ForecastDefinitionResponse
-                    {
-                        Id = definition.Id,
-                        ForecastRecurrenceRuleTypeId = definition.ForecastRecurrenceRuleTypeId,
-                        Description = definition.Description,
-                        Amount = definition.Amount,
-                        RecurrenceStart = definition.RecurrenceStart,
-                        RecurrenceEnd = definition.RecurrenceEnd,
-                        Interval = definition.Interval,
-                        IsIncome = definition.IsIncome,
-                        PaymentCategoryId = definition.PaymentCategoryId
-                    };
                     return Results.Ok(response);
                 })
                 .WithName("GetForecastDefinitionById")
@@ -112,19 +72,9 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                     CreateForecastRequest request,
                     CancellationToken cancellationToken) =>
                 {
-                    var command = new CreateForecastDefinitionCommand
-                    {
-                        ForecastRecurrenceRuleTypeId = request.ForecastRecurrenceRuleTypeId,
-                        Description = request.Description,
-                        Amount = request.Amount,
-                        RecurrenceStart = request.RecurrenceStart,
-                        RecurrenceEnd = request.RecurrenceEnd,
-                        Interval = request.Interval,
-                        IsIncome = request.IsIncome,
-                        PaymentCategoryId = request.PaymentCategoryId
-                    };
+                    var command = request.ToCreateForecastDefinitionCommand();
                     var id = await createHandler.Handle(command, cancellationToken);
-                    await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
+
                     return Results.Created($"/api/v1/forecasts/definitions/{id}", id);
                 })
                 .WithName("CreateForecastDefinition")
@@ -141,23 +91,9 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                     UpdateForecastRequest request,
                     CancellationToken cancellationToken) =>
                 {
-                    var command = new UpdateForecastDefinitionCommand
-                    {
-                        Id = id,
-                        ForecastRecurrenceRuleTypeId = request.ForecastRecurrenceRuleTypeId,
-                        Description = request.Description,
-                        Amount = request.Amount,
-                        RecurrenceStart = request.RecurrenceStart,
-                        RecurrenceEnd = request.RecurrenceEnd,
-                        Interval = request.Interval,
-                        IsIncome = request.IsIncome,
-                        PaymentCategoryId = request.PaymentCategoryId
-                    };
-                    var updated = await updateHandler.Handle(command, cancellationToken);
-                    if (!updated)
-                        return Results.NotFound();
+                    var command = request.ToUpdateForecastDefinitionCommand(id);
+                    await updateHandler.Handle(command, cancellationToken);
 
-                    await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
                     return Results.NoContent();
                 })
                 .WithName("UpdateForecastDefinition")
@@ -174,11 +110,9 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                     Guid id,
                     CancellationToken cancellationToken) =>
                 {
-                    var deleted = await deleteHandler.Handle(new DeleteForecastDefinitionCommand(id), cancellationToken);
-                    if (!deleted)
-                        return Results.NotFound();
-
-                    await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
+                    var command = id.ToDeleteForecastDefinitionCommand();
+                    var deleted = await deleteHandler.Handle(command, cancellationToken);
+                    
                     return Results.NoContent();
                 })
                 .WithName("DeleteForecastDefinition")
@@ -190,31 +124,14 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
             group.MapGet("/occurrences", static async (
                     [FromServices] GetPendingForecastOccurrencesQueryHandler handler,
                     [FromServices] SynchronizeForecastOccurrencesCommandHandler synchronizeHandler,
-                    [AsParameters] ForecastOccurrenceQuery query,
+                    [AsParameters] ForecastOccurrenceQuery requesst,
                     CancellationToken cancellationToken) =>
                 {
-                    try
-                    {
-                        var (year, month) = query.GetRequiredYearMonth();
-                        await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
-                        var items = await handler.Handle(new GetPendingForecastOccurrencesQuery(year, month, query.IsIncome), cancellationToken);
-                        var response = items.Select(o => new ForecastOccurrenceResponse
-                        {
-                            Id = o.Id,
-                            ForecastDefinitionId = o.ForecastDefinitionId,
-                            Description = o.Description,
-                            Amount = o.Amount,
-                            ExpectedDate = o.ExpectedDate,
-                            IsIncome = o.IsIncome,
-                            PaymentCategoryId = o.PaymentCategoryId,
-                            Category = o.Category
-                        });
-                        return Results.Ok(response);
-                    }
-                    catch (ArgumentException ex)
-                    {
-                        return Results.BadRequest(new ErrorResponse { Message = ex.Message });
-                    }
+                    var query = requesst.ToGetPendingForecastOccurrencesQuery();
+                    var items = await handler.Handle(query, cancellationToken);
+                    var response = items.Select(o => o.ToForecastOccurrenceResponse());
+
+                    return Results.Ok(response);
                 })
                 .WithName("GetForecastOccurrences")
                 .WithDescription("Retrieves pending forecast occurrences for a month and type")
@@ -224,8 +141,10 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
 
             group.MapDelete("/occurrences/{id:guid}", static async ([FromServices] DiscardPendingForecastOccurrenceCommandHandler handler, Guid id, CancellationToken cancellationToken) =>
                 {
-                    var discarded = await handler.Handle(new DiscardPendingForecastOccurrenceCommand(id), cancellationToken);
-                    return !discarded ? Results.NotFound() : Results.NoContent();
+                    var command = id.ToDiscardPendingForecastOccurrenceCommand();
+                    await handler.Handle(command, cancellationToken);
+
+                    return Results.NoContent();
                 })
                 .WithName("DiscardForecastOccurrence")
                 .WithDescription("Discards a pending forecast occurrence")

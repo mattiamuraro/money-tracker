@@ -8,15 +8,13 @@ namespace MoneyTracker.BusinessLogic.Features.Payments.DeletePayment;
 public class DeletePaymentCommand
 {
     public Guid PaymentId { get; set; }
-    public Guid DeletedBy { get; set; }
-    public ForecastOccurrenceDeleteAction OccurrenceAction { get; set; } = ForecastOccurrenceDeleteAction.Auto;
+    public string? OccurrenceAction { get; set; }
 
     public DeletePaymentCommand() { }
 
-    public DeletePaymentCommand(Guid paymentId, Guid deletedBy, ForecastOccurrenceDeleteAction occurrenceAction = ForecastOccurrenceDeleteAction.Auto)
+    public DeletePaymentCommand(Guid paymentId, string? occurrenceAction)
     {
         PaymentId = paymentId;
-        DeletedBy = deletedBy;
         OccurrenceAction = occurrenceAction;
     }
 }

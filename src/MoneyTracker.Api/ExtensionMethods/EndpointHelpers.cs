@@ -12,17 +12,6 @@ internal static class EndpointHelpers
         return Guid.TryParse(userIdClaim, out var userId) ? userId : SystemUsers.SystemUserId;
     }
 
-    internal static bool TryParseOccurrenceAction(this string? occurrenceAction, out ForecastOccurrenceDeleteAction action)
-    {
-        if (string.IsNullOrWhiteSpace(occurrenceAction))
-        {
-            action = ForecastOccurrenceDeleteAction.Auto;
-            return true;
-        }
-
-        return Enum.TryParse(occurrenceAction, true, out action);
-    }
-
     internal static Dictionary<string, string[]> ToValidationErrors(this ValidationException exception)
     {
         return exception.Errors

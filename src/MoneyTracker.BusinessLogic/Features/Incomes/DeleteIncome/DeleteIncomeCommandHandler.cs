@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
+using MoneyTracker.BusinessLogic.Features.Payments.DeletePayment.ExtensionMethods;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 
@@ -13,14 +15,17 @@ public class DeleteIncomeCommandHandler
         _dbContext = dbContext;
     }
 
-    public async Task<bool> Handle(DeleteIncomeCommand request, CancellationToken cancellationToken)
+    public async Task Handle(DeleteIncomeCommand request, CancellationToken cancellationToken)
     {
+        if (!request.OccurrenceAction.TryParseOccurrenceAction(out var parsedAction))
+            throw new BadRequestException("Occurrence action must be Auto, Reopen, or Skip.");
+
         var income = await _dbContext.Incomes.FindAsync(
             new object[] { request.IncomeId },
             cancellationToken: cancellationToken);
 
         if (income == null)
-            return false;
+            throw new EntityNotFoundException($"Income with id {request.IncomeId} not found");
 
         if (income.ForecastOccurrenceId.HasValue)
         {
@@ -29,17 +34,15 @@ public class DeleteIncomeCommandHandler
 
             if (occurrence != null)
             {
-                occurrence.ForecastOccurrenceStatusId = ResolveOccurrenceStatusId(occurrence.ExpectedDate, request.OccurrenceAction);
+                occurrence.ForecastOccurrenceStatusId = ResolveOccurrenceStatusId(occurrence.ExpectedDate, parsedAction);
                 occurrence.ValidatedAt = null;
             }
         }
 
-        income.Delete(request.DeletedBy == Guid.Empty ? SystemUsers.SystemUserId : request.DeletedBy);
+        income.IsDeleted = true;
 
         _dbContext.Incomes.Update(income);
         await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return true;
     }
 
     private static Guid ResolveOccurrenceStatusId(DateOnly expectedDate, ForecastOccurrenceDeleteAction action)

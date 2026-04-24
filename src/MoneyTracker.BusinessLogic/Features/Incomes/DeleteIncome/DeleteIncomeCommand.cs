@@ -1,19 +1,16 @@
-using MoneyTracker.Data;
-
 namespace MoneyTracker.BusinessLogic.Features.Incomes.DeleteIncome;
 
 public class DeleteIncomeCommand
 {
     public Guid IncomeId { get; set; }
     public Guid DeletedBy { get; set; }
-    public ForecastOccurrenceDeleteAction OccurrenceAction { get; set; } = ForecastOccurrenceDeleteAction.Auto;
+    public string? OccurrenceAction { get; set; }
 
     public DeleteIncomeCommand() { }
 
-    public DeleteIncomeCommand(Guid incomeId, Guid deletedBy, ForecastOccurrenceDeleteAction occurrenceAction = ForecastOccurrenceDeleteAction.Auto)
+    public DeleteIncomeCommand(Guid incomeId, string? occurrenceAction)
     {
         IncomeId = incomeId;
-        DeletedBy = deletedBy;
         OccurrenceAction = occurrenceAction;
     }
 }

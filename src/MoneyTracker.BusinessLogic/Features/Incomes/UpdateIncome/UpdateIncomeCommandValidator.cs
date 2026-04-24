@@ -21,9 +21,5 @@ public class UpdateIncomeCommandValidator : AbstractValidator<UpdateIncomeComman
             .PrecisionScale(18, 2, true)
             .WithMessage("Amount must have maximum 2 decimal places")
             .When(x => x.Amount.HasValue);
-
-        RuleFor(x => x.ModifiedById)
-            .NotEmpty()
-            .WithMessage("ModifiedBy is required");
     }
 }

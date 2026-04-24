@@ -1,4 +1,4 @@
-namespace MoneyTracker.Api.Options;
+namespace MoneyTracker.BusinessLogic.Common.Options;
 
 public class AuthOptions
 {

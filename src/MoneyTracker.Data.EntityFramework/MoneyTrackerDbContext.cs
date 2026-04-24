@@ -279,6 +279,9 @@ namespace MoneyTracker.Data.EntityFramework
                 var now = DateTime.UtcNow;
                 var currentUser = GetCurrentUser();
 
+
+
+
                 if (entry.State == EntityState.Added)
                 {
                     entry.Entity.CreatedAt = now;
@@ -294,6 +297,13 @@ namespace MoneyTracker.Data.EntityFramework
                     // Prevent changes to CreatedAt and CreatedById
                     entry.Property(e => e.CreatedAt).IsModified = false;
                     entry.Property(e => e.CreatedById).IsModified = false;
+                }
+
+                if (entry.Entity is SoftDeleteEntity softDeleteEntity
+                    && softDeleteEntity.IsDeleted && !softDeleteEntity.DeletedBy.HasValue)
+                {
+                    softDeleteEntity.DeletedAt = now;
+                    softDeleteEntity.DeletedBy = currentUser;
                 }
             }
         }

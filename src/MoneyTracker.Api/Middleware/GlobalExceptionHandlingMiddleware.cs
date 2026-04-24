@@ -1,3 +1,4 @@
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.BusinessLogic.Shared.Models;
 
 namespace MoneyTracker.Api.Middleware;
@@ -59,6 +60,34 @@ public class GlobalExceptionHandlingMiddleware
                         g => g.Select(x => x.ErrorMessage).ToArray());
                 break;
 
+            case UnauthorizedAccessException unauthorizedEx:
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                response.Code = "FORBIDDEN";
+                response.Message = unauthorizedEx.Message;
+                response.StatusCode = StatusCodes.Status403Forbidden;
+                break;
+
+            case ConflictException unauthorizedEx:
+                context.Response.StatusCode = StatusCodes.Status409Conflict;
+                response.Code = "CONFLICT";
+                response.Message = unauthorizedEx.Message;
+                response.StatusCode = StatusCodes.Status409Conflict;
+                break;
+
+            case BadRequestException badRequestEx:
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                response.Code = "BAD_REQUEST";
+                response.Message = badRequestEx.Message;
+                response.StatusCode = StatusCodes.Status400BadRequest;
+                break;
+
+            case ArgumentException argumentEx:
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                response.Code = "BAD_REQUEST";
+                response.Message = argumentEx.Message;
+                response.StatusCode = StatusCodes.Status400BadRequest;
+                break;
+
             case InvalidOperationException invalidOpEx:
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 response.Code = "INVALID_OPERATION";
@@ -68,7 +97,7 @@ public class GlobalExceptionHandlingMiddleware
                     response.Details = invalidOpEx.Message;
                 break;
 
-            case KeyNotFoundException notFoundEx:
+            case EntityNotFoundException notFoundEx:
                 context.Response.StatusCode = StatusCodes.Status404NotFound;
                 response.Code = "NOT_FOUND";
                 response.Message = "The requested resource was not found";

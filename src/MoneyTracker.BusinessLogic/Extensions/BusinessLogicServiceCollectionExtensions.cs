@@ -25,6 +25,8 @@ using MoneyTracker.BusinessLogic.Features.Payments.CreatePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.DeletePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.UpdatePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
+using MoneyTracker.BusinessLogic.Features.Payments.GetPaymentById;
+using MoneyTracker.BusinessLogic.Features.Incomes.GetIncomeById;
 
 namespace MoneyTracker.BusinessLogic.Extensions;
 
@@ -40,15 +42,20 @@ public static class BusinessLogicServiceCollectionExtensions
     /// <returns>Service collection for chaining</returns>
     public static IServiceCollection AddBusinessLogicServices(this IServiceCollection services)
     {
+        services.AddScoped<LoginCommandHandler>();
+        services.AddScoped<RegisterCommandHandler>();
+
         services.AddScoped<CreatePaymentCommandHandler>();
         services.AddScoped<UpdatePaymentCommandHandler>();
         services.AddScoped<DeletePaymentCommandHandler>();
         services.AddScoped<GetPaymentQueryHandler>();
+        services.AddScoped<GetPaymentByIdQueryHandler>();
 
         services.AddScoped<CreateIncomeCommandHandler>();
         services.AddScoped<UpdateIncomeCommandHandler>();
         services.AddScoped<DeleteIncomeCommandHandler>();
         services.AddScoped<GetIncomeQueryHandler>();
+        services.AddScoped<GetIncomeByIdQueryHandler>();
 
         services.AddScoped<GetForecastRowsQueryHandler>();
         services.AddScoped<GetPendingForecastOccurrencesQueryHandler>();

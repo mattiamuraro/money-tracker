@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.Data;
 using MoneyTracker.Data.Base;
 using MoneyTracker.Data.EntityFramework;
@@ -14,7 +15,7 @@ public class GetForecastDefinitionByIdQueryHandler
         _dbContext = dbContext;
     }
 
-    public async Task<ForecastDefinitionDto?> Handle(GetForecastDefinitionByIdQuery request, CancellationToken cancellationToken)
+    public async Task<ForecastDefinitionDto> Handle(GetForecastDefinitionByIdQuery request, CancellationToken cancellationToken)
     {
         var expense = await _dbContext.ForecastExpenses
             .AsNoTracking()
@@ -30,7 +31,10 @@ public class GetForecastDefinitionByIdQueryHandler
             .Include(x => x.ForecastRecurrenceRuleType)
             .FirstOrDefaultAsync(x => x.Id == request.Id && x.IsActive, cancellationToken);
 
-        return income != null ? ToDefinitionDto(income) : null;
+        if (income == null)
+            throw new EntityNotFoundException($"Forecast with id {request.Id} not found.");
+
+        return ToDefinitionDto(income);
     }
 
     private static ForecastDefinitionDto ToDefinitionDto(ForecastExpense forecast)

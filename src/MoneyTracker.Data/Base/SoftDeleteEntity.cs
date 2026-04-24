@@ -21,23 +21,4 @@ public abstract class SoftDeleteEntity : BaseEntity
     /// Indicates if the entity is deleted
     /// </summary>
     public bool IsDeleted { get; set; }
-
-    /// <summary>
-    /// Soft delete the entity
-    /// </summary>
-    public void Delete(Guid deletedBy)
-    {
-        DeletedAt = DateTime.UtcNow;
-        DeletedBy = deletedBy;
-        IsDeleted = true;
-    }
-
-    /// <summary>
-    /// Restore a soft-deleted entity
-    /// </summary>
-    public void Restore()
-    {
-        DeletedAt = null;
-        DeletedBy = null;
-    }
 }

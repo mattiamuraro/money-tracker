@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Services;
 using MoneyTracker.Data;
 using MoneyTracker.Data.Base;
 using MoneyTracker.Data.EntityFramework;
@@ -8,10 +9,12 @@ namespace MoneyTracker.BusinessLogic.Features.Forecasts.CreateForecastDefinition
 public class CreateForecastDefinitionCommandHandler
 {
     private readonly MoneyTrackerDbContext _dbContext;
+    private readonly ForecastOccurrencesService _forecastOccurrencesService;
 
     public CreateForecastDefinitionCommandHandler(MoneyTrackerDbContext dbContext)
     {
         _dbContext = dbContext;
+        _forecastOccurrencesService = new ForecastOccurrencesService(dbContext);
     }
 
     public async Task<Guid> Handle(CreateForecastDefinitionCommand request, CancellationToken cancellationToken)
@@ -22,11 +25,22 @@ public class CreateForecastDefinitionCommandHandler
         var forecast = CreateForecastEntity(request, recurrenceRuleType);
 
         if (request.IsIncome)
-            _dbContext.ForecastIncomes.Add((ForecastIncome)forecast);
+        {
+            var forecastIncome = (ForecastIncome)forecast;
+
+            _dbContext.ForecastIncomes.Add(forecastIncome);
+            await _forecastOccurrencesService.SynchronizeAsync(forecastIncome, cancellationToken);
+        }
         else
-            _dbContext.ForecastExpenses.Add((ForecastExpense)forecast);
+        {
+            var forecastExpense = (ForecastExpense)forecast;
+
+            _dbContext.ForecastExpenses.Add(forecastExpense);
+            await _forecastOccurrencesService.SynchronizeAsync(forecastExpense, cancellationToken);
+        }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
         return forecast.Id;
     }
 

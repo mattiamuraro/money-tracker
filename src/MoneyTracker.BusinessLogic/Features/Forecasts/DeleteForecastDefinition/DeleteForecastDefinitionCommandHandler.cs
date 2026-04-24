@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
+using MoneyTracker.BusinessLogic.Common.Services;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.Forecasts.DeleteForecastDefinition;
@@ -6,10 +8,12 @@ namespace MoneyTracker.BusinessLogic.Features.Forecasts.DeleteForecastDefinition
 public class DeleteForecastDefinitionCommandHandler
 {
     private readonly MoneyTrackerDbContext _dbContext;
+    private readonly ForecastOccurrencesService _forecastOccurrencesService;
 
     public DeleteForecastDefinitionCommandHandler(MoneyTrackerDbContext dbContext)
     {
         _dbContext = dbContext;
+        _forecastOccurrencesService = new ForecastOccurrencesService(dbContext);
     }
 
     public async Task<bool> Handle(DeleteForecastDefinitionCommand request, CancellationToken cancellationToken)
@@ -20,6 +24,7 @@ public class DeleteForecastDefinitionCommandHandler
         if (expense != null)
         {
             expense.IsActive = false;
+            await _forecastOccurrencesService.DeleteOccurencesAsync(expense.Id, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
             return true;
         }
@@ -30,10 +35,13 @@ public class DeleteForecastDefinitionCommandHandler
         if (income != null)
         {
             income.IsActive = false;
+            await _forecastOccurrencesService.SynchronizeAsync(income, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
             return true;
         }
 
-        return false;
+        throw new EntityNotFoundException($"No active forecast found with ID '{request.Id}'.");
+
+
     }
 }

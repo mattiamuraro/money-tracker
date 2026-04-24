@@ -1,4 +1,7 @@
+using Azure.Core;
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
+using MoneyTracker.BusinessLogic.Features.Payments.DeletePayment.ExtensionMethods;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 
@@ -17,14 +20,19 @@ public class DeletePaymentCommandHandler
         _dbContext = dbContext;
     }
 
-    public async Task<bool> Handle(DeletePaymentCommand request, CancellationToken cancellationToken)
+    public async Task Handle(DeletePaymentCommand command, CancellationToken cancellationToken)
     {
+
+        if (!command.OccurrenceAction.TryParseOccurrenceAction(out var parsedAction))
+            throw new BadRequestException("Occurrence action must be Auto, Reopen, or Skip.");
+
+
         var payment = await _dbContext.Payments.FindAsync(
-            new object[] { request.PaymentId },
+            new object[] { command.PaymentId },
             cancellationToken: cancellationToken);
 
         if (payment == null)
-            return false;
+            throw new EntityNotFoundException($"Payment with id {command.PaymentId} not found");
 
         if (payment.ForecastOccurrenceId.HasValue)
         {
@@ -33,16 +41,14 @@ public class DeletePaymentCommandHandler
 
             if (occurrence != null)
             {
-                ApplyOccurrenceAction(occurrence, request.OccurrenceAction);
+                ApplyOccurrenceAction(occurrence, parsedAction);
             }
         }
 
-        payment.Delete(request.DeletedBy == Guid.Empty ? SystemUsers.SystemUserId : request.DeletedBy);
+        payment.IsDeleted = true;
 
         _dbContext.Payments.Update(payment);
         await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return true;
     }
 
     private static void ApplyOccurrenceAction(ForecastOccurrence occurrence, ForecastOccurrenceDeleteAction action)

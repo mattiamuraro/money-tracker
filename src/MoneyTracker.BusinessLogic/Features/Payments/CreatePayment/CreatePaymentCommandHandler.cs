@@ -1,6 +1,9 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
+using System.ComponentModel.DataAnnotations;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace MoneyTracker.BusinessLogic.Features.Payments.CreatePayment;
 
@@ -10,14 +13,17 @@ namespace MoneyTracker.BusinessLogic.Features.Payments.CreatePayment;
 public class CreatePaymentCommandHandler
 {
     private readonly MoneyTrackerDbContext _dbContext;
+    private readonly IValidator<CreatePaymentCommand> _validator;
 
-    public CreatePaymentCommandHandler(MoneyTrackerDbContext dbContext)
+    public CreatePaymentCommandHandler(IValidator<CreatePaymentCommand> validator, MoneyTrackerDbContext dbContext)
     {
         _dbContext = dbContext;
+        _validator = validator;
     }
 
     public async Task<Guid> Handle(CreatePaymentCommand request, CancellationToken cancellationToken)
     {
+        await _validator.ValidateAndThrowAsync(request, cancellationToken);
         // If an idempotency key is present, return the existing payment ID without creating a duplicate
         if (!string.IsNullOrEmpty(request.IdempotencyKey))
         {

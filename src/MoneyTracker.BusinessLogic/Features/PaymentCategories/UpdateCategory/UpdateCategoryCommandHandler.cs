@@ -1,3 +1,5 @@
+using FluentValidation;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.UpdateCategory
@@ -8,33 +10,34 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.UpdateCategory
     public class UpdateCategoryCommandHandler
     {
         private readonly MoneyTrackerDbContext _dbContext;
+        private readonly IValidator<UpdateCategoryCommand> _validator;
 
-        public UpdateCategoryCommandHandler(MoneyTrackerDbContext dbContext)
+        public UpdateCategoryCommandHandler(IValidator<UpdateCategoryCommand> validator, MoneyTrackerDbContext dbContext)
         {
             _dbContext = dbContext;
+            _validator = validator;
         }
 
-        public async Task<bool> Handle(UpdateCategoryCommand request, CancellationToken cancellationToken)
+        public async Task Handle(UpdateCategoryCommand command, CancellationToken cancellationToken)
         {
+            await _validator.ValidateAndThrowAsync(command, cancellationToken);
             var category = await _dbContext.PaymentCategories.FindAsync(
-                new object[] { request.Id },
+                new object[] { command.Id },
                 cancellationToken: cancellationToken);
 
             if (category == null)
-                return false;
+                throw new EntityNotFoundException($"Payment category with id {command.Id} not found");
 
             // Check if new code conflicts with existing categories
-            var existingCategory = _dbContext.PaymentCategories.FirstOrDefault(c => c.Code == request.Code && c.Id != request.Id);
+            var existingCategory = _dbContext.PaymentCategories.FirstOrDefault(c => c.Code == command.Code && c.Id != command.Id);
             if (existingCategory != null)
-                throw new InvalidOperationException($"Category with code '{request.Code}' already exists.");
+                throw new InvalidOperationException($"Category with code '{command.Code}' already exists.");
 
-            category.Name = request.Name;
-            category.Code = request.Code;
+            category.Name = command.Name;
+            category.Code = command.Code;
 
             _dbContext.PaymentCategories.Update(category);
             await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return true;
         }
     }
 }

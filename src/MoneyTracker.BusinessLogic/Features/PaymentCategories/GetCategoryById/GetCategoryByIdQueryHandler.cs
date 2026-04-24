@@ -1,5 +1,7 @@
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.GetAllCategories;
 using MoneyTracker.Data.EntityFramework;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.GetCategoryById
 {
@@ -15,14 +17,14 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.GetCategoryById
             _dbContext = dbContext;
         }
 
-        public async Task<PaymentCategoryDto?> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
+        public async Task<PaymentCategoryDto> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
         {
             var category = await _dbContext.PaymentCategories.FindAsync(
                 new object[] { request.Id },
                 cancellationToken: cancellationToken);
 
             if (category == null)
-                return null;
+                throw new EntityNotFoundException($"Payment category with id {request.Id} not found");
 
             return new PaymentCategoryDto
             {

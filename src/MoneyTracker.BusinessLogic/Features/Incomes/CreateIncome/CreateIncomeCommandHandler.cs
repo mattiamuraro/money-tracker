@@ -1,55 +1,62 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
+using System.ComponentModel.DataAnnotations;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace MoneyTracker.BusinessLogic.Features.Incomes.CreateIncome;
 
 public class CreateIncomeCommandHandler
 {
+    private readonly IValidator<CreateIncomeCommand> _validator;
     private readonly MoneyTrackerDbContext _dbContext;
 
-    public CreateIncomeCommandHandler(MoneyTrackerDbContext dbContext)
+    public CreateIncomeCommandHandler(IValidator<CreateIncomeCommand> validator, MoneyTrackerDbContext dbContext)
     {
         _dbContext = dbContext;
+        _validator = validator;
     }
 
-    public async Task<Guid> Handle(CreateIncomeCommand request, CancellationToken cancellationToken)
+    public async Task<Guid> Handle(CreateIncomeCommand command, CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(request.IdempotencyKey))
+        await _validator.ValidateAndThrowAsync(command, cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(command.IdempotencyKey))
         {
             var existing = await _dbContext.Incomes
                 .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.IdempotencyKey == request.IdempotencyKey, cancellationToken);
+                .FirstOrDefaultAsync(x => x.IdempotencyKey == command.IdempotencyKey, cancellationToken);
 
             if (existing is not null)
                 return existing.Id;
         }
 
-        var occurrence = request.ForecastOccurrenceId.HasValue
+        var occurrence = command.ForecastOccurrenceId.HasValue
             ? await _dbContext.ForecastOccurrences.FirstOrDefaultAsync(
-                x => x.Id == request.ForecastOccurrenceId.Value && x.IsIncome,
+                x => x.Id == command.ForecastOccurrenceId.Value && x.IsIncome,
                 cancellationToken)
             : null;
 
-        if (request.ForecastOccurrenceId.HasValue)
+        if (command.ForecastOccurrenceId.HasValue)
         {
             if (occurrence == null)
-                throw new InvalidOperationException($"ForecastOccurrence with id {request.ForecastOccurrenceId.Value} not found");
+                throw new InvalidOperationException($"ForecastOccurrence with id {command.ForecastOccurrenceId.Value} not found");
 
             if (occurrence.ForecastOccurrenceStatusId != ForecastOccurrenceStatus.PendingId)
-                throw new InvalidOperationException($"ForecastOccurrence with id {request.ForecastOccurrenceId.Value} is not pending");
+                throw new InvalidOperationException($"ForecastOccurrence with id {command.ForecastOccurrenceId.Value} is not pending");
         }
 
         var income = new Income
         {
             Id = Guid.NewGuid(),
-            Description = request.Description.Trim(),
-            ForecastOccurrenceId = request.ForecastOccurrenceId,
-            Amount = request.Amount,
-            Date = request.Date,
-            IdempotencyKey = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey,
-            CreatedById = request.CreatedById,
-            ModifiedById = request.CreatedById,
+            Description = command.Description.Trim(),
+            ForecastOccurrenceId = command.ForecastOccurrenceId,
+            Amount = command.Amount,
+            Date = command.Date,
+            IdempotencyKey = string.IsNullOrWhiteSpace(command.IdempotencyKey) ? null : command.IdempotencyKey,
+            CreatedById = command.CreatedById,
+            ModifiedById = command.CreatedById,
         };
 
         if (occurrence != null)

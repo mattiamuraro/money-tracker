@@ -61,10 +61,9 @@ public class SoftDeleteQueryFilterTests : IDisposable
             CreatedAt = DateTime.UtcNow,
             CreatedById = actorId,
             ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId
+            ModifiedById = actorId,
+            IsDeleted = true
         };
-
-        deletedPayment.Delete(actorId);
 
         dbContext.PaymentCategories.Add(category);
         dbContext.Payments.Add(activePayment);
