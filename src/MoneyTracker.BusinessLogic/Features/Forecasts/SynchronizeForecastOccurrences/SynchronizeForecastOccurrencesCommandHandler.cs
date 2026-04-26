@@ -1,4 +1,7 @@
-using MoneyTracker.BusinessLogic.Common.Services;
+using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Models;
+using MoneyTracker.BusinessLogic.Common.Services.ExtensionMethods;
+using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.Forecasts.SynchronizeForecastOccurrences;
@@ -6,18 +9,116 @@ namespace MoneyTracker.BusinessLogic.Features.Forecasts.SynchronizeForecastOccur
 public class SynchronizeForecastOccurrencesCommandHandler
 {
     private readonly MoneyTrackerDbContext _dbContext;
-    private readonly ForecastOccurrencesService _forecastOccurrencesService;
 
     public SynchronizeForecastOccurrencesCommandHandler(MoneyTrackerDbContext dbContext)
     {
         _dbContext = dbContext;
-        _forecastOccurrencesService = new ForecastOccurrencesService(dbContext);
     }
 
     public async Task Handle(SynchronizeForecastOccurrencesCommand request, CancellationToken cancellationToken)
     {
-        await _forecastOccurrencesService.SynchronizeAsync(cancellationToken);
+        var (startDate, endDate) = ForecastOccurrencesHelper.GetSynchronizationWindow();
+        var expectedOccurrences = new Dictionary<OccurrenceKey, OccurrenceSeed>();
+
+        var forecastExpenses = await _dbContext.ForecastExpenses
+            .AsNoTracking()
+            .Include(x => x.ForecastRecurrenceRuleType)
+            .Include(x => x.PaymentCategory)
+            .Where(x => x.IsActive && x.RecurrenceStart <= endDate && (x.RecurrenceEnd == null || x.RecurrenceEnd >= startDate))
+            .ToListAsync(cancellationToken);
+
+        foreach (var forecast in forecastExpenses)
+        {
+            foreach (var recurrence in forecast.GetRecurrences(startDate, endDate))
+            {
+                expectedOccurrences[new OccurrenceKey(forecast.Id, false, recurrence)] = new OccurrenceSeed(
+                    forecast.Id,
+                    false,
+                    forecast.Description,
+                    forecast.Amount,
+                    recurrence,
+                    forecast.PaymentCategoryId);
+            }
+        }
+
+        var forecastIncomes = await _dbContext.ForecastIncomes
+            .AsNoTracking()
+            .Include(x => x.ForecastRecurrenceRuleType)
+            .Where(x => x.IsActive && x.RecurrenceStart <= endDate && (x.RecurrenceEnd == null || x.RecurrenceEnd >= startDate))
+            .ToListAsync(cancellationToken);
+
+        foreach (var forecast in forecastIncomes)
+        {
+            foreach (var recurrence in forecast.GetRecurrences(startDate, endDate))
+            {
+                expectedOccurrences[new OccurrenceKey(forecast.Id, true, recurrence)] = new OccurrenceSeed(
+                    forecast.Id,
+                    true,
+                    forecast.Description,
+                    forecast.Amount,
+                    recurrence,
+                    null);
+            }
+        }
+
+        var existingOccurrences = await _dbContext.ForecastOccurrences
+            .Where(x => x.ExpectedDate >= startDate && x.ExpectedDate <= endDate)
+            .ToListAsync(cancellationToken);
+
+        await SynchronizeAsync(expectedOccurrences, existingOccurrences);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
+
+    private async Task SynchronizeAsync(Dictionary<OccurrenceKey, OccurrenceSeed> expectedOccurrences, List<ForecastOccurrence> existingOccurrences)
+    {
+        var existingLookup = existingOccurrences.ToDictionary(
+            x => new OccurrenceKey(x.ForecastDefinitionId, x.IsIncome, x.ExpectedDate),
+            x => x);
+
+        foreach (var existingOccurrence in existingOccurrences)
+        {
+            var key = new OccurrenceKey(existingOccurrence.ForecastDefinitionId, existingOccurrence.IsIncome, existingOccurrence.ExpectedDate);
+
+            if (!expectedOccurrences.TryGetValue(key, out var seed))
+            {
+                if (existingOccurrence.ForecastOccurrenceStatusId == ForecastOccurrenceStatus.PendingId)
+                {
+                    existingOccurrence.ForecastOccurrenceStatusId = ForecastOccurrenceStatus.CancelledId;
+                    existingOccurrence.ValidatedAt = null;
+                }
+
+                continue;
+            }
+
+            if (existingOccurrence.ForecastOccurrenceStatusId is var statusId && (statusId == ForecastOccurrenceStatus.PendingId || statusId == ForecastOccurrenceStatus.CancelledId))
+            {
+                existingOccurrence.Description = seed.Description;
+                existingOccurrence.Amount = seed.Amount;
+                existingOccurrence.PaymentCategoryId = seed.PaymentCategoryId;
+                existingOccurrence.ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId;
+                existingOccurrence.ValidatedAt = null;
+
+            }
+        }
+
+        foreach (var (key, seed) in expectedOccurrences)
+        {
+            if (existingLookup.ContainsKey(key))
+                continue;
+
+            _dbContext.ForecastOccurrences.Add(new ForecastOccurrence
+            {
+                Id = Guid.NewGuid(),
+                ForecastDefinitionId = seed.ForecastDefinitionId,
+                IsIncome = seed.IsIncome,
+                Description = seed.Description,
+                Amount = seed.Amount,
+                ExpectedDate = seed.ExpectedDate,
+                PaymentCategoryId = seed.PaymentCategoryId,
+                ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId
+            });
+        }
+    }
+
 }

@@ -111,7 +111,7 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                     CancellationToken cancellationToken) =>
                 {
                     var command = id.ToDeleteForecastDefinitionCommand();
-                    var deleted = await deleteHandler.Handle(command, cancellationToken);
+                    await deleteHandler.Handle(command, cancellationToken);
                     
                     return Results.NoContent();
                 })

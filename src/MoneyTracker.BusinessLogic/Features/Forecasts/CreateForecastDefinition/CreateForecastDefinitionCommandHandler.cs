@@ -1,5 +1,7 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using MoneyTracker.BusinessLogic.Common.Services;
+using MoneyTracker.BusinessLogic.Common.Services.ExtensionMethods;
+using MoneyTracker.BusinessLogic.Features.Forecasts.CreateForecastDefinition.ExtensionMethods;
 using MoneyTracker.Data;
 using MoneyTracker.Data.Base;
 using MoneyTracker.Data.EntityFramework;
@@ -8,101 +10,92 @@ namespace MoneyTracker.BusinessLogic.Features.Forecasts.CreateForecastDefinition
 
 public class CreateForecastDefinitionCommandHandler
 {
+    private readonly IValidator<CreateForecastDefinitionCommand> _validator;
     private readonly MoneyTrackerDbContext _dbContext;
-    private readonly ForecastOccurrencesService _forecastOccurrencesService;
 
-    public CreateForecastDefinitionCommandHandler(MoneyTrackerDbContext dbContext)
+    public CreateForecastDefinitionCommandHandler(IValidator<CreateForecastDefinitionCommand> validator, MoneyTrackerDbContext dbContext)
     {
+        _validator = validator;
         _dbContext = dbContext;
-        _forecastOccurrencesService = new ForecastOccurrencesService(dbContext);
     }
 
-    public async Task<Guid> Handle(CreateForecastDefinitionCommand request, CancellationToken cancellationToken)
+    public async Task<Guid> Handle(CreateForecastDefinitionCommand command, CancellationToken cancellationToken)
     {
-        await ValidateForecastRequestAsync(request.IsIncome, request.PaymentCategoryId, request.RecurrenceStart, request.RecurrenceEnd, cancellationToken);
+        await _validator.ValidateAndThrowAsync(command, cancellationToken);
 
-        var recurrenceRuleType = await GetRecurrenceRuleTypeAsync(request.ForecastRecurrenceRuleTypeId, cancellationToken);
-        var forecast = CreateForecastEntity(request, recurrenceRuleType);
-
-        if (request.IsIncome)
+        if (command.IsIncome)
         {
-            var forecastIncome = (ForecastIncome)forecast;
+            var forecastIncome = await CreateForecastIncomeAsnyc(command);
+            await CreateNewForecastIncomeDefinitionsAsync(forecastIncome, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
 
-            _dbContext.ForecastIncomes.Add(forecastIncome);
-            await _forecastOccurrencesService.SynchronizeAsync(forecastIncome, cancellationToken);
+            return forecastIncome.Id;
         }
         else
         {
-            var forecastExpense = (ForecastExpense)forecast;
+            await ValidatePaymentCategoryExistsForExpenseAsync(command.PaymentCategoryId!.Value, cancellationToken);
 
-            _dbContext.ForecastExpenses.Add(forecastExpense);
-            await _forecastOccurrencesService.SynchronizeAsync(forecastExpense, cancellationToken);
+            var forecastExpense = await CreateForecastExpenseAsnyc(command);
+            await CreateForecastExpenseDefinitionsAsync(forecastExpense, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return forecastExpense.Id;
         }
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return forecast.Id;
     }
 
-    private async Task ValidateForecastRequestAsync(bool isIncome, Guid? paymentCategoryId, DateOnly recurrenceStart, DateOnly? recurrenceEnd, CancellationToken cancellationToken)
+    private async Task ValidatePaymentCategoryExistsForExpenseAsync(Guid paymentCategoryId, CancellationToken cancellationToken)
     {
-        if (recurrenceEnd.HasValue && recurrenceEnd.Value < recurrenceStart)
-            throw new InvalidOperationException("Recurrence end date cannot be earlier than recurrence start date.");
-
-        if (isIncome)
-            return;
-
-        if (!paymentCategoryId.HasValue || paymentCategoryId == Guid.Empty)
-            throw new InvalidOperationException("Expense forecasts require a payment category.");
-
-        var categoryExists = await _dbContext.PaymentCategories.AnyAsync(x => x.Id == paymentCategoryId.Value, cancellationToken);
+        var categoryExists = await _dbContext.PaymentCategories.AnyAsync(x => x.Id == paymentCategoryId, cancellationToken);
         if (!categoryExists)
             throw new InvalidOperationException("The requested payment category does not exist.");
     }
 
-    private async Task<ForecastRecurrenceRuleType> GetRecurrenceRuleTypeAsync(Guid forecastRecurrenceRuleTypeId, CancellationToken cancellationToken)
+    private async Task<ForecastIncome> CreateForecastIncomeAsnyc(CreateForecastDefinitionCommand command)
     {
-        var requestedId = forecastRecurrenceRuleTypeId;
+        var forecastIncome = command.ToNewForecastIncome();
+        await _dbContext.ForecastIncomes.AddAsync(forecastIncome);
 
-        if (requestedId == Guid.Empty)
-        {
-            var dayRuleType = await _dbContext.ForecastRecurrenceRuleTypes
-                .FirstOrDefaultAsync(x => x.Code == ForecastRecurrenceRuleType.Day, cancellationToken);
-
-            return dayRuleType
-                ?? throw new InvalidOperationException("Default recurrence rule type 'Day' was not found.");
-        }
-
-        var recurrenceRuleType = await _dbContext.ForecastRecurrenceRuleTypes
-            .FirstOrDefaultAsync(x => x.Id == requestedId, cancellationToken);
-
-        return recurrenceRuleType
-            ?? throw new InvalidOperationException($"Forecast recurrence rule type '{requestedId}' was not found.");
+        return forecastIncome;
     }
 
-    private static BaseForecast CreateForecastEntity(CreateForecastDefinitionCommand request, ForecastRecurrenceRuleType recurrenceRuleType)
+    private async Task<ForecastExpense> CreateForecastExpenseAsnyc(CreateForecastDefinitionCommand command)
     {
-        BaseForecast forecast = request.IsIncome
-            ? new ForecastIncome
-            {
-                Description = request.Description
-            }
-            : new ForecastExpense
-            {
-                Description = request.Description,
-                PaymentCategoryId = request.PaymentCategoryId ?? Guid.Empty
-            };
+        var forecastExpense = command.ToNewForecastExpense();
+        _dbContext.ForecastExpenses.Add(forecastExpense);
 
-        forecast.Id = Guid.NewGuid();
-        forecast.Description = request.Description;
-        forecast.Amount = request.Amount;
-        forecast.RecurrenceStart = request.RecurrenceStart;
-        forecast.RecurrenceEnd = request.RecurrenceEnd;
-        forecast.Interval = request.Interval;
-        forecast.ForecastRecurrenceRuleTypeId = recurrenceRuleType.Id;
-        forecast.ForecastRecurrenceRuleType = recurrenceRuleType;
-        forecast.IsActive = true;
+        return forecastExpense;
+    }
 
-        return forecast;
+    private async Task CreateNewForecastIncomeDefinitionsAsync(ForecastIncome forecastIncome, CancellationToken cancellationToken)
+    {
+        var (startDate, endDate) = ForecastOccurrencesHelper.GetSynchronizationWindow();
+
+        await RehydrateEntityAsync(forecastIncome, cancellationToken);
+        var recurrences = forecastIncome.GetRecurrences(startDate, endDate);
+        var forecastOccurrences = recurrences.Select(s => forecastIncome.ToNewForecastOccurrence(s));
+
+        _dbContext.AddRange(forecastOccurrences);
+    }
+
+    private async Task CreateForecastExpenseDefinitionsAsync(ForecastExpense forecastExpense, CancellationToken cancellationToken)
+    {
+        var (startDate, endDate) = ForecastOccurrencesHelper.GetSynchronizationWindow();
+
+        await RehydrateEntityAsync(forecastExpense, cancellationToken);
+        var recurrences = forecastExpense.GetRecurrences(startDate, endDate);
+        var forecastOccurrences = recurrences.Select(s => forecastExpense.ToNewForecastOccurrence(s));
+
+        _dbContext.AddRange(forecastOccurrences);
+    }
+
+
+    private async Task RehydrateEntityAsync(BaseForecast baseForecast, CancellationToken cancellationToken)
+    {
+        if (baseForecast.ForecastRecurrenceRuleType is null)
+        {
+            var forecastRecurrenceRuleType = await _dbContext.ForecastRecurrenceRuleTypes.FirstOrDefaultAsync(f => f.Id == baseForecast.ForecastRecurrenceRuleTypeId, cancellationToken);
+            if (forecastRecurrenceRuleType is not null)
+                baseForecast.ForecastRecurrenceRuleType = forecastRecurrenceRuleType;
+        }
     }
 }

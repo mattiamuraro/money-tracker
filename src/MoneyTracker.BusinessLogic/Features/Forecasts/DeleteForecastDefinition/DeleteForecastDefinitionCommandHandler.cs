@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
-using MoneyTracker.BusinessLogic.Common.Services;
+using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.Forecasts.DeleteForecastDefinition;
@@ -8,40 +8,44 @@ namespace MoneyTracker.BusinessLogic.Features.Forecasts.DeleteForecastDefinition
 public class DeleteForecastDefinitionCommandHandler
 {
     private readonly MoneyTrackerDbContext _dbContext;
-    private readonly ForecastOccurrencesService _forecastOccurrencesService;
 
     public DeleteForecastDefinitionCommandHandler(MoneyTrackerDbContext dbContext)
     {
         _dbContext = dbContext;
-        _forecastOccurrencesService = new ForecastOccurrencesService(dbContext);
     }
 
-    public async Task<bool> Handle(DeleteForecastDefinitionCommand request, CancellationToken cancellationToken)
+    public async Task Handle(DeleteForecastDefinitionCommand request, CancellationToken cancellationToken)
     {
-        var expense = await _dbContext.ForecastExpenses
-            .FirstOrDefaultAsync(x => x.Id == request.Id && x.IsActive, cancellationToken);
+
+        Guid? forecastDefinitionId = null;
+
+        var expense = await _dbContext.ForecastExpenses.FirstOrDefaultAsync(x => x.Id == request.Id && x.IsActive, cancellationToken);
 
         if (expense != null)
         {
             expense.IsActive = false;
-            await _forecastOccurrencesService.DeleteOccurencesAsync(expense.Id, cancellationToken);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            return true;
+            forecastDefinitionId = expense.Id;
         }
 
-        var income = await _dbContext.ForecastIncomes
-            .FirstOrDefaultAsync(x => x.Id == request.Id && x.IsActive, cancellationToken);
+        var income = await _dbContext.ForecastIncomes.FirstOrDefaultAsync(x => x.Id == request.Id && x.IsActive, cancellationToken);
 
         if (income != null)
         {
             income.IsActive = false;
-            await _forecastOccurrencesService.SynchronizeAsync(income, cancellationToken);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            return true;
+            forecastDefinitionId = income.Id;
         }
 
-        throw new EntityNotFoundException($"No active forecast found with ID '{request.Id}'.");
+        if (!forecastDefinitionId.HasValue)
+            throw new EntityNotFoundException($"No active forecast found with ID '{request.Id}'.");
 
+        await DeleteOccurencesAsync(forecastDefinitionId.Value, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
 
+    private async Task DeleteOccurencesAsync(Guid id, CancellationToken cancellationToken)
+    {
+        await _dbContext.ForecastOccurrences.Where(x => x.ForecastDefinitionId == id && x.ForecastOccurrenceStatusId == ForecastOccurrenceStatus.PendingId)
+                                            .ExecuteUpdateAsync(e => e.SetProperty(p => p.ForecastOccurrenceStatusId, ForecastOccurrenceStatus.CancelledId)
+                                            , cancellationToken);
     }
 }

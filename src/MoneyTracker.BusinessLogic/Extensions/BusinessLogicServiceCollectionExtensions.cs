@@ -82,6 +82,8 @@ public static class BusinessLogicServiceCollectionExtensions
         services.AddScoped<IValidator<UpdateCategoryCommand>, UpdateCategoryCommandValidator>();
         services.AddScoped<IValidator<LoginCommand>, LoginCommandValidator>();
         services.AddScoped<IValidator<RegisterCommand>, RegisterCommandValidator>();
+        services.AddScoped<IValidator<CreateForecastDefinitionCommand>, CreateForecastDefinitionCommandValidator>(); 
+        services.AddScoped<IValidator<UpdateForecastDefinitionCommand>, UpdateForecastDefinitionCommandValidator>();
 
         return services;
     }

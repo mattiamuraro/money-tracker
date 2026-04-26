@@ -98,7 +98,7 @@
         </div>
 
         <label class="field-label" for="forecast-type">Type</label>
-        <select id="forecast-type" class="field-input" name="forecastType" [(ngModel)]="app.forecastForm.isIncome" (ngModelChange)="app.onForecastRecurrenceTypeChanged()">
+        <select id="forecast-type" class="field-input" name="forecastType" [(ngModel)]="app.forecastForm.isIncome" (ngModelChange)="app.onForecastRecurrenceTypeChanged()" [disabled]="app.editingForecastId !== null">
           <option [ngValue]="false">Expense</option>
           <option [ngValue]="true">Income</option>
         </select>
