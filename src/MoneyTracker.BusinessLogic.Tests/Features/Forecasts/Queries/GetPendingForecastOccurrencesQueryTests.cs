@@ -23,4 +23,34 @@ public class GetPendingForecastOccurrencesQueryTests
         Assert.Equal(12, query.Month);
         Assert.False(query.IsIncome);
     }
+
+    [Fact]
+    public void Constructor_WithMinimumValues_ShouldInitializeCorrectly()
+    {
+        var query = new GetPendingForecastOccurrencesQuery(year: 1, month: 1, isIncome: false);
+
+        Assert.Equal(1, query.Year);
+        Assert.Equal(1, query.Month);
+        Assert.False(query.IsIncome);
+    }
+
+    [Fact]
+    public void Constructor_WithZeroValues_ShouldInitializeCorrectly()
+    {
+        var query = new GetPendingForecastOccurrencesQuery(year: 0, month: 0, isIncome: true);
+
+        Assert.Equal(0, query.Year);
+        Assert.Equal(0, query.Month);
+        Assert.True(query.IsIncome);
+    }
+
+    [Fact]
+    public void Constructor_WithNegativeValues_ShouldInitializeCorrectly()
+    {
+        var query = new GetPendingForecastOccurrencesQuery(year: -1, month: -5, isIncome: false);
+
+        Assert.Equal(-1, query.Year);
+        Assert.Equal(-5, query.Month);
+        Assert.False(query.IsIncome);
+    }
 }

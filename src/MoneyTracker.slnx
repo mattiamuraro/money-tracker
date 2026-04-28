@@ -6,6 +6,7 @@
   <Project Path="MoneyTracker.BusinessLogic/MoneyTracker.BusinessLogic.csproj" />
   <Project Path="MoneyTracker.Data.EntityFramework.Tests/MoneyTracker.Data.EntityFramework.Tests.csproj" />
   <Project Path="MoneyTracker.Data.EntityFramework/MoneyTracker.Data.EntityFramework.csproj" Id="2206f31d-5708-4794-a96a-5a3bd87b7c6b" />
+  <Project Path="MoneyTracker.Data.MigrationService.UnitTests/MoneyTracker.Data.MigrationService.UnitTests.csproj" />
   <Project Path="MoneyTracker.Data.MigrationService/MoneyTracker.Data.MigrationService.csproj" />
   <Project Path="MoneyTracker.Data.Tests/MoneyTracker.Data.Tests.csproj" />
   <Project Path="MoneyTracker.Data/MoneyTracker.Data.csproj" />
@@ -14,5 +15,6 @@
     <Deploy />
   </Project>
   <Project Path="MoneyTracker.ReconciliationWorker/MoneyTracker.ReconciliationWorker.csproj" />
+  <Project Path="MoneyTracker.ServiceDefaults.UnitTests/MoneyTracker.ServiceDefaults.UnitTests.csproj" />
   <Project Path="MoneyTracker.ServiceDefaults/MoneyTracker.ServiceDefaults.csproj" />
 </Solution>

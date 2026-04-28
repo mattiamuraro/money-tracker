@@ -2,6 +2,9 @@ using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 using MoneyTracker.Data.EntityFramework.Tests.TestFixtures;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
+using Moq;
+using System.Security.Claims;
 using Xunit;
 
 namespace MoneyTracker.Data.EntityFramework.Tests;
@@ -305,5 +308,386 @@ public class MoneyTrackerDbContextTests : IDisposable
 
         Assert.Single(paymentsInRange);
         Assert.Equal("Recent Payment", paymentsInRange.First().Description);
+    }
+
+    [Fact]
+    public void Constructor_WithNullHttpContextAccessor_CreatesInstance()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+
+        var context = new MoneyTrackerDbContext(options, null);
+
+        Assert.NotNull(context);
+    }
+
+    [Fact]
+    public void Constructor_WithHttpContextAccessor_CreatesInstance()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+
+        var context = new MoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+
+        Assert.NotNull(context);
+    }
+
+    [Fact]
+    public void OnModelCreating_ConfiguresEntities_Success()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        
+        using var context = new MoneyTrackerDbContext(options);
+        var model = context.Model;
+
+        Assert.NotNull(model.FindEntityType(typeof(User)));
+        Assert.NotNull(model.FindEntityType(typeof(Payment)));
+        Assert.NotNull(model.FindEntityType(typeof(Income)));
+        Assert.NotNull(model.FindEntityType(typeof(PaymentCategory)));
+        Assert.NotNull(model.FindEntityType(typeof(ForecastExpense)));
+        Assert.NotNull(model.FindEntityType(typeof(ForecastIncome)));
+        Assert.NotNull(model.FindEntityType(typeof(ForecastRecurrenceRuleType)));
+        Assert.NotNull(model.FindEntityType(typeof(ForecastOccurrenceStatus)));
+        Assert.NotNull(model.FindEntityType(typeof(ForecastOccurrence)));
+    }
+
+    [Fact]
+    public void SaveChanges_AppliesAuditFields_ForAddedEntity()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        
+        using var context = new MoneyTrackerDbContext(options);
+        var category = new PaymentCategory
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test",
+            Code = "TEST"
+        };
+
+        context.PaymentCategories.Add(category);
+        context.SaveChanges();
+
+        Assert.NotEqual(DateTime.MinValue, category.CreatedAt);
+        Assert.NotEqual(Guid.Empty, category.CreatedById);
+        Assert.NotEqual(DateTime.MinValue, category.ModifiedAt);
+        Assert.NotEqual(Guid.Empty, category.ModifiedById);
+        Assert.Equal(SystemUsers.SystemUserId, category.CreatedById);
+        Assert.Equal(SystemUsers.SystemUserId, category.ModifiedById);
+    }
+
+    [Fact]
+    public void SaveChanges_AppliesAuditFields_ForModifiedEntity()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        
+        using var context = new MoneyTrackerDbContext(options);
+        var category = new PaymentCategory
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test",
+            Code = "TEST"
+        };
+
+        context.PaymentCategories.Add(category);
+        context.SaveChanges();
+
+        var originalCreatedAt = category.CreatedAt;
+        var originalCreatedById = category.CreatedById;
+
+        category.Name = "Updated";
+        context.SaveChanges();
+
+        Assert.Equal(originalCreatedAt, category.CreatedAt);
+        Assert.Equal(originalCreatedById, category.CreatedById);
+        Assert.True(category.ModifiedAt > originalCreatedAt);
+        Assert.Equal(SystemUsers.SystemUserId, category.ModifiedById);
+    }
+
+    [Fact]
+    public void SaveChanges_WithAuthenticatedUser_UsesUserIdFromClaims()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        
+        var userId = Guid.NewGuid();
+        var claims = new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var claimsPrincipal = new ClaimsPrincipal(identity);
+        
+        var mockHttpContext = new Mock<HttpContext>();
+        mockHttpContext.Setup(x => x.User).Returns(claimsPrincipal);
+        
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(mockHttpContext.Object);
+
+        using var context = new MoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+        var category = new PaymentCategory
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test",
+            Code = "TEST"
+        };
+
+        context.PaymentCategories.Add(category);
+        context.SaveChanges();
+
+        Assert.Equal(userId, category.CreatedById);
+        Assert.Equal(userId, category.ModifiedById);
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_AppliesAuditFields_ForAddedEntity()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        
+        using var context = new MoneyTrackerDbContext(options);
+        var category = new PaymentCategory
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test",
+            Code = "TEST"
+        };
+
+        context.PaymentCategories.Add(category);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        Assert.NotEqual(DateTime.MinValue, category.CreatedAt);
+        Assert.NotEqual(Guid.Empty, category.CreatedById);
+        Assert.NotEqual(DateTime.MinValue, category.ModifiedAt);
+        Assert.NotEqual(Guid.Empty, category.ModifiedById);
+        Assert.Equal(SystemUsers.SystemUserId, category.CreatedById);
+        Assert.Equal(SystemUsers.SystemUserId, category.ModifiedById);
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_AppliesAuditFields_ForModifiedEntity()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        
+        using var context = new MoneyTrackerDbContext(options);
+        var category = new PaymentCategory
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test",
+            Code = "TEST"
+        };
+
+        context.PaymentCategories.Add(category);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var originalCreatedAt = category.CreatedAt;
+        var originalCreatedById = category.CreatedById;
+
+        category.Name = "Updated";
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(originalCreatedAt, category.CreatedAt);
+        Assert.Equal(originalCreatedById, category.CreatedById);
+        Assert.True(category.ModifiedAt > originalCreatedAt);
+        Assert.Equal(SystemUsers.SystemUserId, category.ModifiedById);
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_WithAuthenticatedUser_UsesUserIdFromClaims()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        
+        var userId = Guid.NewGuid();
+        var claims = new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var claimsPrincipal = new ClaimsPrincipal(identity);
+        
+        var mockHttpContext = new Mock<HttpContext>();
+        mockHttpContext.Setup(x => x.User).Returns(claimsPrincipal);
+        
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(mockHttpContext.Object);
+
+        using var context = new MoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+        var category = new PaymentCategory
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test",
+            Code = "TEST"
+        };
+
+        context.PaymentCategories.Add(category);
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(userId, category.CreatedById);
+        Assert.Equal(userId, category.ModifiedById);
+    }
+
+    [Fact]
+    public async Task SaveChangesAsync_WithCancellationToken_Success()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        
+        using var context = new MoneyTrackerDbContext(options);
+        var category = new PaymentCategory
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test",
+            Code = "TEST"
+        };
+        
+        using var cts = new CancellationTokenSource();
+
+        context.PaymentCategories.Add(category);
+        await context.SaveChangesAsync(cts.Token);
+
+        Assert.NotEqual(Guid.Empty, category.CreatedById);
+    }
+
+    [Fact]
+    public void GetCurrentUser_WithNullHttpContextAccessor_ReturnsSystemUserId()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        
+        using var context = new TestableMoneyTrackerDbContext(options, null);
+
+        var userId = context.GetCurrentUserPublic();
+
+        Assert.Equal(SystemUsers.SystemUserId, userId);
+    }
+
+    [Fact]
+    public void GetCurrentUser_WithNullHttpContext_ReturnsSystemUserId()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        mockHttpContextAccessor.Setup(x => x.HttpContext).Returns((HttpContext?)null);
+
+        using var context = new TestableMoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+
+        var userId = context.GetCurrentUserPublic();
+
+        Assert.Equal(SystemUsers.SystemUserId, userId);
+    }
+
+    [Fact]
+    public void GetCurrentUser_WithNullUser_ReturnsSystemUserId()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        
+        var mockHttpContext = new Mock<HttpContext>();
+        mockHttpContext.Setup(x => x.User).Returns((ClaimsPrincipal)null!);
+        
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(mockHttpContext.Object);
+
+        using var context = new TestableMoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+
+        var userId = context.GetCurrentUserPublic();
+
+        Assert.Equal(SystemUsers.SystemUserId, userId);
+    }
+
+    [Fact]
+    public void GetCurrentUser_WithNoNameIdentifierClaim_ReturnsSystemUserId()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        
+        var claims = new[] { new Claim(ClaimTypes.Email, "test@example.com") };
+        var identity = new ClaimsIdentity(claims);
+        var claimsPrincipal = new ClaimsPrincipal(identity);
+        
+        var mockHttpContext = new Mock<HttpContext>();
+        mockHttpContext.Setup(x => x.User).Returns(claimsPrincipal);
+        
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(mockHttpContext.Object);
+
+        using var context = new TestableMoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+
+        var userId = context.GetCurrentUserPublic();
+
+        Assert.Equal(SystemUsers.SystemUserId, userId);
+    }
+
+    [Fact]
+    public void GetCurrentUser_WithInvalidGuidClaim_ReturnsSystemUserId()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        
+        var claims = new[] { new Claim(ClaimTypes.NameIdentifier, "not-a-guid") };
+        var identity = new ClaimsIdentity(claims);
+        var claimsPrincipal = new ClaimsPrincipal(identity);
+        
+        var mockHttpContext = new Mock<HttpContext>();
+        mockHttpContext.Setup(x => x.User).Returns(claimsPrincipal);
+        
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(mockHttpContext.Object);
+
+        using var context = new TestableMoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+
+        var userId = context.GetCurrentUserPublic();
+
+        Assert.Equal(SystemUsers.SystemUserId, userId);
+    }
+
+    [Fact]
+    public void GetCurrentUser_WithValidGuidClaim_ReturnsUserId()
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        
+        var expectedUserId = Guid.NewGuid();
+        var claims = new[] { new Claim(ClaimTypes.NameIdentifier, expectedUserId.ToString()) };
+        var identity = new ClaimsIdentity(claims);
+        var claimsPrincipal = new ClaimsPrincipal(identity);
+        
+        var mockHttpContext = new Mock<HttpContext>();
+        mockHttpContext.Setup(x => x.User).Returns(claimsPrincipal);
+        
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(mockHttpContext.Object);
+
+        using var context = new TestableMoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+
+        var userId = context.GetCurrentUserPublic();
+
+        Assert.Equal(expectedUserId, userId);
+    }
+
+    private class TestableMoneyTrackerDbContext : MoneyTrackerDbContext
+    {
+        public TestableMoneyTrackerDbContext(DbContextOptions<MoneyTrackerDbContext> options, IHttpContextAccessor? httpContextAccessor)
+            : base(options, httpContextAccessor)
+        {
+        }
+
+        public Guid GetCurrentUserPublic() => GetCurrentUser();
     }
 }

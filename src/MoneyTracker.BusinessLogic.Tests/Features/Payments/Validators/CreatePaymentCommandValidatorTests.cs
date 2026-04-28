@@ -207,4 +207,199 @@ public class CreatePaymentCommandValidatorTests
         // Assert
         result.ShouldNotHaveValidationErrorFor(x => x.Amount);
     }
+
+    [Fact]
+    public void Should_Fail_When_Amount_Has_More_Than_Two_Decimal_Places()
+    {
+        // Arrange
+        var command = new CreatePaymentCommand
+        {
+            Description = "Test Payment",
+            PaymentCategoryId = Guid.NewGuid(),
+            Amount = 100.123m,
+            Date = DateTime.UtcNow.AddDays(-1),
+            CreatedById = Guid.NewGuid(),
+            IsOneShot = true
+        };
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.Amount);
+    }
+
+    [Fact]
+    public void Should_Fail_When_Date_Is_Default()
+    {
+        // Arrange
+        var command = new CreatePaymentCommand
+        {
+            Description = "Test Payment",
+            PaymentCategoryId = Guid.NewGuid(),
+            Amount = 100,
+            Date = default,
+            CreatedById = Guid.NewGuid(),
+            IsOneShot = true
+        };
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.Date);
+    }
+
+    [Fact]
+    public void Should_Fail_When_Description_Is_Null()
+    {
+        // Arrange
+        var command = new CreatePaymentCommand
+        {
+            Description = null!,
+            PaymentCategoryId = Guid.NewGuid(),
+            Amount = 100,
+            Date = DateTime.UtcNow.AddDays(-1),
+            CreatedById = Guid.NewGuid(),
+            IsOneShot = true
+        };
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.Description);
+    }
+
+    [Fact]
+    public void Should_Succeed_When_IdempotencyKey_Is_Null()
+    {
+        // Arrange
+        var command = new CreatePaymentCommand
+        {
+            Description = "Test Payment",
+            PaymentCategoryId = Guid.NewGuid(),
+            Amount = 100,
+            Date = DateTime.UtcNow.AddDays(-1),
+            CreatedById = Guid.NewGuid(),
+            IsOneShot = true,
+            IdempotencyKey = null
+        };
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.IdempotencyKey);
+    }
+
+    [Fact]
+    public void Should_Succeed_When_IdempotencyKey_Is_Empty()
+    {
+        // Arrange
+        var command = new CreatePaymentCommand
+        {
+            Description = "Test Payment",
+            PaymentCategoryId = Guid.NewGuid(),
+            Amount = 100,
+            Date = DateTime.UtcNow.AddDays(-1),
+            CreatedById = Guid.NewGuid(),
+            IsOneShot = true,
+            IdempotencyKey = string.Empty
+        };
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.IdempotencyKey);
+    }
+
+    [Fact]
+    public void Should_Succeed_When_IdempotencyKey_Is_Valid_Length()
+    {
+        // Arrange
+        var command = new CreatePaymentCommand
+        {
+            Description = "Test Payment",
+            PaymentCategoryId = Guid.NewGuid(),
+            Amount = 100,
+            Date = DateTime.UtcNow.AddDays(-1),
+            CreatedById = Guid.NewGuid(),
+            IsOneShot = true,
+            IdempotencyKey = new string('a', 256)
+        };
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.IdempotencyKey);
+    }
+
+    [Fact]
+    public void Should_Fail_When_IdempotencyKey_Exceeds_Max_Length()
+    {
+        // Arrange
+        var command = new CreatePaymentCommand
+        {
+            Description = "Test Payment",
+            PaymentCategoryId = Guid.NewGuid(),
+            Amount = 100,
+            Date = DateTime.UtcNow.AddDays(-1),
+            CreatedById = Guid.NewGuid(),
+            IsOneShot = true,
+            IdempotencyKey = new string('a', 257)
+        };
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.IdempotencyKey);
+    }
+
+    [Fact]
+    public void Should_Succeed_When_Description_Is_Max_Length()
+    {
+        // Arrange
+        var command = new CreatePaymentCommand
+        {
+            Description = new string('a', 100),
+            PaymentCategoryId = Guid.NewGuid(),
+            Amount = 100,
+            Date = DateTime.UtcNow.AddDays(-1),
+            CreatedById = Guid.NewGuid(),
+            IsOneShot = true
+        };
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.Description);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Should_Succeed_When_IsOneShot_Is_Valid(bool isOneShot)
+    {
+        // Arrange
+        var command = new CreatePaymentCommand
+        {
+            Description = "Test Payment",
+            PaymentCategoryId = Guid.NewGuid(),
+            Amount = 100,
+            Date = DateTime.UtcNow.AddDays(-1),
+            CreatedById = Guid.NewGuid(),
+            IsOneShot = isOneShot
+        };
+
+        // Act
+        var result = _validator.TestValidate(command);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.IsOneShot);
+    }
 }

@@ -3,7 +3,7 @@ using MoneyTracker.BusinessLogic.Features.Incomes.UpdateIncome;
 
 namespace MoneyTracker.BusinessLogic.Features.Forecasts.UpdateForecastDefinition
 {
-    internal class UpdateForecastDefinitionCommandValidator : AbstractValidator<UpdateForecastDefinitionCommand>
+    public class UpdateForecastDefinitionCommandValidator : AbstractValidator<UpdateForecastDefinitionCommand>
     {
         public UpdateForecastDefinitionCommandValidator()
         {

@@ -1,4 +1,4 @@
-using MoneyTracker.BusinessLogic.Extensions;
+using MoneyTracker.BusinessLogic.Common.Extensions;
 using MoneyTracker.Data.EntityFramework;
 using MoneyTracker.ReconciliationWorker;
 using MoneyTracker.ServiceDefaults;

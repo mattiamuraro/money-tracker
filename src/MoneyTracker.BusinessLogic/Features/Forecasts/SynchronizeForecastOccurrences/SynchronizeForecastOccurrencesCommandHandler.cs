@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Extensions;
 using MoneyTracker.BusinessLogic.Common.Models;
-using MoneyTracker.BusinessLogic.Common.Services.ExtensionMethods;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 

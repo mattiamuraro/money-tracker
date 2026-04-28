@@ -1,8 +1,8 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
+using MoneyTracker.BusinessLogic.Common.Extensions;
 using MoneyTracker.BusinessLogic.Common.Models;
-using MoneyTracker.BusinessLogic.Common.Services.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Features.Forecasts.CreateForecastDefinition.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Features.Forecasts.UpdateForecastDefinition.ExtensionMethods;
 using MoneyTracker.Data;
@@ -107,7 +107,7 @@ public class UpdateForecastDefinitionCommandHandler
     {
         foreach (var expectedOccurrence in expectedOccurrences)
         {
-            if (!existingOccurrences.Any(x => x.ForecastDefinitionId == expectedOccurrence.Id && x.ExpectedDate == expectedOccurrence.ExpectedDate))
+            if (!existingOccurrences.Any(x => x.ForecastDefinitionId == expectedOccurrence.ForecastDefinitionId && x.ExpectedDate == expectedOccurrence.ExpectedDate))
                 _dbContext.ForecastOccurrences.Add(expectedOccurrence);
         }
     }

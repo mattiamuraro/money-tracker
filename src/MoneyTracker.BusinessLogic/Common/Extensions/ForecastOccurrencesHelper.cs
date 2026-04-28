@@ -1,4 +1,4 @@
-﻿namespace MoneyTracker.BusinessLogic.Common.Services.ExtensionMethods
+﻿namespace MoneyTracker.BusinessLogic.Common.Extensions
 {
     internal static class ForecastOccurrencesHelper
     {

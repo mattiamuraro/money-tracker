@@ -28,7 +28,7 @@ using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPaymentById;
 using MoneyTracker.BusinessLogic.Features.Incomes.GetIncomeById;
 
-namespace MoneyTracker.BusinessLogic.Extensions;
+namespace MoneyTracker.BusinessLogic.Common.Extensions;
 
 /// <summary>
 /// Extension methods to register Business Logic services in Dependency Injection

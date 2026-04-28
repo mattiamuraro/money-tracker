@@ -8,7 +8,7 @@ using MoneyTracker.Api.Endpoints.PaymentCategories;
 using MoneyTracker.Api.Endpoints.Payments;
 using MoneyTracker.Api.ExtensionMethods;
 using MoneyTracker.Api.Middleware;
-using MoneyTracker.BusinessLogic.Extensions;
+using MoneyTracker.BusinessLogic.Common.Extensions;
 using MoneyTracker.Data.EntityFramework;
 using MoneyTracker.ServiceDefaults;
 using System.Text;
