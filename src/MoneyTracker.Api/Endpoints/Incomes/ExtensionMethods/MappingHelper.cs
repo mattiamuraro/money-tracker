@@ -1,13 +1,10 @@
 ﻿using MoneyTracker.Api.Endpoints.Incomes.Contracts;
-using MoneyTracker.Api.Endpoints.Payments.Contracts;
-using MoneyTracker.Api.ExtensionMethods;
+using MoneyTracker.BusinessLogic.Common.Models;
 using MoneyTracker.BusinessLogic.Features.Incomes.CreateIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.DeleteIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.GetIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.GetIncomeById;
 using MoneyTracker.BusinessLogic.Features.Incomes.UpdateIncome;
-using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
-using MoneyTracker.BusinessLogic.Shared.Models;
 
 namespace MoneyTracker.Api.Endpoints.Incomes.ExtensionMethods
 {
@@ -47,7 +44,6 @@ namespace MoneyTracker.Api.Endpoints.Incomes.ExtensionMethods
                 ForecastOccurrenceId = request.ForecastOccurrenceId,
                 Amount = request.Amount,
                 Date = request.Date,
-                CreatedById = httpContext.GetCurrentUserId(),
                 IdempotencyKey = string.IsNullOrWhiteSpace(idempotencyKey) ? request.IdempotencyKey : idempotencyKey
             };
         }

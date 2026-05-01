@@ -1,10 +1,7 @@
-﻿using FluentValidation;
-using FluentValidation.Results;
-using Microsoft.AspNetCore.Http;
+using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Moq;
 using MoneyTracker.BusinessLogic.Common.Options;
 using MoneyTracker.BusinessLogic.Features.Auth.Login;
 using MoneyTracker.Data;
@@ -14,30 +11,34 @@ namespace MoneyTracker.BusinessLogic.Tests.Features.Auth.Login;
 
 public class LoginCommandHandlerTests
 {
+    private static readonly JwtOptions DefaultJwtOptions = new()
+    {
+        Key = "test-key-with-at-least-32-characters-long",
+        Issuer = "test-issuer",
+        Audience = "test-audience"
+    };
+
+    private static MoneyTrackerDbContext CreateDbContext() =>
+        new(new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options, null);
+
+    private static LoginCommandHandler CreateHandler(
+        MoneyTrackerDbContext db,
+        PasswordVerificationResult verificationResult = PasswordVerificationResult.Success) =>
+        new(new LoginCommandValidator(),
+            Options.Create(DefaultJwtOptions),
+            new FakePasswordHasher(verificationResult),
+            db);
+
     [Fact]
     public void Constructor_ShouldInitialize_AllDependencies()
     {
         // Arrange
-        var mockValidator = new Mock<IValidator<LoginCommand>>();
-        var mockJwtOptions = new Mock<IOptions<JwtOptions>>();
-        var mockPasswordHasher = new Mock<IPasswordHasher<User>>();
-        var mockDbContext = new Mock<MoneyTrackerDbContext>(
-            new DbContextOptions<MoneyTrackerDbContext>(),
-            null!);
-
-        mockJwtOptions.Setup(x => x.Value).Returns(new JwtOptions
-        {
-            Key = "test-key-with-at-least-32-characters-long",
-            Issuer = "test-issuer",
-            Audience = "test-audience"
-        });
+        using var db = CreateDbContext();
 
         // Act
-        var handler = new LoginCommandHandler(
-            mockValidator.Object,
-            mockJwtOptions.Object,
-            mockPasswordHasher.Object,
-            mockDbContext.Object);
+        var handler = CreateHandler(db);
 
         // Assert
         Assert.NotNull(handler);
@@ -47,58 +48,23 @@ public class LoginCommandHandlerTests
     public async Task Handle_ValidCredentials_ReturnsLoginAuthToken()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
-            .Options;
-        var dbContext = new MoneyTrackerDbContext(options, null!);
-
-        var user = new User
+        using var db = CreateDbContext();
+        db.Users.Add(new User
         {
             Id = Guid.NewGuid(),
             Username = "testuser",
             PasswordHash = "hashedpassword"
-        };
-        dbContext.Users.Add(user);
-        await dbContext.SaveChangesAsync();
+        });
+        await db.SaveChangesAsync();
 
-        var mockValidator = new Mock<IValidator<LoginCommand>>();
-        var mockJwtOptions = new Mock<IOptions<JwtOptions>>();
-        var mockPasswordHasher = new Mock<IPasswordHasher<User>>();
-
-        var jwtOptions = new JwtOptions
-        {
-            Key = "test-key-with-at-least-32-characters-long",
-            Issuer = "test-issuer",
-            Audience = "test-audience"
-        };
-        mockJwtOptions.Setup(x => x.Value).Returns(jwtOptions);
-
-        mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<LoginCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        mockPasswordHasher
-            .Setup(h => h.VerifyHashedPassword(user, user.PasswordHash, "password123"))
-            .Returns(PasswordVerificationResult.Success);
-
-        var handler = new LoginCommandHandler(
-            mockValidator.Object,
-            mockJwtOptions.Object,
-            mockPasswordHasher.Object,
-            dbContext);
-
-        var command = new LoginCommand
-        {
-            Username = "testuser",
-            Password = "password123"
-        };
+        var handler = CreateHandler(db, PasswordVerificationResult.Success);
+        var command = new LoginCommand { Username = "testuser", Password = "password123" };
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
         Assert.NotNull(result);
-        Assert.NotNull(result.Token);
         Assert.NotEmpty(result.Token);
     }
 
@@ -106,36 +72,9 @@ public class LoginCommandHandlerTests
     public async Task Handle_ValidationFails_ThrowsValidationException()
     {
         // Arrange
-        var mockValidator = new Mock<IValidator<LoginCommand>>();
-        var mockJwtOptions = new Mock<IOptions<JwtOptions>>();
-        var mockPasswordHasher = new Mock<IPasswordHasher<User>>();
-        var mockDbContext = new Mock<MoneyTrackerDbContext>(
-            new DbContextOptions<MoneyTrackerDbContext>(),
-            null!);
-
-        mockJwtOptions.Setup(x => x.Value).Returns(new JwtOptions
-        {
-            Key = "test-key-with-at-least-32-characters-long",
-            Issuer = "test-issuer",
-            Audience = "test-audience"
-        });
-
-        var validationFailure = new ValidationFailure("Username", "Username is required");
-        mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<LoginCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult(new[] { validationFailure }));
-
-        var handler = new LoginCommandHandler(
-            mockValidator.Object,
-            mockJwtOptions.Object,
-            mockPasswordHasher.Object,
-            mockDbContext.Object);
-
-        var command = new LoginCommand
-        {
-            Username = "",
-            Password = "password123"
-        };
+        using var db = CreateDbContext();
+        var handler = CreateHandler(db);
+        var command = new LoginCommand { Username = "", Password = "password123" };
 
         // Act & Assert
         await Assert.ThrowsAsync<ValidationException>(
@@ -146,37 +85,9 @@ public class LoginCommandHandlerTests
     public async Task Handle_UserNotFound_ThrowsUnauthorizedAccessException()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
-            .Options;
-        var dbContext = new MoneyTrackerDbContext(options, null!);
-
-        var mockValidator = new Mock<IValidator<LoginCommand>>();
-        var mockJwtOptions = new Mock<IOptions<JwtOptions>>();
-        var mockPasswordHasher = new Mock<IPasswordHasher<User>>();
-
-        mockJwtOptions.Setup(x => x.Value).Returns(new JwtOptions
-        {
-            Key = "test-key-with-at-least-32-characters-long",
-            Issuer = "test-issuer",
-            Audience = "test-audience"
-        });
-
-        mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<LoginCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new LoginCommandHandler(
-            mockValidator.Object,
-            mockJwtOptions.Object,
-            mockPasswordHasher.Object,
-            dbContext);
-
-        var command = new LoginCommand
-        {
-            Username = "nonexistentuser",
-            Password = "password123"
-        };
+        using var db = CreateDbContext();
+        var handler = CreateHandler(db);
+        var command = new LoginCommand { Username = "nonexistentuser", Password = "password123" };
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<UnauthorizedAccessException>(
@@ -189,50 +100,17 @@ public class LoginCommandHandlerTests
     public async Task Handle_PasswordVerificationFailed_ThrowsUnauthorizedAccessException()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
-            .Options;
-        var dbContext = new MoneyTrackerDbContext(options, null!);
-
-        var user = new User
+        using var db = CreateDbContext();
+        db.Users.Add(new User
         {
             Id = Guid.NewGuid(),
             Username = "testuser",
             PasswordHash = "hashedpassword"
-        };
-        dbContext.Users.Add(user);
-        await dbContext.SaveChangesAsync();
-
-        var mockValidator = new Mock<IValidator<LoginCommand>>();
-        var mockJwtOptions = new Mock<IOptions<JwtOptions>>();
-        var mockPasswordHasher = new Mock<IPasswordHasher<User>>();
-
-        mockJwtOptions.Setup(x => x.Value).Returns(new JwtOptions
-        {
-            Key = "test-key-with-at-least-32-characters-long",
-            Issuer = "test-issuer",
-            Audience = "test-audience"
         });
+        await db.SaveChangesAsync();
 
-        mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<LoginCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        mockPasswordHasher
-            .Setup(h => h.VerifyHashedPassword(user, user.PasswordHash, "wrongpassword"))
-            .Returns(PasswordVerificationResult.Failed);
-
-        var handler = new LoginCommandHandler(
-            mockValidator.Object,
-            mockJwtOptions.Object,
-            mockPasswordHasher.Object,
-            dbContext);
-
-        var command = new LoginCommand
-        {
-            Username = "testuser",
-            Password = "wrongpassword"
-        };
+        var handler = CreateHandler(db, PasswordVerificationResult.Failed);
+        var command = new LoginCommand { Username = "testuser", Password = "wrongpassword" };
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<UnauthorizedAccessException>(
@@ -245,58 +123,23 @@ public class LoginCommandHandlerTests
     public async Task Handle_PasswordVerificationSuccessRehashNeeded_ReturnsLoginAuthToken()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
-            .Options;
-        var dbContext = new MoneyTrackerDbContext(options, null!);
-
-        var user = new User
+        using var db = CreateDbContext();
+        db.Users.Add(new User
         {
             Id = Guid.NewGuid(),
             Username = "testuser",
             PasswordHash = "hashedpassword"
-        };
-        dbContext.Users.Add(user);
-        await dbContext.SaveChangesAsync();
+        });
+        await db.SaveChangesAsync();
 
-        var mockValidator = new Mock<IValidator<LoginCommand>>();
-        var mockJwtOptions = new Mock<IOptions<JwtOptions>>();
-        var mockPasswordHasher = new Mock<IPasswordHasher<User>>();
-
-        var jwtOptions = new JwtOptions
-        {
-            Key = "test-key-with-at-least-32-characters-long",
-            Issuer = "test-issuer",
-            Audience = "test-audience"
-        };
-        mockJwtOptions.Setup(x => x.Value).Returns(jwtOptions);
-
-        mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<LoginCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        mockPasswordHasher
-            .Setup(h => h.VerifyHashedPassword(user, user.PasswordHash, "password123"))
-            .Returns(PasswordVerificationResult.SuccessRehashNeeded);
-
-        var handler = new LoginCommandHandler(
-            mockValidator.Object,
-            mockJwtOptions.Object,
-            mockPasswordHasher.Object,
-            dbContext);
-
-        var command = new LoginCommand
-        {
-            Username = "testuser",
-            Password = "password123"
-        };
+        var handler = CreateHandler(db, PasswordVerificationResult.SuccessRehashNeeded);
+        var command = new LoginCommand { Username = "testuser", Password = "password123" };
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
         Assert.NotNull(result);
-        Assert.NotNull(result.Token);
         Assert.NotEmpty(result.Token);
     }
 
@@ -304,41 +147,29 @@ public class LoginCommandHandlerTests
     public async Task Handle_CancellationRequested_ThrowsOperationCanceledException()
     {
         // Arrange
-        var mockValidator = new Mock<IValidator<LoginCommand>>();
-        var mockJwtOptions = new Mock<IOptions<JwtOptions>>();
-        var mockPasswordHasher = new Mock<IPasswordHasher<User>>();
-        var mockDbContext = new Mock<MoneyTrackerDbContext>(
-            new DbContextOptions<MoneyTrackerDbContext>(),
-            null!);
+        using var db = CreateDbContext();
+        var handler = CreateHandler(db);
+        var command = new LoginCommand { Username = "testuser", Password = "password123" };
 
-        mockJwtOptions.Setup(x => x.Value).Returns(new JwtOptions
-        {
-            Key = "test-key-with-at-least-32-characters-long",
-            Issuer = "test-issuer",
-            Audience = "test-audience"
-        });
-
-        mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<LoginCommand>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new OperationCanceledException());
-
-        var handler = new LoginCommandHandler(
-            mockValidator.Object,
-            mockJwtOptions.Object,
-            mockPasswordHasher.Object,
-            mockDbContext.Object);
-
-        var command = new LoginCommand
-        {
-            Username = "testuser",
-            Password = "password123"
-        };
-
-        var cancellationTokenSource = new CancellationTokenSource();
-        cancellationTokenSource.Cancel();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
 
         // Act & Assert
         await Assert.ThrowsAsync<OperationCanceledException>(
-            () => handler.Handle(command, cancellationTokenSource.Token));
+            () => handler.Handle(command, cts.Token));
+    }
+
+    private sealed class FakePasswordHasher : IPasswordHasher<User>
+    {
+        private readonly PasswordVerificationResult _verificationResult;
+
+        public FakePasswordHasher(PasswordVerificationResult verificationResult) =>
+            _verificationResult = verificationResult;
+
+        public string HashPassword(User user, string password) => password;
+
+        public PasswordVerificationResult VerifyHashedPassword(User user, string hashedPassword, string providedPassword) =>
+            _verificationResult;
     }
 }
+

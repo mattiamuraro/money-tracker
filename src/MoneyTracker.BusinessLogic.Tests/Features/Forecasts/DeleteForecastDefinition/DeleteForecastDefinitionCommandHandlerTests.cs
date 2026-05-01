@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Moq;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.BusinessLogic.Features.Forecasts.DeleteForecastDefinition;
 using MoneyTracker.Data;
@@ -9,16 +8,19 @@ namespace MoneyTracker.BusinessLogic.Tests.Features.Forecasts.DeleteForecastDefi
 
 public class DeleteForecastDefinitionCommandHandlerTests
 {
+    private static MoneyTrackerDbContext CreateDbContext() =>
+        new(new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options, null);
+
     [Fact]
     public void Constructor_ShouldInitialize_AllDependencies()
     {
         // Arrange
-        var mockDbContext = new Mock<MoneyTrackerDbContext>(
-            new DbContextOptions<MoneyTrackerDbContext>(),
-            null!);
+        using var db = CreateDbContext();
 
         // Act
-        var handler = new DeleteForecastDefinitionCommandHandler(mockDbContext.Object);
+        var handler = new DeleteForecastDefinitionCommandHandler(db);
 
         // Assert
         Assert.NotNull(handler);
@@ -58,8 +60,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
         {
             Id = categoryId,
             Name = "Test Category",
-            CreatedById = userId,
-            ModifiedById = userId
+            Code = "TC"
         };
         dbContext.PaymentCategories.Add(category);
 
@@ -71,9 +72,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
             RecurrenceStart = DateOnly.FromDateTime(DateTime.Today),
             IsActive = true,
             ForecastRecurrenceRuleTypeId = recurrenceRuleTypeId,
-            PaymentCategoryId = categoryId,
-            CreatedById = userId,
-            ModifiedById = userId
+            PaymentCategoryId = categoryId
         };
         dbContext.ForecastExpenses.Add(expense);
 
@@ -84,9 +83,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
             ExpectedDate = DateOnly.FromDateTime(DateTime.Today),
             Amount = 100.00m,
             Description = "Test Occurrence",
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId,
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId
         };
         dbContext.ForecastOccurrences.Add(occurrence);
 
@@ -144,9 +141,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
             Amount = 200.00m,
             RecurrenceStart = DateOnly.FromDateTime(DateTime.Today),
             IsActive = true,
-            ForecastRecurrenceRuleTypeId = recurrenceRuleTypeId,
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastRecurrenceRuleTypeId = recurrenceRuleTypeId
         };
         dbContext.ForecastIncomes.Add(income);
 
@@ -157,9 +152,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
             ExpectedDate = DateOnly.FromDateTime(DateTime.Today),
             Amount = 200.00m,
             Description = "Test Occurrence",
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId,
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId
         };
         dbContext.ForecastOccurrences.Add(occurrence);
 
@@ -226,7 +219,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
         {
             Id = recurrenceRuleTypeId,
             Name = "Daily",
-            Code = "Day"
+            Code = ForecastRecurrenceRuleType.Day
         };
         dbContext.ForecastRecurrenceRuleTypes.Add(recurrenceRuleType);
 
@@ -235,8 +228,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
         {
             Id = categoryId,
             Name = "Test Category",
-            CreatedById = userId,
-            ModifiedById = userId
+            Code = "TC"
         };
         dbContext.PaymentCategories.Add(category);
 
@@ -248,9 +240,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
             RecurrenceStart = DateOnly.FromDateTime(DateTime.Today),
             IsActive = false,
             ForecastRecurrenceRuleTypeId = recurrenceRuleTypeId,
-            PaymentCategoryId = categoryId,
-            CreatedById = userId,
-            ModifiedById = userId
+            PaymentCategoryId = categoryId
         };
         dbContext.ForecastExpenses.Add(expense);
 
@@ -302,9 +292,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
             Amount = 200.00m,
             RecurrenceStart = DateOnly.FromDateTime(DateTime.Today),
             IsActive = false,
-            ForecastRecurrenceRuleTypeId = recurrenceRuleTypeId,
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastRecurrenceRuleTypeId = recurrenceRuleTypeId
         };
         dbContext.ForecastIncomes.Add(income);
 
@@ -374,8 +362,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
         {
             Id = categoryId,
             Name = "Test Category",
-            CreatedById = userId,
-            ModifiedById = userId
+            Code = "TC"
         };
         dbContext.PaymentCategories.Add(category);
 
@@ -387,9 +374,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
             RecurrenceStart = DateOnly.FromDateTime(DateTime.Today),
             IsActive = true,
             ForecastRecurrenceRuleTypeId = recurrenceRuleTypeId,
-            PaymentCategoryId = categoryId,
-            CreatedById = userId,
-            ModifiedById = userId
+            PaymentCategoryId = categoryId
         };
         dbContext.ForecastExpenses.Add(expense);
 
@@ -400,9 +385,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
             ExpectedDate = DateOnly.FromDateTime(DateTime.Today),
             Amount = 100.00m,
             Description = "Test Occurrence 1",
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId,
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId
         };
         dbContext.ForecastOccurrences.Add(occurrence1);
 
@@ -413,9 +396,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
             ExpectedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
             Amount = 100.00m,
             Description = "Test Occurrence 2",
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId,
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId
         };
         dbContext.ForecastOccurrences.Add(occurrence2);
 
@@ -426,9 +407,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
             ExpectedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(2)),
             Amount = 100.00m,
             Description = "Test Occurrence 3",
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId,
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId
         };
         dbContext.ForecastOccurrences.Add(occurrence3);
 
@@ -484,8 +463,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
         {
             Id = categoryId,
             Name = "Test Category",
-            CreatedById = userId,
-            ModifiedById = userId
+            Code = "TC"
         };
         dbContext.PaymentCategories.Add(category);
 
@@ -497,9 +475,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
             RecurrenceStart = DateOnly.FromDateTime(DateTime.Today),
             IsActive = true,
             ForecastRecurrenceRuleTypeId = recurrenceRuleTypeId,
-            PaymentCategoryId = categoryId,
-            CreatedById = userId,
-            ModifiedById = userId
+            PaymentCategoryId = categoryId
         };
         dbContext.ForecastExpenses.Add(expense);
 
@@ -510,9 +486,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
             ExpectedDate = DateOnly.FromDateTime(DateTime.Today),
             Amount = 100.00m,
             Description = "Pending Occurrence",
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId,
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId
         };
         dbContext.ForecastOccurrences.Add(pendingOccurrence);
 
@@ -523,9 +497,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
             ExpectedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
             Amount = 100.00m,
             Description = "Already Cancelled Occurrence",
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.CancelledId,
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.CancelledId
         };
         dbContext.ForecastOccurrences.Add(cancelledOccurrence);
 
@@ -536,9 +508,7 @@ public class DeleteForecastDefinitionCommandHandlerTests
             ExpectedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(2)),
             Amount = 100.00m,
             Description = "Confirmed Occurrence",
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.ConfirmedId,
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.ConfirmedId
         };
         dbContext.ForecastOccurrences.Add(validatedOccurrence);
 

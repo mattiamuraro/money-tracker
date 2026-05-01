@@ -13,11 +13,7 @@ public class ForecastRecurrenceRuleTests
         {
             Id = Guid.NewGuid(),
             Name = "Day",
-            Code = ForecastRecurrenceRuleType.Day,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = actorId,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId
+            Code = ForecastRecurrenceRuleType.Day
         };
 
         var forecast = new ForecastExpense
@@ -28,11 +24,7 @@ public class ForecastRecurrenceRuleTests
             RecurrenceStart = new DateOnly(2026, 4, 1),
             Interval = null,
             ForecastRecurrenceRuleTypeId = ruleType.Id,
-            ForecastRecurrenceRuleType = ruleType,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = actorId,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId
+            ForecastRecurrenceRuleType = ruleType
         };
 
         var result = forecast.GetRecurrences(new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 30));
@@ -49,11 +41,7 @@ public class ForecastRecurrenceRuleTests
         {
             Id = Guid.NewGuid(),
             Name = "Day",
-            Code = ForecastRecurrenceRuleType.Day,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = actorId,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId
+            Code = ForecastRecurrenceRuleType.Day
         };
 
         var forecast = new ForecastExpense
@@ -64,11 +52,7 @@ public class ForecastRecurrenceRuleTests
             RecurrenceStart = new DateOnly(2026, 4, 1),
             Interval = 7,
             ForecastRecurrenceRuleTypeId = ruleType.Id,
-            ForecastRecurrenceRuleType = ruleType,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = actorId,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId
+            ForecastRecurrenceRuleType = ruleType
         };
 
         var result = forecast.GetRecurrences(new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 20));

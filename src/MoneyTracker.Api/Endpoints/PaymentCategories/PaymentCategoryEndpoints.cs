@@ -2,12 +2,12 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.PaymentCategories.Contracts;
 using MoneyTracker.Api.Endpoints.PaymentCategories.ExtensionMethods;
+using MoneyTracker.BusinessLogic.Common.Models;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.CreateCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.DeleteCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.GetAllCategories;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.GetCategoryById;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.UpdateCategory;
-using MoneyTracker.BusinessLogic.Shared.Models;
 
 namespace MoneyTracker.Api.Endpoints.PaymentCategories
 {

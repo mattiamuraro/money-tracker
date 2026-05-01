@@ -2,12 +2,12 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.Payments.Contracts;
 using MoneyTracker.Api.Endpoints.Payments.ExtensionMethods;
+using MoneyTracker.BusinessLogic.Common.Models;
 using MoneyTracker.BusinessLogic.Features.Payments.CreatePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.DeletePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPaymentById;
 using MoneyTracker.BusinessLogic.Features.Payments.UpdatePayment;
-using MoneyTracker.BusinessLogic.Shared.Models;
 
 namespace MoneyTracker.Api.Endpoints.Payments
 {
@@ -67,7 +67,7 @@ namespace MoneyTracker.Api.Endpoints.Payments
             // PUT update payment
             group.MapPut("/{id:guid}", async (HttpContext httpContext, [FromServices] UpdatePaymentCommandHandler handler, Guid id, UpdatePaymentRequest request, CancellationToken cancellationToken) =>
                 {
-                    var command = request.ToUpdatePaymentCommand(id, httpContext);
+                    var command = request.ToUpdatePaymentCommand(id);
                     await handler.Handle(command, cancellationToken);
 
                     return Results.NoContent();

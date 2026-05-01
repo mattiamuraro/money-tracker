@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Moq;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.BusinessLogic.Features.Forecasts.DiscardPendingForecastOccurrence;
 using MoneyTracker.Data;
@@ -9,16 +8,19 @@ namespace MoneyTracker.BusinessLogic.Tests.Features.Forecasts.DiscardPendingFore
 
 public class DiscardPendingForecastOccurrenceCommandHandlerTests
 {
+    private static MoneyTrackerDbContext CreateDbContext() =>
+        new(new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options, null);
+
     [Fact]
     public void Constructor_ShouldInitialize_AllDependencies()
     {
         // Arrange
-        var mockDbContext = new Mock<MoneyTrackerDbContext>(
-            new DbContextOptions<MoneyTrackerDbContext>(),
-            null!);
+        using var db = CreateDbContext();
 
         // Act
-        var handler = new DiscardPendingForecastOccurrenceCommandHandler(mockDbContext.Object);
+        var handler = new DiscardPendingForecastOccurrenceCommandHandler(db);
 
         // Assert
         Assert.NotNull(handler);
@@ -52,9 +54,7 @@ public class DiscardPendingForecastOccurrenceCommandHandlerTests
             Amount = 100.00m,
             Description = "Test Occurrence",
             ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId,
-            ValidatedAt = DateTime.UtcNow,
-            CreatedById = userId,
-            ModifiedById = userId
+            ValidatedAt = DateTime.UtcNow
         };
         dbContext.ForecastOccurrences.Add(occurrence);
 
@@ -119,9 +119,7 @@ public class DiscardPendingForecastOccurrenceCommandHandlerTests
             ExpectedDate = DateOnly.FromDateTime(DateTime.Today),
             Amount = 100.00m,
             Description = "Test Occurrence",
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.ConfirmedId,
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.ConfirmedId
         };
         dbContext.ForecastOccurrences.Add(occurrence);
 
@@ -163,9 +161,7 @@ public class DiscardPendingForecastOccurrenceCommandHandlerTests
             ExpectedDate = DateOnly.FromDateTime(DateTime.Today),
             Amount = 100.00m,
             Description = "Test Occurrence",
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.SkippedId,
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.SkippedId
         };
         dbContext.ForecastOccurrences.Add(occurrence);
 
@@ -207,9 +203,7 @@ public class DiscardPendingForecastOccurrenceCommandHandlerTests
             ExpectedDate = DateOnly.FromDateTime(DateTime.Today),
             Amount = 100.00m,
             Description = "Test Occurrence",
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.CancelledId,
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.CancelledId
         };
         dbContext.ForecastOccurrences.Add(occurrence);
 
@@ -252,9 +246,7 @@ public class DiscardPendingForecastOccurrenceCommandHandlerTests
             Amount = 100.00m,
             Description = "Test Occurrence",
             ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId,
-            ValidatedAt = null,
-            CreatedById = userId,
-            ModifiedById = userId
+            ValidatedAt = null
         };
         dbContext.ForecastOccurrences.Add(occurrence);
 
@@ -301,9 +293,7 @@ public class DiscardPendingForecastOccurrenceCommandHandlerTests
             Amount = 100.00m,
             Description = "Test Occurrence",
             ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId,
-            ValidatedAt = DateTime.UtcNow,
-            CreatedById = userId,
-            ModifiedById = userId
+            ValidatedAt = DateTime.UtcNow
         };
         dbContext.ForecastOccurrences.Add(occurrence);
 

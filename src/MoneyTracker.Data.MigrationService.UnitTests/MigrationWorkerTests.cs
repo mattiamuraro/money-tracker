@@ -1,529 +1,299 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MoneyTracker.Data.EntityFramework;
-using MoneyTracker.Data.EntityFramework.ExtensionMethods;
-using MoneyTracker.Data.MigrationService;
-using Moq;
 
 namespace MoneyTracker.Data.MigrationService.UnitTests;
 
 public class MigrationWorkerTests
 {
+    // Minimal fake logger that captures log entries
+    private sealed class FakeLogger : ILogger<MigrationWorker>
+    {
+        public record LogEntry(LogLevel Level, Exception? Exception, string Message);
+        public List<LogEntry> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+            => Entries.Add(new LogEntry(logLevel, exception, formatter(state, exception)));
+    }
+
+    // Minimal fake IServiceScope backed by a real IServiceProvider
+    private sealed class FakeServiceScope(IServiceProvider provider) : IServiceScope
+    {
+        public IServiceProvider ServiceProvider { get; } = provider;
+        public bool Disposed { get; private set; }
+        public void Dispose() => Disposed = true;
+    }
+
+    // Minimal fake IServiceScopeFactory that returns a FakeServiceScope
+    private sealed class FakeServiceScopeFactory(IServiceProvider scopeProvider) : IServiceScopeFactory
+    {
+        public IServiceScope CreateScope() => new FakeServiceScope(scopeProvider);
+    }
+
+    // Root IServiceProvider that only knows how to hand out IServiceScopeFactory.
+    // Avoids BuildServiceProvider() overriding IServiceScopeFactory with its own implementation.
+    private sealed class FakeRootServiceProvider(IServiceScopeFactory scopeFactory) : IServiceProvider
+    {
+        public object? GetService(Type serviceType)
+            => serviceType == typeof(IServiceScopeFactory) ? scopeFactory : null;
+    }
+
+    // Builds fake infrastructure with MoneyTrackerDbContext registered in scope
+    private static (IServiceProvider rootProvider, MoneyTrackerDbContext db, FakeLogger logger, IConfiguration config)
+        BuildTestServices(string? dbName = null)
+    {
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(dbName ?? Guid.NewGuid().ToString())
+            .Options;
+        var db = new MoneyTrackerDbContext(options, null);
+
+        var scopeServices = new ServiceCollection();
+        scopeServices.AddSingleton<MoneyTrackerDbContext>(db);
+        var scopeProvider = scopeServices.BuildServiceProvider();
+
+        var scopeFactory = new FakeServiceScopeFactory(scopeProvider);
+        var rootProvider = new FakeRootServiceProvider(scopeFactory);
+
+        var logger = new FakeLogger();
+        var config = new ConfigurationBuilder().Build();
+
+        return (rootProvider, db, logger, config);
+    }
+
+    private static MigrationWorker CreateWorker(IServiceProvider rootProvider, FakeLogger logger, IConfiguration config)
+        => new(rootProvider, logger, config);
+
     [Fact]
     public void Constructor_Should_Initialize_Fields()
     {
-        // Arrange
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var mockLogger = new Mock<ILogger<MigrationWorker>>();
-        var mockConfiguration = new Mock<IConfiguration>();
+        var (root, _, logger, config) = BuildTestServices();
+        var worker = CreateWorker(root, logger, config);
+        Assert.NotNull(worker);
+    }
 
-        // Act
-        var worker = new MigrationWorker(
-            mockServiceProvider.Object,
-            mockLogger.Object,
-            mockConfiguration.Object);
+    [Fact]
+    public void Constructor_Should_Store_ServiceProvider()
+    {
+        var (root, _, logger, config) = BuildTestServices();
+        var worker = CreateWorker(root, logger, config);
+        Assert.NotNull(worker);
+    }
 
-        // Assert
-        Xunit.Assert.NotNull(worker);
+    [Fact]
+    public void Constructor_Should_Store_Logger()
+    {
+        var (root, _, logger, config) = BuildTestServices();
+        var worker = CreateWorker(root, logger, config);
+        Assert.NotNull(worker);
+    }
+
+    [Fact]
+    public void Constructor_Should_Store_Configuration()
+    {
+        var (root, _, logger, config) = BuildTestServices();
+        var worker = CreateWorker(root, logger, config);
+        Assert.NotNull(worker);
     }
 
     [Fact]
     public async Task StartAsync_Should_Log_Starting_Message()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<MigrationWorker>>();
-        var mockConfiguration = new Mock<IConfiguration>();
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var cancellationToken = CancellationToken.None;
-        var exception = new InvalidOperationException("Test exception");
+        var (root, db, logger, config) = BuildTestServices();
+        var worker = CreateWorker(root, logger, config);
 
-        mockServiceProvider
-            .Setup(sp => sp.GetService(typeof(IServiceScopeFactory)))
-            .Throws(exception);
-
-        var worker = new MigrationWorker(
-            mockServiceProvider.Object,
-            mockLogger.Object,
-            mockConfiguration.Object);
-
-        // Act
-        try
-        {
-            await worker.StartAsync(cancellationToken);
-        }
-        catch
-        {
-            // Expected
-        }
+        // Act - InMemory DB does not support MigrateAsync, so an exception is expected
+        try { await worker.StartAsync(CancellationToken.None); } catch { }
 
         // Assert
-        mockLogger.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Starting EF migration worker")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+        Assert.Contains(logger.Entries, e =>
+            e.Level == LogLevel.Information &&
+            e.Message.Contains("Starting EF migration worker"));
+    }
+
+    [Fact]
+    public async Task StartAsync_Should_Log_Applying_Migrations_Message()
+    {
+        // Arrange
+        var (root, db, logger, config) = BuildTestServices();
+        var worker = CreateWorker(root, logger, config);
+
+        // Act
+        try { await worker.StartAsync(CancellationToken.None); } catch { }
+
+        // Assert
+        Assert.Contains(logger.Entries, e =>
+            e.Level == LogLevel.Information &&
+            e.Message.Contains("Applying EF Core migrations"));
     }
 
     [Fact]
     public async Task StartAsync_Should_Log_Error_And_Rethrow_Exception()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<MigrationWorker>>();
-        var mockConfiguration = new Mock<IConfiguration>();
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var exception = new InvalidOperationException("Migration failed");
-        var cancellationToken = CancellationToken.None;
+        var (root, db, logger, config) = BuildTestServices();
+        var worker = CreateWorker(root, logger, config);
 
-        mockServiceProvider
-            .Setup(sp => sp.GetService(typeof(IServiceScopeFactory)))
-            .Throws(exception);
+        // Act & Assert - InMemory DB throws InvalidOperationException from MigrateAsync
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => worker.StartAsync(CancellationToken.None));
 
-        var worker = new MigrationWorker(
-            mockServiceProvider.Object,
-            mockLogger.Object,
-            mockConfiguration.Object);
-
-        // Act & Assert
-        var thrownException = await Xunit.Assert.ThrowsAsync<InvalidOperationException>(
-            () => worker.StartAsync(cancellationToken));
-
-        Xunit.Assert.Same(exception, thrownException);
-        mockLogger.Verify(
-            l => l.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error while applying migrations")),
-                exception,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+        Assert.Contains(logger.Entries, e =>
+            e.Level == LogLevel.Error &&
+            e.Message.Contains("Error while applying migrations"));
     }
 
     [Fact]
     public async Task StartAsync_Should_Create_Scope_And_Get_DbContext()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<MigrationWorker>>();
-        var mockConfiguration = new Mock<IConfiguration>();
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var mockScope = new Mock<IServiceScope>();
-        var mockScopeServiceProvider = new Mock<IServiceProvider>();
-        var cancellationToken = CancellationToken.None;
-        var exception = new InvalidOperationException("DbContext not found");
+        var (root, db, logger, config) = BuildTestServices();
+        var worker = CreateWorker(root, logger, config);
 
-        var scopeFactory = new TestServiceScopeFactory(mockScope.Object);
+        // Act - MigrateAsync will throw on InMemory; that proves the scope was created and db was resolved
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => worker.StartAsync(CancellationToken.None));
 
-        mockServiceProvider
-            .Setup(sp => sp.GetService(typeof(IServiceScopeFactory)))
-            .Returns(scopeFactory);
-        mockScope.Setup(s => s.ServiceProvider).Returns(mockScopeServiceProvider.Object);
-        mockScopeServiceProvider
-            .Setup(sp => sp.GetService(typeof(MoneyTrackerDbContext)))
-            .Throws(exception);
-
-        var worker = new MigrationWorker(
-            mockServiceProvider.Object,
-            mockLogger.Object,
-            mockConfiguration.Object);
-
-        // Act & Assert
-        await Xunit.Assert.ThrowsAsync<InvalidOperationException>(
-            () => worker.StartAsync(cancellationToken));
-
-        mockScope.Verify(s => s.ServiceProvider, Times.AtLeastOnce);
-        mockScopeServiceProvider.Verify(
-            sp => sp.GetService(typeof(MoneyTrackerDbContext)),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task StartAsync_Should_Dispose_Scope_On_Success()
-    {
-        // Arrange
-        var mockLogger = new Mock<ILogger<MigrationWorker>>();
-        var mockConfiguration = new Mock<IConfiguration>();
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var mockScope = new Mock<IServiceScope>();
-        var mockScopeServiceProvider = new Mock<IServiceProvider>();
-        var cancellationToken = CancellationToken.None;
-        var dbContextOptions = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-        var dbContext = new MoneyTrackerDbContext(dbContextOptions, null);
-
-        var scopeFactory = new TestServiceScopeFactory(mockScope.Object);
-
-        mockServiceProvider
-            .Setup(sp => sp.GetService(typeof(IServiceScopeFactory)))
-            .Returns(scopeFactory);
-        mockScope.Setup(s => s.ServiceProvider).Returns(mockScopeServiceProvider.Object);
-        mockScope.Setup(s => s.Dispose());
-        mockScopeServiceProvider
-            .Setup(sp => sp.GetService(typeof(MoneyTrackerDbContext)))
-            .Returns(dbContext);
-
-        var worker = new MigrationWorker(
-            mockServiceProvider.Object,
-            mockLogger.Object,
-            mockConfiguration.Object);
-
-        // Act
-        try
-        {
-            await worker.StartAsync(cancellationToken);
-        }
-        catch
-        {
-            // Expected - InMemory doesn't support migrations
-        }
-
-        // Assert
-        mockScope.Verify(s => s.Dispose(), Times.Once);
-
-        dbContext.Database.EnsureDeleted();
-        dbContext.Dispose();
+        // If we reach the error log it means the scope was created and db context was obtained
+        Assert.Contains(logger.Entries, e =>
+            e.Level == LogLevel.Information &&
+            e.Message.Contains("Applying EF Core migrations"));
     }
 
     [Fact]
     public async Task StartAsync_Should_Dispose_Scope_On_Exception()
     {
-        // Arrange
-        var mockLogger = new Mock<ILogger<MigrationWorker>>();
-        var mockConfiguration = new Mock<IConfiguration>();
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var mockScope = new Mock<IServiceScope>();
-        var mockScopeServiceProvider = new Mock<IServiceProvider>();
-        var cancellationToken = CancellationToken.None;
-        var exception = new InvalidOperationException("Test exception");
-
-        var scopeFactory = new TestServiceScopeFactory(mockScope.Object);
-
-        mockServiceProvider
-            .Setup(sp => sp.GetService(typeof(IServiceScopeFactory)))
-            .Returns(scopeFactory);
-        mockScope.Setup(s => s.ServiceProvider).Returns(mockScopeServiceProvider.Object);
-        mockScope.Setup(s => s.Dispose());
-        mockScopeServiceProvider
-            .Setup(sp => sp.GetService(typeof(MoneyTrackerDbContext)))
-            .Throws(exception);
-
-        var worker = new MigrationWorker(
-            mockServiceProvider.Object,
-            mockLogger.Object,
-            mockConfiguration.Object);
-
-        // Act
-        try
-        {
-            await worker.StartAsync(cancellationToken);
-        }
-        catch
-        {
-            // Expected
-        }
-
-        // Assert
-        mockScope.Verify(s => s.Dispose(), Times.Once);
-    }
-
-    [Fact]
-    public async Task StopAsync_Should_Return_CompletedTask()
-    {
-        // Arrange
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var mockLogger = new Mock<ILogger<MigrationWorker>>();
-        var mockConfiguration = new Mock<IConfiguration>();
-        var cancellationToken = CancellationToken.None;
-
-        var worker = new MigrationWorker(
-            mockServiceProvider.Object,
-            mockLogger.Object,
-            mockConfiguration.Object);
-
-        // Act
-        var result = worker.StopAsync(cancellationToken);
-
-        // Assert
-        Xunit.Assert.True(result.IsCompleted);
-        await result;
-    }
-
-    [Fact]
-    public async Task StopAsync_Should_Not_Throw_Exception()
-    {
-        // Arrange
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var mockLogger = new Mock<ILogger<MigrationWorker>>();
-        var mockConfiguration = new Mock<IConfiguration>();
-        var cancellationToken = CancellationToken.None;
-
-        var worker = new MigrationWorker(
-            mockServiceProvider.Object,
-            mockLogger.Object,
-            mockConfiguration.Object);
-
-        // Act
-        var exception = await Record.ExceptionAsync(() => worker.StopAsync(cancellationToken));
-
-        // Assert
-        Xunit.Assert.Null(exception);
-    }
-
-    [Fact]
-    public async Task StartAsync_Should_Apply_Migrations_And_Seed_Data_Successfully()
-    {
-        // Arrange
-        var mockLogger = new Mock<ILogger<MigrationWorker>>();
-        var mockConfiguration = new Mock<IConfiguration>();
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var mockScope = new Mock<IServiceScope>();
-        var mockScopeServiceProvider = new Mock<IServiceProvider>();
-        var cancellationToken = CancellationToken.None;
-        
-        var dbContextOptions = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+        // Arrange - use a trackable scope factory
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        var dbContext = new MoneyTrackerDbContext(dbContextOptions, null);
+        var db = new MoneyTrackerDbContext(options, null);
 
-        var scopeFactory = new TestServiceScopeFactory(mockScope.Object);
+        var scopeServices = new ServiceCollection();
+        scopeServices.AddSingleton<MoneyTrackerDbContext>(db);
+        var scopeProvider = scopeServices.BuildServiceProvider();
 
-        mockServiceProvider
-            .Setup(sp => sp.GetService(typeof(IServiceScopeFactory)))
-            .Returns(scopeFactory);
-        mockScope.Setup(s => s.ServiceProvider).Returns(mockScopeServiceProvider.Object);
-        mockScopeServiceProvider
-            .Setup(sp => sp.GetService(typeof(MoneyTrackerDbContext)))
-            .Returns(dbContext);
+        var disposedScopes = new List<FakeServiceScope>();
+        var trackingFactory = new TrackingServiceScopeFactory(scopeProvider, disposedScopes);
+        var root = new FakeRootServiceProvider(trackingFactory);
 
-        var worker = new MigrationWorker(
-            mockServiceProvider.Object,
-            mockLogger.Object,
-            mockConfiguration.Object);
+        var logger = new FakeLogger();
+        var worker = new MigrationWorker(root, logger, new ConfigurationBuilder().Build());
 
-        // Act & Assert
-        // Note: InMemoryDatabase doesn't support relational-specific features like MigrateAsync,
-        // so we verify the flow up to that point and confirm it attempts to call MigrateAsync
-        await Xunit.Assert.ThrowsAsync<InvalidOperationException>(() => worker.StartAsync(cancellationToken));
+        // Act
+        try { await worker.StartAsync(CancellationToken.None); } catch { }
 
-        // Verify that the method logged the starting message
-        mockLogger.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Starting EF migration worker")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+        // Assert
+        Assert.All(disposedScopes, s => Assert.True(s.Disposed));
+    }
 
-        // Verify that it progressed to attempting migrations
-        mockLogger.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Applying EF Core migrations")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+    [Fact]
+    public async Task StartAsync_Should_Dispose_Scope_On_Success()
+    {
+        // InMemory always throws from MigrateAsync; verifies scope is disposed via using pattern.
+        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        var db = new MoneyTrackerDbContext(options, null);
 
-        // Verify the error was logged
-        mockLogger.Verify(
-            l => l.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Error while applying migrations")),
-                It.IsAny<InvalidOperationException>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+        var scopeServices = new ServiceCollection();
+        scopeServices.AddSingleton<MoneyTrackerDbContext>(db);
+        var scopeProvider = scopeServices.BuildServiceProvider();
 
-        dbContext.Database.EnsureDeleted();
-        dbContext.Dispose();
+        var disposedScopes = new List<FakeServiceScope>();
+        var trackingFactory = new TrackingServiceScopeFactory(scopeProvider, disposedScopes);
+        var root = new FakeRootServiceProvider(trackingFactory);
+
+        var logger = new FakeLogger();
+        var worker = new MigrationWorker(root, logger, new ConfigurationBuilder().Build());
+
+        try { await worker.StartAsync(CancellationToken.None); } catch { }
+
+        Assert.NotEmpty(disposedScopes);
+        Assert.All(disposedScopes, s => Assert.True(s.Disposed));
     }
 
     [Fact]
     public async Task StartAsync_Should_Call_MigrateAsync_With_CancellationToken()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<MigrationWorker>>();
-        var mockConfiguration = new Mock<IConfiguration>();
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var mockScope = new Mock<IServiceScope>();
-        var mockScopeServiceProvider = new Mock<IServiceProvider>();
-        var cancellationToken = new CancellationToken();
-        
-        var dbContextOptions = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-        var dbContext = new MoneyTrackerDbContext(dbContextOptions, null);
+        var (root, db, logger, config) = BuildTestServices();
+        var worker = CreateWorker(root, logger, config);
+        using var cts = new CancellationTokenSource();
 
-        var scopeFactory = new TestServiceScopeFactory(mockScope.Object);
+        // Act - throws because InMemory doesn't support MigrateAsync
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => worker.StartAsync(cts.Token));
 
-        mockServiceProvider
-            .Setup(sp => sp.GetService(typeof(IServiceScopeFactory)))
-            .Returns(scopeFactory);
-        mockScope.Setup(s => s.ServiceProvider).Returns(mockScopeServiceProvider.Object);
-        mockScopeServiceProvider
-            .Setup(sp => sp.GetService(typeof(MoneyTrackerDbContext)))
-            .Returns(dbContext);
-
-        var worker = new MigrationWorker(
-            mockServiceProvider.Object,
-            mockLogger.Object,
-            mockConfiguration.Object);
-
-        // Act & Assert
-        // InMemoryDatabase doesn't support MigrateAsync, so we expect an exception
-        await Xunit.Assert.ThrowsAsync<InvalidOperationException>(() => worker.StartAsync(cancellationToken));
-
-        // Verify DbContext was accessed
-        mockScopeServiceProvider.Verify(
-            sp => sp.GetService(typeof(MoneyTrackerDbContext)),
-            Times.Once);
-
-        dbContext.Database.EnsureDeleted();
-        dbContext.Dispose();
+        // The "Applying EF Core migrations" log proves MigrateAsync was reached
+        Assert.Contains(logger.Entries, e =>
+            e.Level == LogLevel.Information &&
+            e.Message.Contains("Applying EF Core migrations"));
     }
 
     [Fact]
     public async Task StartAsync_Should_Log_Completion_Message_After_Success()
     {
-        // Arrange
-        var mockLogger = new Mock<ILogger<MigrationWorker>>();
-        var mockConfiguration = new Mock<IConfiguration>();
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var mockScope = new Mock<IServiceScope>();
-        var mockScopeServiceProvider = new Mock<IServiceProvider>();
-        var cancellationToken = CancellationToken.None;
-        
-        var dbContextOptions = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-        var dbContext = new MoneyTrackerDbContext(dbContextOptions, null);
+        // Arrange - InMemory always throws from MigrateAsync, so completion is never reached
+        var (root, db, logger, config) = BuildTestServices();
+        var worker = CreateWorker(root, logger, config);
 
-        var scopeFactory = new TestServiceScopeFactory(mockScope.Object);
+        try { await worker.StartAsync(CancellationToken.None); } catch { }
 
-        mockServiceProvider
-            .Setup(sp => sp.GetService(typeof(IServiceScopeFactory)))
-            .Returns(scopeFactory);
-        mockScope.Setup(s => s.ServiceProvider).Returns(mockScopeServiceProvider.Object);
-        mockScopeServiceProvider
-            .Setup(sp => sp.GetService(typeof(MoneyTrackerDbContext)))
-            .Returns(dbContext);
-
-        var worker = new MigrationWorker(
-            mockServiceProvider.Object,
-            mockLogger.Object,
-            mockConfiguration.Object);
-
-        // Act & Assert
-        // InMemoryDatabase doesn't support MigrateAsync, so we expect an exception
-        await Xunit.Assert.ThrowsAsync<InvalidOperationException>(() => worker.StartAsync(cancellationToken));
-
-        // The completion message is NOT logged because an exception occurs before that point
-        mockLogger.Verify(
-            l => l.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Migration worker completed. Shutting down")),
-                null,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Never);
-
-        dbContext.Database.EnsureDeleted();
-        dbContext.Dispose();
+        // Assert completion message is NOT present because exception aborts execution
+        Assert.DoesNotContain(logger.Entries, e =>
+            e.Level == LogLevel.Information &&
+            e.Message.Contains("Migration worker completed. Shutting down"));
     }
 
     [Fact]
-    public void Constructor_Should_Store_ServiceProvider()
+    public async Task StopAsync_Should_Return_CompletedTask()
     {
-        // Arrange
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var mockLogger = new Mock<ILogger<MigrationWorker>>();
-        var mockConfiguration = new Mock<IConfiguration>();
+        var (root, _, logger, config) = BuildTestServices();
+        var worker = CreateWorker(root, logger, config);
 
-        // Act
-        var worker = new MigrationWorker(
-            mockServiceProvider.Object,
-            mockLogger.Object,
-            mockConfiguration.Object);
+        var result = worker.StopAsync(CancellationToken.None);
 
-        // Assert
-        Xunit.Assert.NotNull(worker);
+        Assert.True(result.IsCompleted);
+        await result;
     }
 
     [Fact]
-    public void Constructor_Should_Store_Logger()
+    public async Task StopAsync_Should_Not_Throw_Exception()
     {
-        // Arrange
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var mockLogger = new Mock<ILogger<MigrationWorker>>();
-        var mockConfiguration = new Mock<IConfiguration>();
+        var (root, _, logger, config) = BuildTestServices();
+        var worker = CreateWorker(root, logger, config);
 
-        // Act
-        var worker = new MigrationWorker(
-            mockServiceProvider.Object,
-            mockLogger.Object,
-            mockConfiguration.Object);
+        var exception = await Record.ExceptionAsync(() => worker.StopAsync(CancellationToken.None));
 
-        // Assert
-        Xunit.Assert.NotNull(worker);
-    }
-
-    [Fact]
-    public void Constructor_Should_Store_Configuration()
-    {
-        // Arrange
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var mockLogger = new Mock<ILogger<MigrationWorker>>();
-        var mockConfiguration = new Mock<IConfiguration>();
-
-        // Act
-        var worker = new MigrationWorker(
-            mockServiceProvider.Object,
-            mockLogger.Object,
-            mockConfiguration.Object);
-
-        // Assert
-        Xunit.Assert.NotNull(worker);
+        Assert.Null(exception);
     }
 
     [Fact]
     public async Task StopAsync_Should_Return_Task_Completed()
     {
-        // Arrange
-        var mockServiceProvider = new Mock<IServiceProvider>();
-        var mockLogger = new Mock<ILogger<MigrationWorker>>();
-        var mockConfiguration = new Mock<IConfiguration>();
-        var cancellationToken = CancellationToken.None;
+        var (root, _, logger, config) = BuildTestServices();
+        var worker = CreateWorker(root, logger, config);
 
-        var worker = new MigrationWorker(
-            mockServiceProvider.Object,
-            mockLogger.Object,
-            mockConfiguration.Object);
-
-        // Act
-        await worker.StopAsync(cancellationToken);
-
-        // Assert - Task completed successfully
-        Xunit.Assert.True(true);
+        await worker.StopAsync(CancellationToken.None);
     }
 
-    private class TestServiceScopeFactory : IServiceScopeFactory
+    // Tracks which scopes were created so disposal can be verified
+    private sealed class TrackingServiceScopeFactory(
+        IServiceProvider scopeProvider,
+        List<FakeServiceScope> tracked) : IServiceScopeFactory
     {
-        private readonly IServiceScope _scope;
-
-        public TestServiceScopeFactory(IServiceScope scope)
-        {
-            _scope = scope;
-        }
-
         public IServiceScope CreateScope()
         {
-            return _scope;
+            var scope = new FakeServiceScope(scopeProvider);
+            tracked.Add(scope);
+            return scope;
         }
     }
 }

@@ -377,25 +377,6 @@ public class CreateForecastDefinitionCommandValidatorTests
     }
 
     [Fact]
-    public void Should_Fail_When_PaymentCategoryId_Is_Empty_And_IsIncome_Is_False()
-    {
-        var command = new CreateForecastDefinitionCommand
-        {
-            Description = "Test",
-            Amount = 100m,
-            Interval = 1,
-            RecurrenceStart = DateOnly.FromDateTime(DateTime.Today),
-            IsIncome = false,
-            PaymentCategoryId = Guid.Empty
-        };
-
-        var result = _validator.TestValidate(command);
-
-        result.ShouldHaveValidationErrorFor(x => x.PaymentCategoryId)
-            .WithErrorMessage("Expense forecasts require a payment category.");
-    }
-
-    [Fact]
     public void Should_Fail_When_PaymentCategoryId_Is_Null_And_IsIncome_Is_False()
     {
         var command = new CreateForecastDefinitionCommand

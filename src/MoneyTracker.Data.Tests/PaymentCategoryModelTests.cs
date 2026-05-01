@@ -16,11 +16,7 @@ namespace MoneyTracker.Data.Tests
             {
                 Id = Guid.NewGuid(),
                 Name = "Food",
-                Code = "FOOD",
-                CreatedAt = DateTime.UtcNow,
-                CreatedById = actorId,
-                ModifiedAt = DateTime.UtcNow,
-                ModifiedById = actorId
+                Code = "FOOD"
             };
 
             // Assert
@@ -39,10 +35,6 @@ namespace MoneyTracker.Data.Tests
                 Id = Guid.NewGuid(),
                 Name = "Food",
                 Code = "FOOD",
-                CreatedAt = DateTime.UtcNow,
-                CreatedById = actorId,
-                ModifiedAt = DateTime.UtcNow,
-                ModifiedById = actorId,
                 Payments = new List<Payment>()
             };
 
@@ -52,11 +44,7 @@ namespace MoneyTracker.Data.Tests
                 Description = "Groceries",
                 Amount = 50.00m,
                 Date = DateTime.UtcNow,
-                PaymentCategoryId = category.Id,
-                CreatedAt = DateTime.UtcNow,
-                CreatedById = actorId,
-                ModifiedAt = DateTime.UtcNow,
-                ModifiedById = actorId
+                PaymentCategoryId = category.Id
             };
 
             var payment2 = new Payment
@@ -65,11 +53,7 @@ namespace MoneyTracker.Data.Tests
                 Description = "Restaurant",
                 Amount = 30.00m,
                 Date = DateTime.UtcNow,
-                PaymentCategoryId = category.Id,
-                CreatedAt = DateTime.UtcNow,
-                CreatedById = actorId,
-                ModifiedAt = DateTime.UtcNow,
-                ModifiedById = actorId
+                PaymentCategoryId = category.Id
             };
 
             category.Payments.Add(payment1);
@@ -89,11 +73,7 @@ namespace MoneyTracker.Data.Tests
             {
                 Id = Guid.NewGuid(),
                 Name = new string('a', 51), // Exceeds max length
-                Code = new string('a', 6), // Exceeds max length
-                CreatedAt = DateTime.UtcNow,
-                CreatedById = actorId,
-                ModifiedAt = DateTime.UtcNow,
-                ModifiedById = actorId
+                Code = new string('a', 6) // Exceeds max length
             };
 
             // Assert

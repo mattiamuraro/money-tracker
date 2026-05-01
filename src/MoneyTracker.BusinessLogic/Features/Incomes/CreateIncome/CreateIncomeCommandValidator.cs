@@ -22,10 +22,6 @@ public class CreateIncomeCommandValidator : AbstractValidator<CreateIncomeComman
             .NotEmpty()
             .WithMessage("Date is required");
 
-        RuleFor(x => x.CreatedById)
-            .NotEmpty()
-            .WithMessage("CreatedBy is required");
-
         RuleFor(x => x.IdempotencyKey)
             .MaximumLength(256)
             .WithMessage("Idempotency key must not exceed 256 characters")

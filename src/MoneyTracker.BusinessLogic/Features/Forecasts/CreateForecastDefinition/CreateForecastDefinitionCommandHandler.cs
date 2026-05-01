@@ -21,7 +21,9 @@ public class CreateForecastDefinitionCommandHandler
 
     public async Task<Guid> Handle(CreateForecastDefinitionCommand command, CancellationToken cancellationToken)
     {
-        await _validator.ValidateAndThrowAsync(command, cancellationToken);
+        var validationResult = await _validator.ValidateAsync(command, cancellationToken);
+        if (!validationResult.IsValid)
+            throw new ValidationException(validationResult.Errors);
 
         if (command.IsIncome)
         {

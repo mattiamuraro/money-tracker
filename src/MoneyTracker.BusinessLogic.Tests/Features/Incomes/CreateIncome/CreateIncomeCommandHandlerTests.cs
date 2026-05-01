@@ -1,7 +1,6 @@
-﻿using FluentValidation;
+using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using MoneyTracker.BusinessLogic.Features.Incomes.CreateIncome;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
@@ -10,27 +9,19 @@ namespace MoneyTracker.BusinessLogic.Tests.Features.Incomes.CreateIncome;
 
 public class CreateIncomeCommandHandlerTests
 {
-    private readonly Mock<IValidator<CreateIncomeCommand>> _mockValidator;
-    private readonly MoneyTrackerDbContext _dbContext;
+    private static MoneyTrackerDbContext CreateDbContext() =>
+        new(new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options, null);
 
-    public CreateIncomeCommandHandlerTests()
-    {
-        _mockValidator = new Mock<IValidator<CreateIncomeCommand>>();
-
-        // Use in-memory database for testing
-        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-        _dbContext = new MoneyTrackerDbContext(options, null!);
-    }
+    private static CreateIncomeCommandHandler CreateHandler(MoneyTrackerDbContext db) =>
+        new(new CreateIncomeCommandValidator(), db);
 
     [Fact]
     public void Constructor_Should_Initialize_Handler()
     {
-        // Act
-        var handler = new CreateIncomeCommandHandler(_mockValidator.Object, _dbContext);
-
-        // Assert
+        using var db = CreateDbContext();
+        var handler = CreateHandler(db);
         Assert.NotNull(handler);
     }
 
@@ -38,33 +29,27 @@ public class CreateIncomeCommandHandlerTests
     public async Task Handle_ShouldCreateIncome_WhenCommandIsValid()
     {
         // Arrange
+        using var db = CreateDbContext();
         var command = new CreateIncomeCommand(
             description: "Test Income",
             amount: 1500.75m,
             date: DateTime.UtcNow,
-            createdById: Guid.NewGuid(),
             idempotencyKey: null,
             forecastOccurrenceId: null
         );
 
-        _mockValidator
-            .Setup(v => v.ValidateAndThrowAsync(command, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var handler = new CreateIncomeCommandHandler(_mockValidator.Object, _dbContext);
+        var handler = CreateHandler(db);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
         Assert.NotEqual(Guid.Empty, result);
-        var income = await _dbContext.Incomes.FindAsync(result);
+        var income = await db.Incomes.FindAsync(result);
         Assert.NotNull(income);
         Assert.Equal("Test Income", income.Description);
         Assert.Equal(1500.75m, income.Amount);
         Assert.Equal(command.Date, income.Date);
-        Assert.Equal(command.CreatedById, income.CreatedById);
-        Assert.Equal(command.CreatedById, income.ModifiedById);
         Assert.Null(income.IdempotencyKey);
         Assert.Null(income.ForecastOccurrenceId);
     }
@@ -73,26 +58,22 @@ public class CreateIncomeCommandHandlerTests
     public async Task Handle_ShouldTrimDescription_WhenCreatingIncome()
     {
         // Arrange
+        using var db = CreateDbContext();
         var command = new CreateIncomeCommand(
             description: "  Test Income With Spaces  ",
             amount: 1000m,
             date: DateTime.UtcNow,
-            createdById: Guid.NewGuid(),
             idempotencyKey: null,
             forecastOccurrenceId: null
         );
 
-        _mockValidator
-            .Setup(v => v.ValidateAndThrowAsync(command, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var handler = new CreateIncomeCommandHandler(_mockValidator.Object, _dbContext);
+        var handler = CreateHandler(db);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var income = await _dbContext.Incomes.FindAsync(result);
+        var income = await db.Incomes.FindAsync(result);
         Assert.NotNull(income);
         Assert.Equal("Test Income With Spaces", income.Description);
     }
@@ -101,27 +82,23 @@ public class CreateIncomeCommandHandlerTests
     public async Task Handle_ShouldStoreIdempotencyKey_WhenProvided()
     {
         // Arrange
+        using var db = CreateDbContext();
         var idempotencyKey = "test-key-123";
         var command = new CreateIncomeCommand(
             description: "Test Income",
             amount: 1000m,
             date: DateTime.UtcNow,
-            createdById: Guid.NewGuid(),
             idempotencyKey: idempotencyKey,
             forecastOccurrenceId: null
         );
 
-        _mockValidator
-            .Setup(v => v.ValidateAndThrowAsync(command, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var handler = new CreateIncomeCommandHandler(_mockValidator.Object, _dbContext);
+        var handler = CreateHandler(db);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var income = await _dbContext.Incomes.FindAsync(result);
+        var income = await db.Incomes.FindAsync(result);
         Assert.NotNull(income);
         Assert.Equal(idempotencyKey, income.IdempotencyKey);
     }
@@ -130,6 +107,7 @@ public class CreateIncomeCommandHandlerTests
     public async Task Handle_ShouldReturnExistingIncomeId_WhenIdempotencyKeyExists()
     {
         // Arrange
+        using var db = CreateDbContext();
         var idempotencyKey = "duplicate-key";
         var existingIncomeId = Guid.NewGuid();
         var existingIncome = new Income
@@ -138,34 +116,27 @@ public class CreateIncomeCommandHandlerTests
             Description = "Existing Income",
             Amount = 500m,
             Date = DateTime.UtcNow.AddDays(-1),
-            IdempotencyKey = idempotencyKey,
-            CreatedById = Guid.NewGuid(),
-            ModifiedById = Guid.NewGuid()
+            IdempotencyKey = idempotencyKey
         };
-        _dbContext.Incomes.Add(existingIncome);
-        await _dbContext.SaveChangesAsync();
+        db.Incomes.Add(existingIncome);
+        await db.SaveChangesAsync();
 
         var command = new CreateIncomeCommand(
             description: "New Income",
             amount: 1000m,
             date: DateTime.UtcNow,
-            createdById: Guid.NewGuid(),
             idempotencyKey: idempotencyKey,
             forecastOccurrenceId: null
         );
 
-        _mockValidator
-            .Setup(v => v.ValidateAndThrowAsync(command, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var handler = new CreateIncomeCommandHandler(_mockValidator.Object, _dbContext);
+        var handler = CreateHandler(db);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
         Assert.Equal(existingIncomeId, result);
-        var incomeCount = await _dbContext.Incomes.CountAsync();
+        var incomeCount = await db.Incomes.CountAsync();
         Assert.Equal(1, incomeCount); // Should not create a new income
     }
 
@@ -173,26 +144,22 @@ public class CreateIncomeCommandHandlerTests
     public async Task Handle_ShouldTreatWhitespaceIdempotencyKeyAsNull()
     {
         // Arrange
+        using var db = CreateDbContext();
         var command = new CreateIncomeCommand(
             description: "Test Income",
             amount: 1000m,
             date: DateTime.UtcNow,
-            createdById: Guid.NewGuid(),
             idempotencyKey: "   ",
             forecastOccurrenceId: null
         );
 
-        _mockValidator
-            .Setup(v => v.ValidateAndThrowAsync(command, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var handler = new CreateIncomeCommandHandler(_mockValidator.Object, _dbContext);
+        var handler = CreateHandler(db);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var income = await _dbContext.Incomes.FindAsync(result);
+        var income = await db.Incomes.FindAsync(result);
         Assert.NotNull(income);
         Assert.Null(income.IdempotencyKey);
     }
@@ -201,6 +168,7 @@ public class CreateIncomeCommandHandlerTests
     public async Task Handle_ShouldCreateIncomeAndUpdateOccurrence_WhenForecastOccurrenceExists()
     {
         // Arrange
+        using var db = CreateDbContext();
         var occurrenceId = Guid.NewGuid();
         var userId = Guid.NewGuid();
         var occurrence = new ForecastOccurrence
@@ -211,37 +179,30 @@ public class CreateIncomeCommandHandlerTests
             Amount = 2000m,
             Description = "Expected Income",
             IsIncome = true,
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId,
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId
         };
-        _dbContext.ForecastOccurrences.Add(occurrence);
-        await _dbContext.SaveChangesAsync();
+        db.ForecastOccurrences.Add(occurrence);
+        await db.SaveChangesAsync();
 
         var command = new CreateIncomeCommand(
             description: "Actual Income",
             amount: 2000m,
             date: DateTime.UtcNow,
-            createdById: userId,
             idempotencyKey: null,
             forecastOccurrenceId: occurrenceId
         );
 
-        _mockValidator
-            .Setup(v => v.ValidateAndThrowAsync(command, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var handler = new CreateIncomeCommandHandler(_mockValidator.Object, _dbContext);
+        var handler = CreateHandler(db);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var income = await _dbContext.Incomes.FindAsync(result);
+        var income = await db.Incomes.FindAsync(result);
         Assert.NotNull(income);
         Assert.Equal(occurrenceId, income.ForecastOccurrenceId);
 
-        var updatedOccurrence = await _dbContext.ForecastOccurrences.FindAsync(occurrenceId);
+        var updatedOccurrence = await db.ForecastOccurrences.FindAsync(occurrenceId);
         Assert.NotNull(updatedOccurrence);
         Assert.Equal(ForecastOccurrenceStatus.ConfirmedId, updatedOccurrence.ForecastOccurrenceStatusId);
         Assert.NotNull(updatedOccurrence.ValidatedAt);
@@ -251,21 +212,17 @@ public class CreateIncomeCommandHandlerTests
     public async Task Handle_ShouldThrowException_WhenForecastOccurrenceNotFound()
     {
         // Arrange
+        using var db = CreateDbContext();
         var nonExistentOccurrenceId = Guid.NewGuid();
         var command = new CreateIncomeCommand(
             description: "Test Income",
             amount: 1000m,
             date: DateTime.UtcNow,
-            createdById: Guid.NewGuid(),
             idempotencyKey: null,
             forecastOccurrenceId: nonExistentOccurrenceId
         );
 
-        _mockValidator
-            .Setup(v => v.ValidateAndThrowAsync(command, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var handler = new CreateIncomeCommandHandler(_mockValidator.Object, _dbContext);
+        var handler = CreateHandler(db);
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -278,6 +235,7 @@ public class CreateIncomeCommandHandlerTests
     public async Task Handle_ShouldThrowException_WhenForecastOccurrenceIsNotIncome()
     {
         // Arrange
+        using var db = CreateDbContext();
         var occurrenceId = Guid.NewGuid();
         var userId = Guid.NewGuid();
         var occurrence = new ForecastOccurrence
@@ -288,27 +246,20 @@ public class CreateIncomeCommandHandlerTests
             Amount = 2000m,
             Description = "Expected Payment",
             IsIncome = false, // This is a payment, not an income
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId,
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId
         };
-        _dbContext.ForecastOccurrences.Add(occurrence);
-        await _dbContext.SaveChangesAsync();
+        db.ForecastOccurrences.Add(occurrence);
+        await db.SaveChangesAsync();
 
         var command = new CreateIncomeCommand(
             description: "Test Income",
             amount: 1000m,
             date: DateTime.UtcNow,
-            createdById: Guid.NewGuid(),
             idempotencyKey: null,
             forecastOccurrenceId: occurrenceId
         );
 
-        _mockValidator
-            .Setup(v => v.ValidateAndThrowAsync(command, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var handler = new CreateIncomeCommandHandler(_mockValidator.Object, _dbContext);
+        var handler = CreateHandler(db);
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -321,6 +272,7 @@ public class CreateIncomeCommandHandlerTests
     public async Task Handle_ShouldThrowException_WhenForecastOccurrenceIsNotPending()
     {
         // Arrange
+        using var db = CreateDbContext();
         var occurrenceId = Guid.NewGuid();
         var userId = Guid.NewGuid();
         var occurrence = new ForecastOccurrence
@@ -331,27 +283,20 @@ public class CreateIncomeCommandHandlerTests
             Amount = 2000m,
             Description = "Already Confirmed",
             IsIncome = true,
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.ConfirmedId, // Already confirmed
-            CreatedById = userId,
-            ModifiedById = userId
+            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.ConfirmedId // Already confirmed
         };
-        _dbContext.ForecastOccurrences.Add(occurrence);
-        await _dbContext.SaveChangesAsync();
+        db.ForecastOccurrences.Add(occurrence);
+        await db.SaveChangesAsync();
 
         var command = new CreateIncomeCommand(
             description: "Test Income",
             amount: 1000m,
             date: DateTime.UtcNow,
-            createdById: Guid.NewGuid(),
             idempotencyKey: null,
             forecastOccurrenceId: occurrenceId
         );
 
-        _mockValidator
-            .Setup(v => v.ValidateAndThrowAsync(command, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var handler = new CreateIncomeCommandHandler(_mockValidator.Object, _dbContext);
+        var handler = CreateHandler(db);
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -364,11 +309,11 @@ public class CreateIncomeCommandHandlerTests
     public async Task Handle_ShouldThrowValidationException_WhenValidatorFails()
     {
         // Arrange
+        using var db = CreateDbContext();
         var command = new CreateIncomeCommand(
             description: "",
             amount: 0,
             date: DateTime.UtcNow,
-            createdById: Guid.NewGuid(),
             idempotencyKey: null,
             forecastOccurrenceId: null
         );
@@ -378,11 +323,7 @@ public class CreateIncomeCommandHandlerTests
             new ValidationFailure("Description", "Description is required")
         };
 
-        _mockValidator
-            .Setup(v => v.ValidateAndThrowAsync(command, It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new ValidationException(validationFailures));
-
-        var handler = new CreateIncomeCommandHandler(_mockValidator.Object, _dbContext);
+        var handler = CreateHandler(db);
 
         // Act & Assert
         await Assert.ThrowsAsync<ValidationException>(
@@ -393,27 +334,23 @@ public class CreateIncomeCommandHandlerTests
     public async Task Handle_ShouldNotCheckIdempotencyKey_WhenItIsNull()
     {
         // Arrange
+        using var db = CreateDbContext();
         var command = new CreateIncomeCommand(
             description: "Test Income",
             amount: 1000m,
             date: DateTime.UtcNow,
-            createdById: Guid.NewGuid(),
             idempotencyKey: null,
             forecastOccurrenceId: null
         );
 
-        _mockValidator
-            .Setup(v => v.ValidateAndThrowAsync(command, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var handler = new CreateIncomeCommandHandler(_mockValidator.Object, _dbContext);
+        var handler = CreateHandler(db);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
         Assert.NotEqual(Guid.Empty, result);
-        var income = await _dbContext.Incomes.FindAsync(result);
+        var income = await db.Incomes.FindAsync(result);
         Assert.NotNull(income);
         Assert.Null(income.IdempotencyKey);
     }
@@ -422,27 +359,25 @@ public class CreateIncomeCommandHandlerTests
     public async Task Handle_ShouldNotUpdateOccurrence_WhenForecastOccurrenceIdIsNull()
     {
         // Arrange
+        using var db = CreateDbContext();
         var command = new CreateIncomeCommand(
             description: "Test Income",
             amount: 1000m,
             date: DateTime.UtcNow,
-            createdById: Guid.NewGuid(),
             idempotencyKey: null,
             forecastOccurrenceId: null
         );
 
-        _mockValidator
-            .Setup(v => v.ValidateAndThrowAsync(command, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
-
-        var handler = new CreateIncomeCommandHandler(_mockValidator.Object, _dbContext);
+        var handler = CreateHandler(db);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var income = await _dbContext.Incomes.FindAsync(result);
+        var income = await db.Incomes.FindAsync(result);
         Assert.NotNull(income);
         Assert.Null(income.ForecastOccurrenceId);
     }
 }
+
+

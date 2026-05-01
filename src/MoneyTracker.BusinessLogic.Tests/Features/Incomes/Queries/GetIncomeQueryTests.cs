@@ -245,7 +245,7 @@ public class GetIncomeQueryTests
     }
 
     [Theory]
-    [InlineData(int.MaxValue, 1)]
+    [InlineData(int.MaxValue, int.MaxValue)]
     [InlineData(int.MinValue, 1)]
     public void Constructor_Should_Handle_Extreme_PageNumber_Values(int input, int expected)
     {

@@ -17,7 +17,9 @@ public class UpdateIncomeCommandHandler
 
     public async Task Handle(UpdateIncomeCommand command, CancellationToken cancellationToken)
     {
-        await _validator.ValidateAndThrowAsync(command, cancellationToken);
+        var validationResult = await _validator.ValidateAsync(command, cancellationToken);
+        if (!validationResult.IsValid)
+            throw new ValidationException(validationResult.Errors);
 
         var income = await _dbContext.Incomes.FindAsync(
             new object[] { command.IncomeId },

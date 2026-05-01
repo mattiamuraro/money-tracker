@@ -1,7 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Moq;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
-using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPaymentById;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
@@ -10,16 +8,19 @@ namespace MoneyTracker.BusinessLogic.Tests.Features.Payments.GetPaymentById;
 
 public class GetPaymentByIdQueryHandlerTests
 {
+    private static MoneyTrackerDbContext CreateDbContext() =>
+        new(new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options, null);
+
     [Fact]
     public void Constructor_Should_Set_DbContext()
     {
         // Arrange
-        var mockDbContext = new Mock<MoneyTrackerDbContext>(
-            new DbContextOptionsBuilder<MoneyTrackerDbContext>().Options,
-            null!);
+        using var db = CreateDbContext();
 
         // Act
-        var handler = new GetPaymentByIdQueryHandler(mockDbContext.Object);
+        var handler = new GetPaymentByIdQueryHandler(db);
 
         // Assert
         Assert.NotNull(handler);
@@ -36,7 +37,8 @@ public class GetPaymentByIdQueryHandlerTests
         var category = new PaymentCategory
         {
             Id = categoryId,
-            Name = "Groceries"
+            Name = "Groceries",
+            Code = "GRC"
         };
         dbContext.PaymentCategories.Add(category);
 
@@ -85,7 +87,8 @@ public class GetPaymentByIdQueryHandlerTests
         var category = new PaymentCategory
         {
             Id = categoryId,
-            Name = "Utilities"
+            Name = "Utilities",
+            Code = "UTL"
         };
         dbContext.PaymentCategories.Add(category);
 
@@ -176,7 +179,8 @@ public class GetPaymentByIdQueryHandlerTests
         var category = new PaymentCategory
         {
             Id = categoryId,
-            Name = "Entertainment"
+            Name = "Entertainment",
+            Code = "ENT"
         };
         dbContext.PaymentCategories.Add(category);
 
@@ -218,7 +222,8 @@ public class GetPaymentByIdQueryHandlerTests
         var category = new PaymentCategory
         {
             Id = categoryId,
-            Name = "Food"
+            Name = "Food",
+            Code = "FOOD"
         };
         dbContext.PaymentCategories.Add(category);
 

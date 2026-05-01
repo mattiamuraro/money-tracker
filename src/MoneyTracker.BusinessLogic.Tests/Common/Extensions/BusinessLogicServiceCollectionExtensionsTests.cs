@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MoneyTracker.BusinessLogic.Common.Extensions;
 using MoneyTracker.BusinessLogic.Features.Auth.Login;
@@ -28,6 +29,7 @@ using MoneyTracker.BusinessLogic.Features.Payments.DeletePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPaymentById;
 using MoneyTracker.BusinessLogic.Features.Payments.UpdatePayment;
+using MoneyTracker.Data.EntityFramework;
 using Xunit;
 
 namespace MoneyTracker.BusinessLogic.Tests.Common.Extensions;
@@ -724,6 +726,18 @@ public class BusinessLogicServiceCollectionExtensionsTests
 
         // Act
         services.AddBusinessLogicServices();
+
+        // Register required dependencies that handlers depend on
+        services.AddDbContext<MoneyTrackerDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        services.Configure<MoneyTracker.BusinessLogic.Common.Options.JwtOptions>(o =>
+        {
+            o.Key = "test-key-with-at-least-32-characters-long";
+            o.Issuer = "test";
+            o.Audience = "test";
+        });
+        services.Configure<MoneyTracker.BusinessLogic.Common.Options.AuthOptions>(o => o.AllowRegistration = true);
+        services.AddSingleton<Microsoft.AspNetCore.Identity.IPasswordHasher<MoneyTracker.Data.User>,
+            Microsoft.AspNetCore.Identity.PasswordHasher<MoneyTracker.Data.User>>();
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();

@@ -22,7 +22,9 @@ public class UpdatePaymentCommandHandler
     public async Task Handle(UpdatePaymentCommand request, CancellationToken cancellationToken)
     {
 
-        await _validator.ValidateAndThrowAsync(request, cancellationToken);
+        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+            throw new ValidationException(validationResult.Errors);
 
         var payment = await _dbContext.Payments.FindAsync(
             new object[] { request.PaymentId },
@@ -31,7 +33,7 @@ public class UpdatePaymentCommandHandler
         if (payment == null)
             throw new EntityNotFoundException($"Payment with id {request.PaymentId} not found");
         // Aggiorna solo i campi forniti
-        if (!string.IsNullOrEmpty(request.Description))
+        if (!string.IsNullOrWhiteSpace(request.Description))
             payment.Description = request.Description;
 
         if (request.PaymentCategoryId.HasValue)
@@ -54,9 +56,6 @@ public class UpdatePaymentCommandHandler
 
         if (request.IsOneShot.HasValue)
             payment.IsOneShot = request.IsOneShot.Value;
-
-        payment.ModifiedAt = DateTime.UtcNow;
-        payment.ModifiedById = request.ModifiedById;
 
         _dbContext.Payments.Update(payment);
         await _dbContext.SaveChangesAsync(cancellationToken);

@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using MoneyTracker.Api.Endpoints.Auth.Contracts;
 using MoneyTracker.Api.Endpoints.Auth.ExtensionMethods;
+using MoneyTracker.BusinessLogic.Common.Models;
 using MoneyTracker.BusinessLogic.Common.Options;
 using MoneyTracker.BusinessLogic.Features.Auth.Login;
 using MoneyTracker.BusinessLogic.Features.Auth.Register;
-using MoneyTracker.BusinessLogic.Shared.Models;
 
 namespace MoneyTracker.Api.Endpoints.Auth;
 

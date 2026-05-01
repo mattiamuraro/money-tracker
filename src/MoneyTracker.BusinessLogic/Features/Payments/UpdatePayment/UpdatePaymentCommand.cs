@@ -11,13 +11,11 @@ public class UpdatePaymentCommand
     public decimal? Amount { get; set; }
     public DateTime? Date { get; set; }
     public bool? IsOneShot { get; set; }
-    public Guid ModifiedById { get; set; }
 
     public UpdatePaymentCommand() { }
 
     public UpdatePaymentCommand(
         Guid paymentId,
-        Guid modifiedById,
         string? description = null,
         Guid? paymentCategoryId = null,
         decimal? amount = null,
@@ -25,7 +23,6 @@ public class UpdatePaymentCommand
         bool? isOneShot = null)
     {
         PaymentId = paymentId;
-        ModifiedById = modifiedById;
         Description = description;
         PaymentCategoryId = paymentCategoryId;
         Amount = amount;

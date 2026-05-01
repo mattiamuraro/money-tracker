@@ -1,7 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Moq;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
-using MoneyTracker.BusinessLogic.Features.Incomes.GetIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.GetIncomeById;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
@@ -10,16 +8,19 @@ namespace MoneyTracker.BusinessLogic.Tests.Features.Incomes.GetIncomeById;
 
 public class GetIncomeByIdQueryHandlerTests
 {
+    private static MoneyTrackerDbContext CreateDbContext() =>
+        new(new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options, null);
+
     [Fact]
     public void Constructor_Should_Set_DbContext()
     {
         // Arrange
-        var mockDbContext = new Mock<MoneyTrackerDbContext>(
-            new DbContextOptionsBuilder<MoneyTrackerDbContext>().Options,
-            null!);
+        using var db = CreateDbContext();
 
         // Act
-        var handler = new GetIncomeByIdQueryHandler(mockDbContext.Object);
+        var handler = new GetIncomeByIdQueryHandler(db);
 
         // Assert
         Assert.NotNull(handler);

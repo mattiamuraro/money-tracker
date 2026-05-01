@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.ForecastRecurrenceRuleTypes.Contracts;
 using MoneyTracker.Api.Endpoints.ForecastRecurrenceRuleTypes.ExtensionMethods;
+using MoneyTracker.BusinessLogic.Common.Models;
 using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRecurrenceRuleTypes;
-using MoneyTracker.BusinessLogic.Shared.Models;
 
 namespace MoneyTracker.Api.Endpoints.ForecastRecurrenceRuleTypes
 {

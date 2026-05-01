@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -28,7 +28,9 @@ namespace MoneyTracker.BusinessLogic.Features.Auth.Login
 
         public async Task<LoginAuthToken> Handle(LoginCommand command, CancellationToken cancellationToken)
         {
-            await _validator.ValidateAndThrowAsync(command, cancellationToken);
+            var validationResult = await _validator.ValidateAsync(command, cancellationToken);
+        if (!validationResult.IsValid)
+            throw new ValidationException(validationResult.Errors);
 
             var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Username == command.Username, cancellationToken);
 

@@ -17,11 +17,7 @@ public class PaymentModelTests
             Amount = 100.00m,
             Date = DateTime.UtcNow,
             PaymentCategoryId = Guid.NewGuid(),
-            IsOneShot = true,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = actorId,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId
+            IsOneShot = true
         };
 
         // Assert
@@ -42,11 +38,7 @@ public class PaymentModelTests
             Description = new string('a', 101), // Exceeds max length
             Amount = 50.00m,
             Date = DateTime.UtcNow,
-            PaymentCategoryId = Guid.NewGuid(),
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = actorId,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId
+            PaymentCategoryId = Guid.NewGuid()
         };
 
         // Assert - should have exceeded max length
@@ -63,11 +55,7 @@ public class PaymentModelTests
         {
             Id = Guid.NewGuid(),
             Name = "Food",
-            Code = "FOOD",
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = actorId,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId
+            Code = "FOOD"
         };
 
         var payment = new Payment
@@ -77,11 +65,7 @@ public class PaymentModelTests
             Amount = 50.00m,
             Date = DateTime.UtcNow,
             PaymentCategoryId = category.Id,
-            PaymentCategory = category,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = actorId,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId
+            PaymentCategory = category
         };
 
         // Assert

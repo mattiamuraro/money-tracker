@@ -1,5 +1,5 @@
 using MoneyTracker.BusinessLogic.Common.Exceptions;
-using MoneyTracker.BusinessLogic.Shared.Models;
+using MoneyTracker.BusinessLogic.Common.Models;
 
 namespace MoneyTracker.Api.Middleware;
 

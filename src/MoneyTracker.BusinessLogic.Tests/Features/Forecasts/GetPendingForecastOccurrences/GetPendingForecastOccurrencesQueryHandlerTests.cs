@@ -2,23 +2,24 @@
 using MoneyTracker.BusinessLogic.Features.Forecasts.GetPendingForecastOccurrences;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
-using Moq;
-using Xunit;
 
 namespace MoneyTracker.BusinessLogic.Tests.Features.Forecasts.GetPendingForecastOccurrences;
 
 public class GetPendingForecastOccurrencesQueryHandlerTests
 {
+    private static MoneyTrackerDbContext CreateDbContext() =>
+        new(new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options, null);
+
     [Fact]
     public void Constructor_Should_Initialize_Handler()
     {
         // Arrange
-        var mockDbContext = new Mock<MoneyTrackerDbContext>(
-            new DbContextOptionsBuilder<MoneyTrackerDbContext>().Options,
-            null!);
+        using var db = CreateDbContext();
 
         // Act
-        var handler = new GetPendingForecastOccurrencesQueryHandler(mockDbContext.Object);
+        var handler = new GetPendingForecastOccurrencesQueryHandler(db);
 
         // Assert
         Assert.NotNull(handler);

@@ -17,7 +17,6 @@ public class CreatePaymentCommandTests
         Assert.Equal(0m, command.Amount);
         Assert.Equal(default(DateTime), command.Date);
         Assert.False(command.IsOneShot);
-        Assert.Equal(Guid.Empty, command.CreatedById);
         Assert.Null(command.IdempotencyKey);
     }
 
@@ -29,7 +28,6 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.NewGuid();
         var amount = 100.50m;
         var date = new DateTime(2024, 1, 15);
-        var createdById = Guid.NewGuid();
         var isOneShot = true;
         var idempotencyKey = "test-key-123";
         var forecastOccurrenceId = Guid.NewGuid();
@@ -40,7 +38,6 @@ public class CreatePaymentCommandTests
             paymentCategoryId,
             amount,
             date,
-            createdById,
             isOneShot,
             idempotencyKey,
             forecastOccurrenceId);
@@ -50,7 +47,6 @@ public class CreatePaymentCommandTests
         Assert.Equal(paymentCategoryId, command.PaymentCategoryId);
         Assert.Equal(amount, command.Amount);
         Assert.Equal(date, command.Date);
-        Assert.Equal(createdById, command.CreatedById);
         Assert.Equal(isOneShot, command.IsOneShot);
         Assert.Equal(idempotencyKey, command.IdempotencyKey);
         Assert.Equal(forecastOccurrenceId, command.ForecastOccurrenceId);
@@ -64,22 +60,19 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.NewGuid();
         var amount = 50.25m;
         var date = new DateTime(2024, 2, 20);
-        var createdById = Guid.NewGuid();
 
         // Act
         var command = new CreatePaymentCommand(
             description,
             paymentCategoryId,
             amount,
-            date,
-            createdById);
+            date);
 
         // Assert
         Assert.Equal(description, command.Description);
         Assert.Equal(paymentCategoryId, command.PaymentCategoryId);
         Assert.Equal(amount, command.Amount);
         Assert.Equal(date, command.Date);
-        Assert.Equal(createdById, command.CreatedById);
         Assert.False(command.IsOneShot);
         Assert.Null(command.IdempotencyKey);
         Assert.Null(command.ForecastOccurrenceId);
@@ -93,7 +86,6 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.NewGuid();
         var amount = 100m;
         var date = DateTime.Now;
-        var createdById = Guid.NewGuid();
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() =>
@@ -101,8 +93,7 @@ public class CreatePaymentCommandTests
                 description!,
                 paymentCategoryId,
                 amount,
-                date,
-                createdById));
+                date));
 
         Assert.Equal("description", exception.ParamName);
     }
@@ -115,22 +106,19 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.Empty;
         var amount = 0m;
         var date = DateTime.MinValue;
-        var createdById = Guid.Empty;
 
         // Act
         var command = new CreatePaymentCommand(
             description,
             paymentCategoryId,
             amount,
-            date,
-            createdById);
+            date);
 
         // Assert
         Assert.Equal(description, command.Description);
         Assert.Equal(Guid.Empty, command.PaymentCategoryId);
         Assert.Equal(0m, command.Amount);
         Assert.Equal(DateTime.MinValue, command.Date);
-        Assert.Equal(Guid.Empty, command.CreatedById);
     }
 
     [Fact]
@@ -141,15 +129,13 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.NewGuid();
         var amount = -50.75m;
         var date = new DateTime(2024, 3, 10);
-        var createdById = Guid.NewGuid();
 
         // Act
         var command = new CreatePaymentCommand(
             description,
             paymentCategoryId,
             amount,
-            date,
-            createdById);
+            date);
 
         // Assert
         Assert.Equal(description, command.Description);
@@ -164,15 +150,13 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.NewGuid();
         var amount = 0m;
         var date = new DateTime(2024, 4, 5);
-        var createdById = Guid.NewGuid();
 
         // Act
         var command = new CreatePaymentCommand(
             description,
             paymentCategoryId,
             amount,
-            date,
-            createdById);
+            date);
 
         // Assert
         Assert.Equal(description, command.Description);
@@ -187,15 +171,13 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.NewGuid();
         var amount = 999999999.99m;
         var date = new DateTime(2024, 5, 25);
-        var createdById = Guid.NewGuid();
 
         // Act
         var command = new CreatePaymentCommand(
             description,
             paymentCategoryId,
             amount,
-            date,
-            createdById);
+            date);
 
         // Assert
         Assert.Equal(description, command.Description);
@@ -210,15 +192,13 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.NewGuid();
         var amount = 25m;
         var date = new DateTime(2024, 6, 15);
-        var createdById = Guid.NewGuid();
 
         // Act
         var command = new CreatePaymentCommand(
             description,
             paymentCategoryId,
             amount,
-            date,
-            createdById);
+            date);
 
         // Assert
         Assert.Equal(string.Empty, command.Description);
@@ -232,7 +212,6 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.NewGuid();
         var amount = 75m;
         var date = new DateTime(2024, 7, 20);
-        var createdById = Guid.NewGuid();
         var isOneShot = true;
 
         // Act
@@ -241,7 +220,6 @@ public class CreatePaymentCommandTests
             paymentCategoryId,
             amount,
             date,
-            createdById,
             isOneShot);
 
         // Assert
@@ -256,7 +234,6 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.NewGuid();
         var amount = 125m;
         var date = new DateTime(2024, 8, 30);
-        var createdById = Guid.NewGuid();
         var isOneShot = false;
 
         // Act
@@ -265,7 +242,6 @@ public class CreatePaymentCommandTests
             paymentCategoryId,
             amount,
             date,
-            createdById,
             isOneShot);
 
         // Assert
@@ -280,7 +256,6 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.NewGuid();
         var amount = 200m;
         var date = new DateTime(2024, 9, 10);
-        var createdById = Guid.NewGuid();
         var idempotencyKey = "unique-key-456";
 
         // Act
@@ -289,7 +264,6 @@ public class CreatePaymentCommandTests
             paymentCategoryId,
             amount,
             date,
-            createdById,
             false,
             idempotencyKey);
 
@@ -305,7 +279,6 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.NewGuid();
         var amount = 150m;
         var date = new DateTime(2024, 10, 5);
-        var createdById = Guid.NewGuid();
 
         // Act
         var command = new CreatePaymentCommand(
@@ -313,7 +286,6 @@ public class CreatePaymentCommandTests
             paymentCategoryId,
             amount,
             date,
-            createdById,
             false,
             null);
 
@@ -329,7 +301,6 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.NewGuid();
         var amount = 300m;
         var date = new DateTime(2024, 11, 15);
-        var createdById = Guid.NewGuid();
         var forecastOccurrenceId = Guid.NewGuid();
 
         // Act
@@ -338,7 +309,6 @@ public class CreatePaymentCommandTests
             paymentCategoryId,
             amount,
             date,
-            createdById,
             false,
             null,
             forecastOccurrenceId);
@@ -355,7 +325,6 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.NewGuid();
         var amount = 250m;
         var date = new DateTime(2024, 12, 25);
-        var createdById = Guid.NewGuid();
 
         // Act
         var command = new CreatePaymentCommand(
@@ -363,7 +332,6 @@ public class CreatePaymentCommandTests
             paymentCategoryId,
             amount,
             date,
-            createdById,
             false,
             null,
             null);
@@ -380,7 +348,6 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.NewGuid();
         var amount = 175.50m;
         var date = new DateTime(2024, 1, 1);
-        var createdById = Guid.NewGuid();
         var isOneShot = true;
         var forecastOccurrenceId = Guid.NewGuid();
 
@@ -390,7 +357,6 @@ public class CreatePaymentCommandTests
             paymentCategoryId,
             amount,
             date,
-            createdById,
             isOneShot,
             null,
             forecastOccurrenceId);
@@ -400,7 +366,6 @@ public class CreatePaymentCommandTests
         Assert.Equal(paymentCategoryId, command.PaymentCategoryId);
         Assert.Equal(amount, command.Amount);
         Assert.Equal(date, command.Date);
-        Assert.Equal(createdById, command.CreatedById);
         Assert.True(command.IsOneShot);
         Assert.Null(command.IdempotencyKey);
         Assert.Equal(forecastOccurrenceId, command.ForecastOccurrenceId);
@@ -414,15 +379,13 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = Guid.NewGuid();
         var amount = 500m;
         var date = DateTime.MaxValue;
-        var createdById = Guid.NewGuid();
 
         // Act
         var command = new CreatePaymentCommand(
             description,
             paymentCategoryId,
             amount,
-            date,
-            createdById);
+            date);
 
         // Assert
         Assert.Equal(DateTime.MaxValue, command.Date);
@@ -436,18 +399,15 @@ public class CreatePaymentCommandTests
         var paymentCategoryId = new Guid("12345678-1234-1234-1234-123456789012");
         var amount = 450m;
         var date = new DateTime(2024, 3, 15);
-        var createdById = new Guid("87654321-4321-4321-4321-210987654321");
 
         // Act
         var command = new CreatePaymentCommand(
             description,
             paymentCategoryId,
             amount,
-            date,
-            createdById);
+            date);
 
         // Assert
         Assert.Equal(new Guid("12345678-1234-1234-1234-123456789012"), command.PaymentCategoryId);
-        Assert.Equal(new Guid("87654321-4321-4321-4321-210987654321"), command.CreatedById);
     }
 }

@@ -44,8 +44,11 @@ public class DeleteForecastDefinitionCommandHandler
 
     private async Task DeleteOccurencesAsync(Guid id, CancellationToken cancellationToken)
     {
-        await _dbContext.ForecastOccurrences.Where(x => x.ForecastDefinitionId == id && x.ForecastOccurrenceStatusId == ForecastOccurrenceStatus.PendingId)
-                                            .ExecuteUpdateAsync(e => e.SetProperty(p => p.ForecastOccurrenceStatusId, ForecastOccurrenceStatus.CancelledId)
-                                            , cancellationToken);
+        var occurrences = await _dbContext.ForecastOccurrences
+            .Where(x => x.ForecastDefinitionId == id && x.ForecastOccurrenceStatusId == ForecastOccurrenceStatus.PendingId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var occurrence in occurrences)
+            occurrence.ForecastOccurrenceStatusId = ForecastOccurrenceStatus.CancelledId;
     }
 }

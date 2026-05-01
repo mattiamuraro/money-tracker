@@ -11,7 +11,6 @@ public class CreatePaymentCommand
     public decimal Amount { get; set; }
     public DateTime Date { get; set; }
     public bool IsOneShot { get; set; }
-    public Guid CreatedById { get; set; }
 
     /// <summary>
     /// Idempotency key to prevent duplicate payments
@@ -25,7 +24,6 @@ public class CreatePaymentCommand
         Guid paymentCategoryId,
         decimal amount,
         DateTime date,
-        Guid createdById,
         bool isOneShot = false,
         string? idempotencyKey = null,
         Guid? forecastOccurrenceId = null)
@@ -34,7 +32,6 @@ public class CreatePaymentCommand
         PaymentCategoryId = paymentCategoryId;
         Amount = amount;
         Date = date;
-        CreatedById = createdById;
         IsOneShot = isOneShot;
         IdempotencyKey = idempotencyKey;
         ForecastOccurrenceId = forecastOccurrenceId;

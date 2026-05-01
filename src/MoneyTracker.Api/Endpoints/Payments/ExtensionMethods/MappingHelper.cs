@@ -1,11 +1,11 @@
 ﻿using MoneyTracker.Api.Endpoints.Payments.Contracts;
 using MoneyTracker.Api.ExtensionMethods;
+using MoneyTracker.BusinessLogic.Common.Models;
 using MoneyTracker.BusinessLogic.Features.Payments.CreatePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.DeletePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPaymentById;
 using MoneyTracker.BusinessLogic.Features.Payments.UpdatePayment;
-using MoneyTracker.BusinessLogic.Shared.Models;
 
 namespace MoneyTracker.Api.Endpoints.Payments.ExtensionMethods
 {
@@ -46,7 +46,6 @@ namespace MoneyTracker.Api.Endpoints.Payments.ExtensionMethods
                 Amount = request.Amount,
                 Date = request.Date,
                 IsOneShot = request.IsOneShot,
-                CreatedById = httpContext.GetCurrentUserId(),
                 IdempotencyKey = string.IsNullOrEmpty(idempotencyKey) ? null : idempotencyKey
             };
         }
@@ -78,7 +77,7 @@ namespace MoneyTracker.Api.Endpoints.Payments.ExtensionMethods
             };
         }
 
-        public static UpdatePaymentCommand ToUpdatePaymentCommand(this UpdatePaymentRequest request, Guid id, HttpContext httpContext)
+        public static UpdatePaymentCommand ToUpdatePaymentCommand(this UpdatePaymentRequest request, Guid id)
         {
             return new UpdatePaymentCommand
             {
@@ -87,8 +86,7 @@ namespace MoneyTracker.Api.Endpoints.Payments.ExtensionMethods
                 PaymentCategoryId = request.PaymentCategoryId,
                 Amount = request.Amount,
                 Date = request.Date,
-                IsOneShot = request.IsOneShot,
-                ModifiedById = httpContext.GetCurrentUserId()
+                IsOneShot = request.IsOneShot
             };
         }
 

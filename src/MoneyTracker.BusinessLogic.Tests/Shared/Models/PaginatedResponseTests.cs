@@ -1,4 +1,4 @@
-using MoneyTracker.BusinessLogic.Shared.Models;
+using MoneyTracker.BusinessLogic.Common.Models;
 
 namespace MoneyTracker.BusinessLogic.Tests.Shared.Models;
 

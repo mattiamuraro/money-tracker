@@ -23,7 +23,9 @@ public class CreatePaymentCommandHandler
 
     public async Task<Guid> Handle(CreatePaymentCommand request, CancellationToken cancellationToken)
     {
-        await _validator.ValidateAndThrowAsync(request, cancellationToken);
+        var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+            throw new FluentValidation.ValidationException(validationResult.Errors);
         // If an idempotency key is present, return the existing payment ID without creating a duplicate
         if (!string.IsNullOrEmpty(request.IdempotencyKey))
         {
@@ -67,11 +69,7 @@ public class CreatePaymentCommandHandler
             Amount = request.Amount,
             Date = request.Date,
             IsOneShot = request.IsOneShot,
-            IdempotencyKey = string.IsNullOrEmpty(request.IdempotencyKey) ? null : request.IdempotencyKey,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = request.CreatedById,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = request.CreatedById
+            IdempotencyKey = string.IsNullOrEmpty(request.IdempotencyKey) ? null : request.IdempotencyKey
         };
 
         if (occurrence != null)

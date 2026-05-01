@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
-using Moq;
 using MoneyTracker.Api.Middleware;
 using Xunit;
 
@@ -12,114 +12,104 @@ namespace MoneyTracker.Api.Tests.Middleware;
 /// </summary>
 public class GlobalExceptionHandlingMiddlewareTests
 {
-    private readonly Mock<ILogger<GlobalExceptionHandlingMiddleware>> _mockLogger;
-    private readonly Mock<RequestDelegate> _mockNext;
-    private readonly Mock<IWebHostEnvironment> _mockEnvironment;
-
-    public GlobalExceptionHandlingMiddlewareTests()
+    private sealed class FakeLogger : ILogger<GlobalExceptionHandlingMiddleware>
     {
-        _mockLogger = new Mock<ILogger<GlobalExceptionHandlingMiddleware>>();
-        _mockNext = new Mock<RequestDelegate>();
-        _mockEnvironment = new Mock<IWebHostEnvironment>();
+        public record LogEntry(LogLevel Level, Exception? Exception, string Message);
+        public List<LogEntry> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add(new LogEntry(logLevel, exception, formatter(state, exception)));
+        }
     }
 
-    [Xunit.Fact]
+    private sealed class FakeWebHostEnvironment : IWebHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = "Production";
+        public string ApplicationName { get; set; } = "TestApp";
+        public string WebRootPath { get; set; } = string.Empty;
+        public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
+        public string ContentRootPath { get; set; } = string.Empty;
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
+    }
+
+    private static (GlobalExceptionHandlingMiddleware middleware, FakeLogger logger) CreateMiddleware(
+        RequestDelegate? next = null,
+        IWebHostEnvironment? environment = null)
+    {
+        var logger = new FakeLogger();
+        var env = environment ?? new FakeWebHostEnvironment();
+        var middleware = new GlobalExceptionHandlingMiddleware(next ?? (_ => Task.CompletedTask), logger, env);
+        return (middleware, logger);
+    }
+
+    [Fact]
     public void Constructor_Should_Assign_Dependencies()
     {
-        // Arrange & Act
-        var middleware = new GlobalExceptionHandlingMiddleware(
-            _mockNext.Object,
-            _mockLogger.Object,
-            _mockEnvironment.Object);
-
-        // Assert
-        Xunit.Assert.NotNull(middleware);
+        var (middleware, _) = CreateMiddleware();
+        Assert.NotNull(middleware);
     }
 
-    [Xunit.Fact]
+    [Fact]
     public async Task InvokeAsync_Should_Call_Next_Delegate_When_No_Exception()
     {
         // Arrange
-        var middleware = new GlobalExceptionHandlingMiddleware(
-            _mockNext.Object,
-            _mockLogger.Object,
-            _mockEnvironment.Object);
+        var called = false;
+        var (middleware, _) = CreateMiddleware(_ => { called = true; return Task.CompletedTask; });
         var context = new DefaultHttpContext();
-
-        _mockNext.Setup(next => next(It.IsAny<HttpContext>())).Returns(Task.CompletedTask);
 
         // Act
         await middleware.InvokeAsync(context);
 
         // Assert
-        _mockNext.Verify(next => next(context), Times.Once);
+        Assert.True(called);
     }
 
-    [Xunit.Fact]
+    [Fact]
     public async Task InvokeAsync_Should_Handle_Exception_When_Next_Throws()
     {
         // Arrange
-        var middleware = new GlobalExceptionHandlingMiddleware(
-            _mockNext.Object,
-            _mockLogger.Object,
-            _mockEnvironment.Object);
+        var exception = new Exception("Test exception");
+        var (middleware, logger) = CreateMiddleware(_ => throw exception);
         var context = new DefaultHttpContext();
         context.Response.Body = new MemoryStream();
-        var exception = new Exception("Test exception");
-
-        _mockNext.Setup(next => next(It.IsAny<HttpContext>()))
-            .ThrowsAsync(exception);
 
         // Act
         await middleware.InvokeAsync(context);
 
         // Assert
-        _mockLogger.Verify(
-            logger => logger.Log(
-                LogLevel.Error,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("An unhandled exception occurred")),
-                exception,
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
+        Assert.Contains(logger.Entries, e =>
+            e.Level == LogLevel.Error &&
+            e.Exception == exception &&
+            e.Message.Contains("An unhandled exception occurred"));
     }
 
-    [Xunit.Fact]
+    [Fact]
     public async Task InvokeAsync_Should_Set_Response_ContentType_When_Exception_Occurs()
     {
         // Arrange
-        var middleware = new GlobalExceptionHandlingMiddleware(
-            _mockNext.Object,
-            _mockLogger.Object,
-            _mockEnvironment.Object);
+        var (middleware, _) = CreateMiddleware(_ => throw new Exception("Test exception"));
         var context = new DefaultHttpContext();
         context.Response.Body = new MemoryStream();
-        var exception = new Exception("Test exception");
-
-        _mockNext.Setup(next => next(It.IsAny<HttpContext>()))
-            .ThrowsAsync(exception);
 
         // Act
         await middleware.InvokeAsync(context);
 
         // Assert
-        Xunit.Assert.StartsWith("application/json", context.Response.ContentType);
+        Assert.StartsWith("application/json", context.Response.ContentType);
     }
 
-    [Xunit.Fact]
+    [Fact]
     public async Task InvokeAsync_Should_Not_Throw_When_Next_Throws_Exception()
     {
         // Arrange
-        var middleware = new GlobalExceptionHandlingMiddleware(
-            _mockNext.Object,
-            _mockLogger.Object,
-            _mockEnvironment.Object);
+        var (middleware, _) = CreateMiddleware(_ => throw new Exception("Test exception"));
         var context = new DefaultHttpContext();
         context.Response.Body = new MemoryStream();
-        var exception = new Exception("Test exception");
-
-        _mockNext.Setup(next => next(It.IsAny<HttpContext>()))
-            .ThrowsAsync(exception);
 
         // Act & Assert - should not throw
         await middleware.InvokeAsync(context);

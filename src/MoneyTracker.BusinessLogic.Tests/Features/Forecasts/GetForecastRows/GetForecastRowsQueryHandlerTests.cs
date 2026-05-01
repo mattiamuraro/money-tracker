@@ -3,8 +3,6 @@ using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRows;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
-using Moq;
-using Xunit;
 
 namespace MoneyTracker.BusinessLogic.Tests.Features.Forecasts.GetForecastRows;
 
@@ -14,12 +12,10 @@ public class GetForecastRowsQueryHandlerTests
     public void Constructor_Should_Initialize_Handler()
     {
         // Arrange
-        var mockDbContext = new Mock<MoneyTrackerDbContext>(
-            new DbContextOptionsBuilder<MoneyTrackerDbContext>().Options,
-            null!);
+        using var db = CreateInMemoryDbContext();
 
         // Act
-        var handler = new GetForecastRowsQueryHandler(mockDbContext.Object);
+        var handler = new GetForecastRowsQueryHandler(db);
 
         // Assert
         Assert.NotNull(handler);

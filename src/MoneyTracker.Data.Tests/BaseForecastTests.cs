@@ -13,11 +13,7 @@ public class BaseForecastTests
         {
             Id = Guid.NewGuid(),
             Name = "Week",
-            Code = ForecastRecurrenceRuleType.Week,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = actorId,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId
+            Code = ForecastRecurrenceRuleType.Week
         };
 
         var forecast = new ForecastExpense
@@ -28,11 +24,7 @@ public class BaseForecastTests
             RecurrenceStart = new DateOnly(2026, 4, 1),
             Interval = 1,
             ForecastRecurrenceRuleTypeId = ruleType.Id,
-            ForecastRecurrenceRuleType = ruleType,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = actorId,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId
+            ForecastRecurrenceRuleType = ruleType
         };
 
         var recurrences = forecast.GetRecurrences(new DateOnly(2026, 4, 5), new DateOnly(2026, 4, 25));
@@ -54,11 +46,7 @@ public class BaseForecastTests
         {
             Id = Guid.NewGuid(),
             Name = "One Time",
-            Code = ForecastRecurrenceRuleType.OneTime,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = actorId,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId
+            Code = ForecastRecurrenceRuleType.OneTime
         };
 
         var forecast = new ForecastIncome
@@ -69,11 +57,7 @@ public class BaseForecastTests
             RecurrenceStart = new DateOnly(2026, 4, 1),
             Interval = 1,
             ForecastRecurrenceRuleTypeId = ruleType.Id,
-            ForecastRecurrenceRuleType = ruleType,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = actorId,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId
+            ForecastRecurrenceRuleType = ruleType
         };
 
         var recurrences = forecast.GetRecurrences(new DateOnly(2026, 3, 1), new DateOnly(2026, 5, 1));

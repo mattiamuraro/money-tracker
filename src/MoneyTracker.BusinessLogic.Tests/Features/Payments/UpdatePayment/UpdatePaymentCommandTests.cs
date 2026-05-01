@@ -12,7 +12,6 @@ public class UpdatePaymentCommandTests
 
         // Assert
         Assert.Equal(Guid.Empty, command.PaymentId);
-        Assert.Equal(Guid.Empty, command.ModifiedById);
         Assert.Null(command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Null(command.Amount);
@@ -25,7 +24,6 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedDescription = "Test payment description";
         var expectedPaymentCategoryId = Guid.NewGuid();
         var expectedAmount = 1500.75m;
@@ -35,7 +33,6 @@ public class UpdatePaymentCommandTests
         // Act
         var command = new UpdatePaymentCommand(
             expectedPaymentId,
-            expectedModifiedById,
             expectedDescription,
             expectedPaymentCategoryId,
             expectedAmount,
@@ -44,7 +41,6 @@ public class UpdatePaymentCommandTests
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Equal(expectedDescription, command.Description);
         Assert.Equal(expectedPaymentCategoryId, command.PaymentCategoryId);
         Assert.Equal(expectedAmount, command.Amount);
@@ -57,14 +53,12 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById);
+        var command = new UpdatePaymentCommand(expectedPaymentId);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Null(command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Null(command.Amount);
@@ -77,15 +71,13 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.Empty;
-        var expectedModifiedById = Guid.Empty;
         var expectedDescription = "Empty payment";
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, expectedDescription);
+        var command = new UpdatePaymentCommand(expectedPaymentId, expectedDescription);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Equal(expectedDescription, command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Null(command.Amount);
@@ -98,16 +90,14 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         string? expectedDescription = null;
         var expectedAmount = 100m;
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, expectedDescription, amount: expectedAmount);
+        var command = new UpdatePaymentCommand(expectedPaymentId, expectedDescription, amount: expectedAmount);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Null(command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Equal(expectedAmount, command.Amount);
@@ -120,16 +110,14 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedDescription = "Test payment";
         Guid? expectedPaymentCategoryId = null;
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, expectedDescription, expectedPaymentCategoryId);
+        var command = new UpdatePaymentCommand(expectedPaymentId, expectedDescription, expectedPaymentCategoryId);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Equal(expectedDescription, command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Null(command.Amount);
@@ -142,17 +130,15 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedDescription = "Test payment";
         decimal? expectedAmount = null;
         var expectedDate = DateTime.UtcNow;
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, expectedDescription, amount: expectedAmount, date: expectedDate);
+        var command = new UpdatePaymentCommand(expectedPaymentId, expectedDescription, amount: expectedAmount, date: expectedDate);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Equal(expectedDescription, command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Null(command.Amount);
@@ -165,17 +151,15 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedDescription = "Test payment";
         var expectedAmount = 500.50m;
         DateTime? expectedDate = null;
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, expectedDescription, amount: expectedAmount, date: expectedDate);
+        var command = new UpdatePaymentCommand(expectedPaymentId, expectedDescription, amount: expectedAmount, date: expectedDate);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Equal(expectedDescription, command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Equal(expectedAmount, command.Amount);
@@ -188,16 +172,14 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedDescription = "Test payment";
         bool? expectedIsOneShot = null;
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, expectedDescription, isOneShot: expectedIsOneShot);
+        var command = new UpdatePaymentCommand(expectedPaymentId, expectedDescription, isOneShot: expectedIsOneShot);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Equal(expectedDescription, command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Null(command.Amount);
@@ -210,14 +192,12 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, null, null, null, null, null);
+        var command = new UpdatePaymentCommand(expectedPaymentId, null, null, null, null, null);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Null(command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Null(command.Amount);
@@ -230,15 +210,13 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedAmount = 0m;
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, amount: expectedAmount);
+        var command = new UpdatePaymentCommand(expectedPaymentId, amount: expectedAmount);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Null(command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Equal(expectedAmount, command.Amount);
@@ -251,15 +229,13 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedAmount = -100.50m;
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, amount: expectedAmount);
+        var command = new UpdatePaymentCommand(expectedPaymentId, amount: expectedAmount);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Null(command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Equal(expectedAmount, command.Amount);
@@ -272,15 +248,13 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedDescription = string.Empty;
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, expectedDescription);
+        var command = new UpdatePaymentCommand(expectedPaymentId, expectedDescription);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Equal(expectedDescription, command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Null(command.Amount);
@@ -293,15 +267,13 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedDate = DateTime.MinValue;
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, date: expectedDate);
+        var command = new UpdatePaymentCommand(expectedPaymentId, date: expectedDate);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Null(command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Null(command.Amount);
@@ -314,15 +286,13 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedDate = DateTime.MaxValue;
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, date: expectedDate);
+        var command = new UpdatePaymentCommand(expectedPaymentId, date: expectedDate);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Null(command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Null(command.Amount);
@@ -335,15 +305,13 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedAmount = decimal.MaxValue;
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, amount: expectedAmount);
+        var command = new UpdatePaymentCommand(expectedPaymentId, amount: expectedAmount);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Null(command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Equal(expectedAmount, command.Amount);
@@ -356,15 +324,13 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedAmount = decimal.MinValue;
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, amount: expectedAmount);
+        var command = new UpdatePaymentCommand(expectedPaymentId, amount: expectedAmount);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Null(command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Equal(expectedAmount, command.Amount);
@@ -377,15 +343,13 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = new Guid("12345678-1234-1234-1234-123456789012");
-        var expectedModifiedById = new Guid("87654321-4321-4321-4321-210987654321");
         var expectedDescription = "Specific GUID test";
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, expectedDescription);
+        var command = new UpdatePaymentCommand(expectedPaymentId, expectedDescription);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Equal(expectedDescription, command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Null(command.Amount);
@@ -398,15 +362,13 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedIsOneShot = true;
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, isOneShot: expectedIsOneShot);
+        var command = new UpdatePaymentCommand(expectedPaymentId, isOneShot: expectedIsOneShot);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Null(command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Null(command.Amount);
@@ -419,15 +381,13 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedIsOneShot = false;
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, isOneShot: expectedIsOneShot);
+        var command = new UpdatePaymentCommand(expectedPaymentId, isOneShot: expectedIsOneShot);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Null(command.Description);
         Assert.Null(command.PaymentCategoryId);
         Assert.Null(command.Amount);
@@ -440,15 +400,13 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedPaymentCategoryId = Guid.NewGuid();
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, paymentCategoryId: expectedPaymentCategoryId);
+        var command = new UpdatePaymentCommand(expectedPaymentId, paymentCategoryId: expectedPaymentCategoryId);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Null(command.Description);
         Assert.Equal(expectedPaymentCategoryId, command.PaymentCategoryId);
         Assert.Null(command.Amount);
@@ -461,15 +419,13 @@ public class UpdatePaymentCommandTests
     {
         // Arrange
         var expectedPaymentId = Guid.NewGuid();
-        var expectedModifiedById = Guid.NewGuid();
         var expectedPaymentCategoryId = Guid.Empty;
 
         // Act
-        var command = new UpdatePaymentCommand(expectedPaymentId, expectedModifiedById, paymentCategoryId: expectedPaymentCategoryId);
+        var command = new UpdatePaymentCommand(expectedPaymentId, paymentCategoryId: expectedPaymentCategoryId);
 
         // Assert
         Assert.Equal(expectedPaymentId, command.PaymentId);
-        Assert.Equal(expectedModifiedById, command.ModifiedById);
         Assert.Null(command.Description);
         Assert.Equal(expectedPaymentCategoryId, command.PaymentCategoryId);
         Assert.Null(command.Amount);

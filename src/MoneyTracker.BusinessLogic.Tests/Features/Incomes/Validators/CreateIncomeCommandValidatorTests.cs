@@ -14,8 +14,7 @@ public class CreateIncomeCommandValidatorTests
         {
             Description = string.Empty,
             Amount = 100,
-            Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid()
+            Date = DateTime.UtcNow
         };
 
         var result = _validator.TestValidate(command);
@@ -30,8 +29,7 @@ public class CreateIncomeCommandValidatorTests
         {
             Description = new string('a', 101),
             Amount = 100,
-            Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid()
+            Date = DateTime.UtcNow
         };
 
         var result = _validator.TestValidate(command);
@@ -46,8 +44,7 @@ public class CreateIncomeCommandValidatorTests
         {
             Description = "Salary",
             Amount = 0,
-            Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid()
+            Date = DateTime.UtcNow
         };
 
         var result = _validator.TestValidate(command);
@@ -62,8 +59,7 @@ public class CreateIncomeCommandValidatorTests
         {
             Description = "Salary",
             Amount = -50,
-            Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid()
+            Date = DateTime.UtcNow
         };
 
         var result = _validator.TestValidate(command);
@@ -78,29 +74,12 @@ public class CreateIncomeCommandValidatorTests
         {
             Description = "Salary",
             Amount = 100,
-            Date = default,
-            CreatedById = Guid.NewGuid()
+            Date = default
         };
 
         var result = _validator.TestValidate(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Date);
-    }
-
-    [Fact]
-    public void Should_Fail_When_CreatedById_Is_Empty()
-    {
-        var command = new CreateIncomeCommand
-        {
-            Description = "Salary",
-            Amount = 100,
-            Date = DateTime.UtcNow,
-            CreatedById = Guid.Empty
-        };
-
-        var result = _validator.TestValidate(command);
-
-        result.ShouldHaveValidationErrorFor(x => x.CreatedById);
     }
 
     [Fact]
@@ -111,7 +90,6 @@ public class CreateIncomeCommandValidatorTests
             Description = "Salary",
             Amount = 100,
             Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
             IdempotencyKey = new string('k', 257)
         };
 
@@ -128,7 +106,6 @@ public class CreateIncomeCommandValidatorTests
             Description = "Salary",
             Amount = 100,
             Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
             IdempotencyKey = null
         };
 
@@ -145,7 +122,6 @@ public class CreateIncomeCommandValidatorTests
             Description = "Salary",
             Amount = 2500,
             Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
             IdempotencyKey = "unique-key-123"
         };
 
@@ -164,8 +140,7 @@ public class CreateIncomeCommandValidatorTests
         {
             Description = "Salary",
             Amount = amount,
-            Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid()
+            Date = DateTime.UtcNow
         };
 
         var result = _validator.TestValidate(command);
@@ -180,8 +155,7 @@ public class CreateIncomeCommandValidatorTests
         {
             Description = "Salary",
             Amount = 100.123m,
-            Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid()
+            Date = DateTime.UtcNow
         };
 
         var result = _validator.TestValidate(command);
@@ -196,8 +170,7 @@ public class CreateIncomeCommandValidatorTests
         {
             Description = null!,
             Amount = 100,
-            Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid()
+            Date = DateTime.UtcNow
         };
 
         var result = _validator.TestValidate(command);
@@ -212,8 +185,7 @@ public class CreateIncomeCommandValidatorTests
         {
             Description = new string('a', 100),
             Amount = 100,
-            Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid()
+            Date = DateTime.UtcNow
         };
 
         var result = _validator.TestValidate(command);
@@ -229,7 +201,6 @@ public class CreateIncomeCommandValidatorTests
             Description = "Salary",
             Amount = 100,
             Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
             IdempotencyKey = new string('k', 256)
         };
 
@@ -246,7 +217,6 @@ public class CreateIncomeCommandValidatorTests
             Description = "Salary",
             Amount = 100,
             Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
             IdempotencyKey = string.Empty
         };
 
@@ -263,7 +233,6 @@ public class CreateIncomeCommandValidatorTests
             Description = "Salary",
             Amount = 100,
             Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
             IdempotencyKey = "   "
         };
 
@@ -279,8 +248,7 @@ public class CreateIncomeCommandValidatorTests
         {
             Description = "   ",
             Amount = 100,
-            Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid()
+            Date = DateTime.UtcNow
         };
 
         var result = _validator.TestValidate(command);
@@ -296,8 +264,7 @@ public class CreateIncomeCommandValidatorTests
         {
             Description = new string('a', 101),
             Amount = 100,
-            Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid()
+            Date = DateTime.UtcNow
         };
 
         var result = _validator.TestValidate(command);
@@ -313,8 +280,7 @@ public class CreateIncomeCommandValidatorTests
         {
             Description = "Salary",
             Amount = 0,
-            Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid()
+            Date = DateTime.UtcNow
         };
 
         var result = _validator.TestValidate(command);
@@ -330,8 +296,7 @@ public class CreateIncomeCommandValidatorTests
         {
             Description = "Salary",
             Amount = 100.123m,
-            Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid()
+            Date = DateTime.UtcNow
         };
 
         var result = _validator.TestValidate(command);
@@ -347,31 +312,13 @@ public class CreateIncomeCommandValidatorTests
         {
             Description = "Salary",
             Amount = 100,
-            Date = default,
-            CreatedById = Guid.NewGuid()
+            Date = default
         };
 
         var result = _validator.TestValidate(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Date)
             .WithErrorMessage("Date is required");
-    }
-
-    [Fact]
-    public void Should_Return_Correct_Error_Message_When_CreatedById_Is_Empty()
-    {
-        var command = new CreateIncomeCommand
-        {
-            Description = "Salary",
-            Amount = 100,
-            Date = DateTime.UtcNow,
-            CreatedById = Guid.Empty
-        };
-
-        var result = _validator.TestValidate(command);
-
-        result.ShouldHaveValidationErrorFor(x => x.CreatedById)
-            .WithErrorMessage("CreatedBy is required");
     }
 
     [Fact]
@@ -382,7 +329,6 @@ public class CreateIncomeCommandValidatorTests
             Description = "Salary",
             Amount = 100,
             Date = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
             IdempotencyKey = new string('k', 257)
         };
 

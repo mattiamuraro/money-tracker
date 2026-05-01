@@ -2,12 +2,12 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.Incomes.Contracts;
 using MoneyTracker.Api.Endpoints.Incomes.ExtensionMethods;
+using MoneyTracker.BusinessLogic.Common.Models;
 using MoneyTracker.BusinessLogic.Features.Incomes.CreateIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.DeleteIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.GetIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.GetIncomeById;
 using MoneyTracker.BusinessLogic.Features.Incomes.UpdateIncome;
-using MoneyTracker.BusinessLogic.Shared.Models;
 using MoneyTracker.Data;
 
 namespace MoneyTracker.Api.Endpoints.Incomes;

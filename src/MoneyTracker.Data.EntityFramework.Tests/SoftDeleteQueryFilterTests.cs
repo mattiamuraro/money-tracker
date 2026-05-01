@@ -29,11 +29,7 @@ public class SoftDeleteQueryFilterTests : IDisposable
         {
             Id = Guid.NewGuid(),
             Name = "Food",
-            Code = "FOOD",
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = actorId,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId
+            Code = "FOOD"
         };
 
         var activePayment = new Payment
@@ -43,11 +39,7 @@ public class SoftDeleteQueryFilterTests : IDisposable
             Amount = 10,
             Date = DateTime.UtcNow,
             PaymentCategoryId = category.Id,
-            PaymentCategory = category,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = actorId,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId
+            PaymentCategory = category
         };
 
         var deletedPayment = new Payment
@@ -58,10 +50,6 @@ public class SoftDeleteQueryFilterTests : IDisposable
             Date = DateTime.UtcNow,
             PaymentCategoryId = category.Id,
             PaymentCategory = category,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = actorId,
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = actorId,
             IsDeleted = true
         };
 

@@ -20,7 +20,9 @@ namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.UpdateCategory
 
         public async Task Handle(UpdateCategoryCommand command, CancellationToken cancellationToken)
         {
-            await _validator.ValidateAndThrowAsync(command, cancellationToken);
+            var validationResult = await _validator.ValidateAsync(command, cancellationToken);
+        if (!validationResult.IsValid)
+            throw new ValidationException(validationResult.Errors);
             var category = await _dbContext.PaymentCategories.FindAsync(
                 new object[] { command.Id },
                 cancellationToken: cancellationToken);

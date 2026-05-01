@@ -20,7 +20,9 @@ public class CreateIncomeCommandHandler
 
     public async Task<Guid> Handle(CreateIncomeCommand command, CancellationToken cancellationToken)
     {
-        await _validator.ValidateAndThrowAsync(command, cancellationToken);
+        var validationResult = await _validator.ValidateAsync(command, cancellationToken);
+        if (!validationResult.IsValid)
+            throw new FluentValidation.ValidationException(validationResult.Errors);
 
         if (!string.IsNullOrWhiteSpace(command.IdempotencyKey))
         {
@@ -55,8 +57,6 @@ public class CreateIncomeCommandHandler
             Amount = command.Amount,
             Date = command.Date,
             IdempotencyKey = string.IsNullOrWhiteSpace(command.IdempotencyKey) ? null : command.IdempotencyKey,
-            CreatedById = command.CreatedById,
-            ModifiedById = command.CreatedById,
         };
 
         if (occurrence != null)

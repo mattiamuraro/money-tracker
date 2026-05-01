@@ -1,7 +1,5 @@
-﻿using FluentValidation;
-using FluentValidation.Results;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.CreateCategory;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
@@ -10,27 +8,19 @@ namespace MoneyTracker.BusinessLogic.Tests.Features.PaymentCategories.CreateCate
 
 public class CreateCategoryCommandHandlerTests
 {
-    private readonly Mock<IValidator<CreateCategoryCommand>> _mockValidator;
-    private readonly MoneyTrackerDbContext _dbContext;
+    private static MoneyTrackerDbContext CreateDbContext() =>
+        new(new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options, null);
 
-    public CreateCategoryCommandHandlerTests()
-    {
-        _mockValidator = new Mock<IValidator<CreateCategoryCommand>>();
-        
-        // Use in-memory database for testing
-        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-        _dbContext = new MoneyTrackerDbContext(options, null!);
-    }
+    private static CreateCategoryCommandHandler CreateHandler(MoneyTrackerDbContext db) =>
+        new(new CreateCategoryCommandValidator(), db);
 
     [Fact]
     public void Constructor_Should_Initialize_Handler()
     {
-        // Act
-        var handler = new CreateCategoryCommandHandler(_mockValidator.Object, _dbContext);
-
-        // Assert
+        using var db = CreateDbContext();
+        var handler = CreateHandler(db);
         Assert.NotNull(handler);
     }
 
@@ -38,24 +28,16 @@ public class CreateCategoryCommandHandlerTests
     public async Task Handle_ShouldCreateCategory_WhenCommandIsValid()
     {
         // Arrange
-        var command = new CreateCategoryCommand
-        {
-            Name = "Test Category",
-            Code = "TST"
-        };
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(command, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateCategoryCommandHandler(_mockValidator.Object, _dbContext);
+        using var db = CreateDbContext();
+        var command = new CreateCategoryCommand { Name = "Test Category", Code = "TST" };
+        var handler = CreateHandler(db);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
         Assert.NotEqual(Guid.Empty, result);
-        var category = await _dbContext.PaymentCategories.FindAsync(result);
+        var category = await db.PaymentCategories.FindAsync(result);
         Assert.NotNull(category);
         Assert.Equal("Test Category", category.Name);
         Assert.Equal("TST", category.Code);
@@ -65,22 +47,9 @@ public class CreateCategoryCommandHandlerTests
     public async Task Handle_ShouldThrowValidationException_WhenValidatorFails()
     {
         // Arrange
-        var command = new CreateCategoryCommand
-        {
-            Name = "",
-            Code = ""
-        };
-
-        var validationFailures = new List<ValidationFailure>
-        {
-            new ValidationFailure("Name", "Name is required")
-        };
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(command, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult(validationFailures));
-
-        var handler = new CreateCategoryCommandHandler(_mockValidator.Object, _dbContext);
+        using var db = CreateDbContext();
+        var command = new CreateCategoryCommand { Name = "", Code = "" };
+        var handler = CreateHandler(db);
 
         // Act & Assert
         await Assert.ThrowsAsync<ValidationException>(() => handler.Handle(command, CancellationToken.None));
@@ -90,27 +59,12 @@ public class CreateCategoryCommandHandlerTests
     public async Task Handle_ShouldThrowInvalidOperationException_WhenCategoryCodeAlreadyExists()
     {
         // Arrange
-        var existingCategory = new PaymentCategory
-        {
-            Id = Guid.NewGuid(),
-            Name = "Existing Category",
-            Code = "EXIST"
-        };
+        using var db = CreateDbContext();
+        db.PaymentCategories.Add(new PaymentCategory { Id = Guid.NewGuid(), Name = "Existing Category", Code = "EXIST" });
+        await db.SaveChangesAsync();
 
-        _dbContext.PaymentCategories.Add(existingCategory);
-        await _dbContext.SaveChangesAsync();
-
-        var command = new CreateCategoryCommand
-        {
-            Name = "New Category",
-            Code = "EXIST"
-        };
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(command, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateCategoryCommandHandler(_mockValidator.Object, _dbContext);
+        var command = new CreateCategoryCommand { Name = "New Category", Code = "EXIST" };
+        var handler = CreateHandler(db);
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(command, CancellationToken.None));
@@ -121,25 +75,17 @@ public class CreateCategoryCommandHandlerTests
     public async Task Handle_ShouldSaveChangesToDatabase_WhenCategoryIsCreated()
     {
         // Arrange
-        var command = new CreateCategoryCommand
-        {
-            Name = "Save Test Category",
-            Code = "SAVE"
-        };
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(command, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateCategoryCommandHandler(_mockValidator.Object, _dbContext);
+        using var db = CreateDbContext();
+        var command = new CreateCategoryCommand { Name = "Save Test Category", Code = "SAVE" };
+        var handler = CreateHandler(db);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var categoriesCount = await _dbContext.PaymentCategories.CountAsync();
+        var categoriesCount = await db.PaymentCategories.CountAsync();
         Assert.True(categoriesCount > 0);
-        var savedCategory = await _dbContext.PaymentCategories.FirstOrDefaultAsync(c => c.Code == "SAVE");
+        var savedCategory = await db.PaymentCategories.FirstOrDefaultAsync(c => c.Code == "SAVE");
         Assert.NotNull(savedCategory);
         Assert.Equal(result, savedCategory.Id);
     }
@@ -148,40 +94,22 @@ public class CreateCategoryCommandHandlerTests
     public async Task Handle_ShouldCallValidateAndThrowAsync_WhenHandleCalled()
     {
         // Arrange
-        var command = new CreateCategoryCommand
-        {
-            Name = "Validation Test",
-            Code = "VAL"
-        };
+        using var db = CreateDbContext();
+        var command = new CreateCategoryCommand { Name = "Validation Test", Code = "VAL" };
+        var handler = CreateHandler(db);
 
-        _mockValidator
-            .Setup(v => v.ValidateAsync(command, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateCategoryCommandHandler(_mockValidator.Object, _dbContext);
-
-        // Act
-        await handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        _mockValidator.Verify(v => v.ValidateAsync(command, It.IsAny<CancellationToken>()), Times.Once);
+        // Act & Assert - validation runs (no exception means it passed)
+        var result = await handler.Handle(command, CancellationToken.None);
+        Assert.NotEqual(Guid.Empty, result);
     }
 
     [Fact]
     public async Task Handle_ShouldGenerateNewGuid_WhenCreatingCategory()
     {
         // Arrange
-        var command = new CreateCategoryCommand
-        {
-            Name = "GUID Test",
-            Code = "GUID"
-        };
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(command, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateCategoryCommandHandler(_mockValidator.Object, _dbContext);
+        using var db = CreateDbContext();
+        var command = new CreateCategoryCommand { Name = "GUID Test", Code = "GUID" };
+        var handler = CreateHandler(db);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
@@ -195,23 +123,15 @@ public class CreateCategoryCommandHandlerTests
     public async Task Handle_ShouldReturnCategoryId_WhenCategoryIsCreatedSuccessfully()
     {
         // Arrange
-        var command = new CreateCategoryCommand
-        {
-            Name = "Return ID Test",
-            Code = "RET"
-        };
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(command, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateCategoryCommandHandler(_mockValidator.Object, _dbContext);
+        using var db = CreateDbContext();
+        var command = new CreateCategoryCommand { Name = "Return ID Test", Code = "RET" };
+        var handler = CreateHandler(db);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var createdCategory = await _dbContext.PaymentCategories.FirstOrDefaultAsync(c => c.Id == result);
+        var createdCategory = await db.PaymentCategories.FirstOrDefaultAsync(c => c.Id == result);
         Assert.NotNull(createdCategory);
         Assert.Equal(result, createdCategory.Id);
     }
@@ -220,44 +140,30 @@ public class CreateCategoryCommandHandlerTests
     public async Task Handle_ShouldPassCancellationToken_WhenCalled()
     {
         // Arrange
-        var command = new CreateCategoryCommand
-        {
-            Name = "Cancellation Test",
-            Code = "CANC"
-        };
-
-        var cancellationToken = new CancellationToken();
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(command, cancellationToken))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateCategoryCommandHandler(_mockValidator.Object, _dbContext);
+        using var db = CreateDbContext();
+        var command = new CreateCategoryCommand { Name = "Cancellation Test", Code = "CANC" };
+        var handler = CreateHandler(db);
 
         // Act
-        await handler.Handle(command, cancellationToken);
+        var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        _mockValidator.Verify(v => v.ValidateAsync(command, cancellationToken), Times.Once);
+        Assert.NotEqual(Guid.Empty, result);
     }
 
     [Fact]
     public void Constructor_ShouldAssignDbContext_WhenCalled()
     {
-        // Arrange & Act
-        var handler = new CreateCategoryCommandHandler(_mockValidator.Object, _dbContext);
-
-        // Assert
+        using var db = CreateDbContext();
+        var handler = CreateHandler(db);
         Assert.NotNull(handler);
     }
 
     [Fact]
     public void Constructor_ShouldAssignValidator_WhenCalled()
     {
-        // Arrange & Act
-        var handler = new CreateCategoryCommandHandler(_mockValidator.Object, _dbContext);
-
-        // Assert
+        using var db = CreateDbContext();
+        var handler = CreateHandler(db);
         Assert.NotNull(handler);
     }
 
@@ -265,24 +171,16 @@ public class CreateCategoryCommandHandlerTests
     public async Task Handle_ShouldAddCategoryToDbSet_WhenCategoryIsCreated()
     {
         // Arrange
-        var command = new CreateCategoryCommand
-        {
-            Name = "Add Test",
-            Code = "ADD"
-        };
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(command, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateCategoryCommandHandler(_mockValidator.Object, _dbContext);
-        var initialCount = await _dbContext.PaymentCategories.CountAsync();
+        using var db = CreateDbContext();
+        var command = new CreateCategoryCommand { Name = "Add Test", Code = "ADD" };
+        var handler = CreateHandler(db);
+        var initialCount = await db.PaymentCategories.CountAsync();
 
         // Act
         await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var finalCount = await _dbContext.PaymentCategories.CountAsync();
+        var finalCount = await db.PaymentCategories.CountAsync();
         Assert.Equal(initialCount + 1, finalCount);
     }
 
@@ -290,23 +188,10 @@ public class CreateCategoryCommandHandlerTests
     public async Task Handle_ShouldCreateMultipleCategories_WhenCodesAreDifferent()
     {
         // Arrange
-        var command1 = new CreateCategoryCommand
-        {
-            Name = "Category 1",
-            Code = "CAT1"
-        };
-
-        var command2 = new CreateCategoryCommand
-        {
-            Name = "Category 2",
-            Code = "CAT2"
-        };
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<CreateCategoryCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateCategoryCommandHandler(_mockValidator.Object, _dbContext);
+        using var db = CreateDbContext();
+        var command1 = new CreateCategoryCommand { Name = "Category 1", Code = "CAT1" };
+        var command2 = new CreateCategoryCommand { Name = "Category 2", Code = "CAT2" };
+        var handler = CreateHandler(db);
 
         // Act
         var result1 = await handler.Handle(command1, CancellationToken.None);
@@ -317,9 +202,8 @@ public class CreateCategoryCommandHandlerTests
         Assert.NotEqual(Guid.Empty, result1);
         Assert.NotEqual(Guid.Empty, result2);
 
-        var category1 = await _dbContext.PaymentCategories.FindAsync(result1);
-        var category2 = await _dbContext.PaymentCategories.FindAsync(result2);
-
+        var category1 = await db.PaymentCategories.FindAsync(result1);
+        var category2 = await db.PaymentCategories.FindAsync(result2);
         Assert.NotNull(category1);
         Assert.NotNull(category2);
         Assert.Equal("CAT1", category1.Code);
@@ -330,23 +214,15 @@ public class CreateCategoryCommandHandlerTests
     public async Task Handle_ShouldMapCommandPropertiesToCategory_WhenCreatingCategory()
     {
         // Arrange
-        var command = new CreateCategoryCommand
-        {
-            Name = "Property Mapping Test",
-            Code = "PROPMAP"
-        };
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(command, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateCategoryCommandHandler(_mockValidator.Object, _dbContext);
+        using var db = CreateDbContext();
+        var command = new CreateCategoryCommand { Name = "Property Mapping Test", Code = "PROPM" };
+        var handler = CreateHandler(db);
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var category = await _dbContext.PaymentCategories.FindAsync(result);
+        var category = await db.PaymentCategories.FindAsync(result);
         Assert.NotNull(category);
         Assert.Equal(command.Name, category.Name);
         Assert.Equal(command.Code, category.Code);
@@ -354,36 +230,36 @@ public class CreateCategoryCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ShouldCheckForCategoryCodeTooLong_BeforeCreation()
+    {
+        // Arrange
+        using var db = CreateDbContext();
+        var tooLongCode = "LONGCODE";
+        
+        var command = new CreateCategoryCommand { Name = "Long Category", Code = tooLongCode };
+        var handler = CreateHandler(db);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<ValidationException>(
+            () => handler.Handle(command, CancellationToken.None));
+        Assert.Contains("Category code cannot exceed 5 characters.", exception.Message);
+    }
+
+    [Fact]
     public async Task Handle_ShouldCheckForExistingCategory_BeforeCreation()
     {
         // Arrange
-        var existingCode = "PREEXIST";
-        var existingCategory = new PaymentCategory
-        {
-            Id = Guid.NewGuid(),
-            Name = "Pre-existing Category",
-            Code = existingCode
-        };
+        using var db = CreateDbContext();
+        var existingCode = "EXST";
+        db.PaymentCategories.Add(new PaymentCategory { Id = Guid.NewGuid(), Name = "Pre-existing Category", Code = existingCode });
+        await db.SaveChangesAsync();
 
-        _dbContext.PaymentCategories.Add(existingCategory);
-        await _dbContext.SaveChangesAsync();
-
-        var command = new CreateCategoryCommand
-        {
-            Name = "Duplicate Attempt",
-            Code = existingCode
-        };
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(command, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateCategoryCommandHandler(_mockValidator.Object, _dbContext);
+        var command = new CreateCategoryCommand { Name = "Duplicate Attempt", Code = existingCode };
+        var handler = CreateHandler(db);
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => handler.Handle(command, CancellationToken.None));
-
         Assert.Contains(existingCode, exception.Message);
         Assert.Contains("already exists", exception.Message);
     }

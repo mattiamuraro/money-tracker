@@ -1,7 +1,5 @@
 ﻿using FluentValidation;
-using FluentValidation.Results;
 using Microsoft.EntityFrameworkCore;
-using Moq;
 using MoneyTracker.BusinessLogic.Features.Forecasts.CreateForecastDefinition;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
@@ -10,19 +8,39 @@ namespace MoneyTracker.BusinessLogic.Tests.Features.Forecasts.CreateForecastDefi
 
 public class CreateForecastDefinitionCommandHandlerTests
 {
+    private static MoneyTrackerDbContext CreateDbContext() =>
+        new(new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options, null);
+
+    private static CreateForecastDefinitionCommandHandler CreateHandler(MoneyTrackerDbContext db) =>
+        new(new CreateForecastDefinitionCommandValidator(), db);
+
+    private static async Task<(Guid UserId, Guid RecurrenceRuleTypeId)> SeedCoreDataAsync(MoneyTrackerDbContext db)
+    {
+        var userId = Guid.NewGuid();
+        var recurrenceRuleTypeId = Guid.NewGuid();
+
+        db.Users.Add(new User { Id = userId, Username = "testuser", PasswordHash = "hash" });
+        db.ForecastRecurrenceRuleTypes.Add(new ForecastRecurrenceRuleType
+        {
+            Id = recurrenceRuleTypeId,
+            Name = "Daily",
+            Code = "Day"
+        });
+
+        await db.SaveChangesAsync();
+        return (userId, recurrenceRuleTypeId);
+    }
+
     [Fact]
     public void Constructor_ShouldInitialize_AllDependencies()
     {
         // Arrange
-        var mockValidator = new Mock<IValidator<CreateForecastDefinitionCommand>>();
-        var mockDbContext = new Mock<MoneyTrackerDbContext>(
-            new DbContextOptions<MoneyTrackerDbContext>(),
-            null!);
+        using var db = CreateDbContext();
 
         // Act
-        var handler = new CreateForecastDefinitionCommandHandler(
-            mockValidator.Object,
-            mockDbContext.Object);
+        var handler = CreateHandler(db);
 
         // Assert
         Assert.NotNull(handler);
@@ -32,19 +50,8 @@ public class CreateForecastDefinitionCommandHandlerTests
     public async Task Handle_ValidationFails_ThrowsValidationException()
     {
         // Arrange
-        var mockValidator = new Mock<IValidator<CreateForecastDefinitionCommand>>();
-        var mockDbContext = new Mock<MoneyTrackerDbContext>(
-            new DbContextOptions<MoneyTrackerDbContext>(),
-            null!);
-
-        var validationFailure = new ValidationFailure("Description", "Description is required");
-        mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<CreateForecastDefinitionCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult(new[] { validationFailure }));
-
-        var handler = new CreateForecastDefinitionCommandHandler(
-            mockValidator.Object,
-            mockDbContext.Object);
+        using var db = CreateDbContext();
+        var handler = CreateHandler(db);
 
         var command = new CreateForecastDefinitionCommand
         {
@@ -65,40 +72,9 @@ public class CreateForecastDefinitionCommandHandlerTests
     public async Task Handle_IncomeCommand_CreatesIncome()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
-            .Options;
-        var dbContext = new MoneyTrackerDbContext(options, null!);
-
-        var userId = Guid.NewGuid();
-        var recurrenceRuleTypeId = Guid.NewGuid();
-
-        var user = new User
-        {
-            Id = userId,
-            Username = "testuser",
-            PasswordHash = "hash"
-        };
-        dbContext.Users.Add(user);
-
-        var recurrenceRuleType = new ForecastRecurrenceRuleType
-        {
-            Id = recurrenceRuleTypeId,
-            Name = "Daily",
-            Code = "Day"
-        };
-        dbContext.ForecastRecurrenceRuleTypes.Add(recurrenceRuleType);
-
-        await dbContext.SaveChangesAsync();
-
-        var mockValidator = new Mock<IValidator<CreateForecastDefinitionCommand>>();
-        mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<CreateForecastDefinitionCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateForecastDefinitionCommandHandler(
-            mockValidator.Object,
-            dbContext);
+        using var db = CreateDbContext();
+        var (_, recurrenceRuleTypeId) = await SeedCoreDataAsync(db);
+        var handler = CreateHandler(db);
 
         var command = new CreateForecastDefinitionCommand
         {
@@ -116,7 +92,7 @@ public class CreateForecastDefinitionCommandHandlerTests
         // Assert
         Assert.NotEqual(Guid.Empty, result);
 
-        var createdIncome = await dbContext.ForecastIncomes.FirstOrDefaultAsync(x => x.Id == result);
+        var createdIncome = await db.ForecastIncomes.FirstOrDefaultAsync(x => x.Id == result);
         Assert.NotNull(createdIncome);
         Assert.Equal("Test Income", createdIncome.Description);
         Assert.Equal(1000.00m, createdIncome.Amount);
@@ -127,50 +103,13 @@ public class CreateForecastDefinitionCommandHandlerTests
     public async Task Handle_ExpenseCommand_CreatesExpense()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
-            .Options;
-        var dbContext = new MoneyTrackerDbContext(options, null!);
-
-        var userId = Guid.NewGuid();
-        var recurrenceRuleTypeId = Guid.NewGuid();
+        using var db = CreateDbContext();
+        var (_, recurrenceRuleTypeId) = await SeedCoreDataAsync(db);
         var categoryId = Guid.NewGuid();
+        db.PaymentCategories.Add(new PaymentCategory { Id = categoryId, Name = "Test Category", Code = "TC" });
+        await db.SaveChangesAsync();
 
-        var user = new User
-        {
-            Id = userId,
-            Username = "testuser",
-            PasswordHash = "hash"
-        };
-        dbContext.Users.Add(user);
-
-        var recurrenceRuleType = new ForecastRecurrenceRuleType
-        {
-            Id = recurrenceRuleTypeId,
-            Name = "Daily",
-            Code = "Day"
-        };
-        dbContext.ForecastRecurrenceRuleTypes.Add(recurrenceRuleType);
-
-        var category = new PaymentCategory
-        {
-            Id = categoryId,
-            Name = "Test Category",
-            CreatedById = userId,
-            ModifiedById = userId
-        };
-        dbContext.PaymentCategories.Add(category);
-
-        await dbContext.SaveChangesAsync();
-
-        var mockValidator = new Mock<IValidator<CreateForecastDefinitionCommand>>();
-        mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<CreateForecastDefinitionCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateForecastDefinitionCommandHandler(
-            mockValidator.Object,
-            dbContext);
+        var handler = CreateHandler(db);
 
         var command = new CreateForecastDefinitionCommand
         {
@@ -189,7 +128,7 @@ public class CreateForecastDefinitionCommandHandlerTests
         // Assert
         Assert.NotEqual(Guid.Empty, result);
 
-        var createdExpense = await dbContext.ForecastExpenses.FirstOrDefaultAsync(x => x.Id == result);
+        var createdExpense = await db.ForecastExpenses.FirstOrDefaultAsync(x => x.Id == result);
         Assert.NotNull(createdExpense);
         Assert.Equal("Test Expense", createdExpense.Description);
         Assert.Equal(500.00m, createdExpense.Amount);
@@ -201,48 +140,16 @@ public class CreateForecastDefinitionCommandHandlerTests
     public async Task Handle_ExpenseCommandWithInvalidCategory_ThrowsInvalidOperationException()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
-            .Options;
-        var dbContext = new MoneyTrackerDbContext(options, null!);
+        using var db = CreateDbContext();
+        var (_, recurrenceRuleTypeId) = await SeedCoreDataAsync(db);
+        var handler = CreateHandler(db);
 
-        var userId = Guid.NewGuid();
-        var recurrenceRuleTypeId = Guid.NewGuid();
-
-        var user = new User
-        {
-            Id = userId,
-            Username = "testuser",
-            PasswordHash = "hash"
-        };
-        dbContext.Users.Add(user);
-
-        var recurrenceRuleType = new ForecastRecurrenceRuleType
-        {
-            Id = recurrenceRuleTypeId,
-            Name = "Daily",
-            Code = "Day"
-        };
-        dbContext.ForecastRecurrenceRuleTypes.Add(recurrenceRuleType);
-
-        await dbContext.SaveChangesAsync();
-
-        var mockValidator = new Mock<IValidator<CreateForecastDefinitionCommand>>();
-        mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<CreateForecastDefinitionCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateForecastDefinitionCommandHandler(
-            mockValidator.Object,
-            dbContext);
-
-        var nonExistentCategoryId = Guid.NewGuid();
         var command = new CreateForecastDefinitionCommand
         {
             Description = "Test Expense",
             Amount = 500.00m,
             IsIncome = false,
-            PaymentCategoryId = nonExistentCategoryId,
+            PaymentCategoryId = Guid.NewGuid(),
             ForecastRecurrenceRuleTypeId = recurrenceRuleTypeId,
             RecurrenceStart = DateOnly.FromDateTime(DateTime.Today),
             Interval = 1
@@ -259,40 +166,9 @@ public class CreateForecastDefinitionCommandHandlerTests
     public async Task Handle_IncomeCommand_CreatesForecastOccurrences()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
-            .Options;
-        var dbContext = new MoneyTrackerDbContext(options, null!);
-
-        var userId = Guid.NewGuid();
-        var recurrenceRuleTypeId = Guid.NewGuid();
-
-        var user = new User
-        {
-            Id = userId,
-            Username = "testuser",
-            PasswordHash = "hash"
-        };
-        dbContext.Users.Add(user);
-
-        var recurrenceRuleType = new ForecastRecurrenceRuleType
-        {
-            Id = recurrenceRuleTypeId,
-            Name = "Daily",
-            Code = "Day"
-        };
-        dbContext.ForecastRecurrenceRuleTypes.Add(recurrenceRuleType);
-
-        await dbContext.SaveChangesAsync();
-
-        var mockValidator = new Mock<IValidator<CreateForecastDefinitionCommand>>();
-        mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<CreateForecastDefinitionCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateForecastDefinitionCommandHandler(
-            mockValidator.Object,
-            dbContext);
+        using var db = CreateDbContext();
+        var (_, recurrenceRuleTypeId) = await SeedCoreDataAsync(db);
+        var handler = CreateHandler(db);
 
         var today = DateOnly.FromDateTime(DateTime.Today);
         var command = new CreateForecastDefinitionCommand
@@ -309,7 +185,7 @@ public class CreateForecastDefinitionCommandHandlerTests
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var createdOccurrences = await dbContext.ForecastOccurrences
+        var createdOccurrences = await db.ForecastOccurrences
             .Where(x => x.ForecastDefinitionId == result)
             .ToListAsync();
 
@@ -327,50 +203,13 @@ public class CreateForecastDefinitionCommandHandlerTests
     public async Task Handle_ExpenseCommand_CreatesForecastOccurrences()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
-            .Options;
-        var dbContext = new MoneyTrackerDbContext(options, null!);
-
-        var userId = Guid.NewGuid();
-        var recurrenceRuleTypeId = Guid.NewGuid();
+        using var db = CreateDbContext();
+        var (_, recurrenceRuleTypeId) = await SeedCoreDataAsync(db);
         var categoryId = Guid.NewGuid();
+        db.PaymentCategories.Add(new PaymentCategory { Id = categoryId, Name = "Test Category", Code = "TC" });
+        await db.SaveChangesAsync();
 
-        var user = new User
-        {
-            Id = userId,
-            Username = "testuser",
-            PasswordHash = "hash"
-        };
-        dbContext.Users.Add(user);
-
-        var recurrenceRuleType = new ForecastRecurrenceRuleType
-        {
-            Id = recurrenceRuleTypeId,
-            Name = "Daily",
-            Code = "Day"
-        };
-        dbContext.ForecastRecurrenceRuleTypes.Add(recurrenceRuleType);
-
-        var category = new PaymentCategory
-        {
-            Id = categoryId,
-            Name = "Test Category",
-            CreatedById = userId,
-            ModifiedById = userId
-        };
-        dbContext.PaymentCategories.Add(category);
-
-        await dbContext.SaveChangesAsync();
-
-        var mockValidator = new Mock<IValidator<CreateForecastDefinitionCommand>>();
-        mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<CreateForecastDefinitionCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateForecastDefinitionCommandHandler(
-            mockValidator.Object,
-            dbContext);
+        var handler = CreateHandler(db);
 
         var today = DateOnly.FromDateTime(DateTime.Today);
         var command = new CreateForecastDefinitionCommand
@@ -388,7 +227,7 @@ public class CreateForecastDefinitionCommandHandlerTests
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        var createdOccurrences = await dbContext.ForecastOccurrences
+        var createdOccurrences = await db.ForecastOccurrences
             .Where(x => x.ForecastDefinitionId == result)
             .ToListAsync();
 
@@ -407,18 +246,8 @@ public class CreateForecastDefinitionCommandHandlerTests
     public async Task Handle_CancellationRequested_ThrowsOperationCanceledException()
     {
         // Arrange
-        var mockValidator = new Mock<IValidator<CreateForecastDefinitionCommand>>();
-        var mockDbContext = new Mock<MoneyTrackerDbContext>(
-            new DbContextOptions<MoneyTrackerDbContext>(),
-            null!);
-
-        mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<CreateForecastDefinitionCommand>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new OperationCanceledException());
-
-        var handler = new CreateForecastDefinitionCommandHandler(
-            mockValidator.Object,
-            mockDbContext.Object);
+        using var db = CreateDbContext();
+        var handler = CreateHandler(db);
 
         var command = new CreateForecastDefinitionCommand
         {
@@ -430,52 +259,21 @@ public class CreateForecastDefinitionCommandHandlerTests
             Interval = 1
         };
 
-        var cancellationTokenSource = new CancellationTokenSource();
-        cancellationTokenSource.Cancel();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
 
         // Act & Assert
         await Assert.ThrowsAsync<OperationCanceledException>(
-            () => handler.Handle(command, cancellationTokenSource.Token));
+            () => handler.Handle(command, cts.Token));
     }
 
     [Fact]
     public async Task Handle_IncomeCommandWithRecurrenceEnd_CreatesIncome()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
-            .Options;
-        var dbContext = new MoneyTrackerDbContext(options, null!);
-
-        var userId = Guid.NewGuid();
-        var recurrenceRuleTypeId = Guid.NewGuid();
-
-        var user = new User
-        {
-            Id = userId,
-            Username = "testuser",
-            PasswordHash = "hash"
-        };
-        dbContext.Users.Add(user);
-
-        var recurrenceRuleType = new ForecastRecurrenceRuleType
-        {
-            Id = recurrenceRuleTypeId,
-            Name = "Daily",
-            Code = "Day"
-        };
-        dbContext.ForecastRecurrenceRuleTypes.Add(recurrenceRuleType);
-
-        await dbContext.SaveChangesAsync();
-
-        var mockValidator = new Mock<IValidator<CreateForecastDefinitionCommand>>();
-        mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<CreateForecastDefinitionCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateForecastDefinitionCommandHandler(
-            mockValidator.Object,
-            dbContext);
+        using var db = CreateDbContext();
+        var (_, recurrenceRuleTypeId) = await SeedCoreDataAsync(db);
+        var handler = CreateHandler(db);
 
         var today = DateOnly.FromDateTime(DateTime.Today);
         var command = new CreateForecastDefinitionCommand
@@ -495,7 +293,7 @@ public class CreateForecastDefinitionCommandHandlerTests
         // Assert
         Assert.NotEqual(Guid.Empty, result);
 
-        var createdIncome = await dbContext.ForecastIncomes.FirstOrDefaultAsync(x => x.Id == result);
+        var createdIncome = await db.ForecastIncomes.FirstOrDefaultAsync(x => x.Id == result);
         Assert.NotNull(createdIncome);
         Assert.Equal(today.AddDays(30), createdIncome.RecurrenceEnd);
     }
@@ -504,50 +302,13 @@ public class CreateForecastDefinitionCommandHandlerTests
     public async Task Handle_ExpenseCommandWithRecurrenceEnd_CreatesExpense()
     {
         // Arrange
-        var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
-            .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
-            .Options;
-        var dbContext = new MoneyTrackerDbContext(options, null!);
-
-        var userId = Guid.NewGuid();
-        var recurrenceRuleTypeId = Guid.NewGuid();
+        using var db = CreateDbContext();
+        var (_, recurrenceRuleTypeId) = await SeedCoreDataAsync(db);
         var categoryId = Guid.NewGuid();
+        db.PaymentCategories.Add(new PaymentCategory { Id = categoryId, Name = "Test Category", Code = "TC" });
+        await db.SaveChangesAsync();
 
-        var user = new User
-        {
-            Id = userId,
-            Username = "testuser",
-            PasswordHash = "hash"
-        };
-        dbContext.Users.Add(user);
-
-        var recurrenceRuleType = new ForecastRecurrenceRuleType
-        {
-            Id = recurrenceRuleTypeId,
-            Name = "Daily",
-            Code = "Day"
-        };
-        dbContext.ForecastRecurrenceRuleTypes.Add(recurrenceRuleType);
-
-        var category = new PaymentCategory
-        {
-            Id = categoryId,
-            Name = "Test Category",
-            CreatedById = userId,
-            ModifiedById = userId
-        };
-        dbContext.PaymentCategories.Add(category);
-
-        await dbContext.SaveChangesAsync();
-
-        var mockValidator = new Mock<IValidator<CreateForecastDefinitionCommand>>();
-        mockValidator
-            .Setup(v => v.ValidateAsync(It.IsAny<CreateForecastDefinitionCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        var handler = new CreateForecastDefinitionCommandHandler(
-            mockValidator.Object,
-            dbContext);
+        var handler = CreateHandler(db);
 
         var today = DateOnly.FromDateTime(DateTime.Today);
         var command = new CreateForecastDefinitionCommand
@@ -568,7 +329,7 @@ public class CreateForecastDefinitionCommandHandlerTests
         // Assert
         Assert.NotEqual(Guid.Empty, result);
 
-        var createdExpense = await dbContext.ForecastExpenses.FirstOrDefaultAsync(x => x.Id == result);
+        var createdExpense = await db.ForecastExpenses.FirstOrDefaultAsync(x => x.Id == result);
         Assert.NotNull(createdExpense);
         Assert.Equal(today.AddDays(30), createdExpense.RecurrenceEnd);
     }

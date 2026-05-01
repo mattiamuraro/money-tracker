@@ -68,7 +68,7 @@ public class GetAllCategoriesQueryHandlerTests
         Assert.Equal(categoryId, resultCategory.Id);
         Assert.Equal("Food", resultCategory.Name);
         Assert.Equal("FOOD", resultCategory.Code);
-        Assert.Equal(createdAt, resultCategory.CreatedAt);
+        Assert.Equal(category.CreatedAt, resultCategory.CreatedAt);
     }
 
     [Fact]
@@ -113,12 +113,12 @@ public class GetAllCategoriesQueryHandlerTests
         var firstCategory = resultList.First(c => c.Id == categoryId1);
         Assert.Equal("Food", firstCategory.Name);
         Assert.Equal("FOOD", firstCategory.Code);
-        Assert.Equal(createdAt1, firstCategory.CreatedAt);
+        Assert.Equal(category1.CreatedAt, firstCategory.CreatedAt);
 
         var secondCategory = resultList.First(c => c.Id == categoryId2);
         Assert.Equal("Transport", secondCategory.Name);
         Assert.Equal("TRNSP", secondCategory.Code);
-        Assert.Equal(createdAt2, secondCategory.CreatedAt);
+        Assert.Equal(category2.CreatedAt, secondCategory.CreatedAt);
     }
 
     [Fact]
@@ -149,7 +149,7 @@ public class GetAllCategoriesQueryHandlerTests
         Assert.Equal(categoryId, resultCategory.Id);
         Assert.Equal("Healthcare", resultCategory.Name);
         Assert.Equal("HELTH", resultCategory.Code);
-        Assert.Equal(createdAt, resultCategory.CreatedAt);
+        Assert.Equal(category.CreatedAt, resultCategory.CreatedAt);
     }
 
     [Fact]

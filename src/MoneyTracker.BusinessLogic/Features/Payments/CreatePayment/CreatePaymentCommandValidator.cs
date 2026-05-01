@@ -31,10 +31,6 @@ public class CreatePaymentCommandValidator : AbstractValidator<CreatePaymentComm
             .NotEmpty()
             .WithMessage("Payment category is required");
 
-        RuleFor(x => x .CreatedById)
-            .NotEmpty()
-            .WithMessage("CreatedBy is required");
-
         RuleFor(x => x.IsOneShot)
             .NotNull()
             .WithMessage("IsOneShot must be specified");

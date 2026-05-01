@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.Forecasts.Contracts;
 using MoneyTracker.Api.Endpoints.Forecasts.ExtensionMethods;
+using MoneyTracker.BusinessLogic.Common.Models;
 using MoneyTracker.BusinessLogic.Features.Forecasts.CreateForecastDefinition;
 using MoneyTracker.BusinessLogic.Features.Forecasts.DeleteForecastDefinition;
 using MoneyTracker.BusinessLogic.Features.Forecasts.DiscardPendingForecastOccurrence;
@@ -10,7 +11,6 @@ using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRows;
 using MoneyTracker.BusinessLogic.Features.Forecasts.GetPendingForecastOccurrences;
 using MoneyTracker.BusinessLogic.Features.Forecasts.SynchronizeForecastOccurrences;
 using MoneyTracker.BusinessLogic.Features.Forecasts.UpdateForecastDefinition;
-using MoneyTracker.BusinessLogic.Shared.Models;
 
 namespace MoneyTracker.Api.Endpoints.Forecasts
 {

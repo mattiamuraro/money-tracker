@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -31,7 +31,9 @@ namespace MoneyTracker.BusinessLogic.Features.Auth.Register
             if (!_authOptions.AllowRegistration)
                 throw new UnauthorizedAccessException("Registration is currently disabled.");
 
-            await _validator.ValidateAndThrowAsync(command, cancellationToken);
+            var validationResult = await _validator.ValidateAsync(command, cancellationToken);
+        if (!validationResult.IsValid)
+            throw new ValidationException(validationResult.Errors);
 
             var usernameTaken = await _dbContext.Users.AnyAsync(u => u.Username == command.Username, cancellationToken);
 

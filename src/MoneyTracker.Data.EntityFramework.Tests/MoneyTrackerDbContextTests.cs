@@ -1,9 +1,6 @@
-using MoneyTracker.Data;
-using MoneyTracker.Data.EntityFramework;
 using MoneyTracker.Data.EntityFramework.Tests.TestFixtures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
-using Moq;
 using System.Security.Claims;
 using Xunit;
 
@@ -39,11 +36,7 @@ public class MoneyTrackerDbContextTests : IDisposable
         {
             Id = Guid.NewGuid(),
             Name = "Food",
-            Code = "FOOD",
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = Guid.NewGuid()
+            Code = "FOOD"
         };
 
         _dbContext.PaymentCategories.Add(category);
@@ -62,11 +55,7 @@ public class MoneyTrackerDbContextTests : IDisposable
         {
             Id = categoryId,
             Name = "Food",
-            Code = "FOOD",
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = Guid.NewGuid()
+            Code = "FOOD"
         };
 
         var payment = new Payment
@@ -76,11 +65,7 @@ public class MoneyTrackerDbContextTests : IDisposable
             Amount = 50.00m,
             Date = DateTime.UtcNow,
             PaymentCategoryId = categoryId,
-            IsOneShot = true,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = Guid.NewGuid()
+            IsOneShot = true
         };
 
         _dbContext.PaymentCategories.Add(category);
@@ -105,11 +90,7 @@ public class MoneyTrackerDbContextTests : IDisposable
         {
             Id = categoryId,
             Name = "Food",
-            Code = "FOOD",
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = Guid.NewGuid()
+            Code = "FOOD"
         };
 
         var paymentId = Guid.NewGuid();
@@ -120,11 +101,7 @@ public class MoneyTrackerDbContextTests : IDisposable
             Amount = 50.00m,
             Date = DateTime.UtcNow,
             PaymentCategoryId = categoryId,
-            IsOneShot = true,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = Guid.NewGuid()
+            IsOneShot = true
         };
 
         _dbContext.PaymentCategories.Add(category);
@@ -152,11 +129,7 @@ public class MoneyTrackerDbContextTests : IDisposable
         {
             Id = categoryId,
             Name = "Food",
-            Code = "FOOD",
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = Guid.NewGuid()
+            Code = "FOOD"
         };
 
         var paymentId = Guid.NewGuid();
@@ -167,11 +140,7 @@ public class MoneyTrackerDbContextTests : IDisposable
             Amount = 50.00m,
             Date = DateTime.UtcNow,
             PaymentCategoryId = categoryId,
-            IsOneShot = true,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = Guid.NewGuid()
+            IsOneShot = true
         };
 
         _dbContext.PaymentCategories.Add(category);
@@ -195,22 +164,14 @@ public class MoneyTrackerDbContextTests : IDisposable
         {
             Id = Guid.NewGuid(),
             Name = "Food",
-            Code = "FOOD",
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = Guid.NewGuid()
+            Code = "FOOD"
         };
 
         var category2 = new PaymentCategory
         {
             Id = Guid.NewGuid(),
             Name = "Transport",
-            Code = "TRANS",
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = Guid.NewGuid()
+            Code = "TRANS"
         };
 
         _dbContext.PaymentCategories.Add(category1);
@@ -222,11 +183,7 @@ public class MoneyTrackerDbContextTests : IDisposable
             Description = "Groceries",
             Amount = 50.00m,
             Date = DateTime.UtcNow,
-            PaymentCategoryId = category1.Id,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = Guid.NewGuid()
+            PaymentCategoryId = category1.Id
         };
 
         var payment2 = new Payment
@@ -235,11 +192,7 @@ public class MoneyTrackerDbContextTests : IDisposable
             Description = "Bus Ticket",
             Amount = 10.00m,
             Date = DateTime.UtcNow,
-            PaymentCategoryId = category2.Id,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = Guid.NewGuid()
+            PaymentCategoryId = category2.Id
         };
 
         _dbContext.Payments.Add(payment1);
@@ -262,11 +215,7 @@ public class MoneyTrackerDbContextTests : IDisposable
         {
             Id = categoryId,
             Name = "Food",
-            Code = "FOOD",
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = Guid.NewGuid()
+            Code = "FOOD"
         };
 
         var today = DateTime.UtcNow.Date;
@@ -277,11 +226,7 @@ public class MoneyTrackerDbContextTests : IDisposable
             Description = "Old Payment",
             Amount = 50.00m,
             Date = today.AddDays(-5),
-            PaymentCategoryId = categoryId,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = Guid.NewGuid()
+            PaymentCategoryId = categoryId
         };
 
         var payment2 = new Payment
@@ -290,11 +235,7 @@ public class MoneyTrackerDbContextTests : IDisposable
             Description = "Recent Payment",
             Amount = 30.00m,
             Date = today.AddDays(1),
-            PaymentCategoryId = categoryId,
-            CreatedAt = DateTime.UtcNow,
-            CreatedById = Guid.NewGuid(),
-            ModifiedAt = DateTime.UtcNow,
-            ModifiedById = Guid.NewGuid()
+            PaymentCategoryId = categoryId
         };
 
         _dbContext.PaymentCategories.Add(category);
@@ -328,9 +269,9 @@ public class MoneyTrackerDbContextTests : IDisposable
         var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        var httpContextAccessor = new FakeHttpContextAccessor();
 
-        var context = new MoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+        var context = new MoneyTrackerDbContext(options, httpContextAccessor);
 
         Assert.NotNull(context);
     }
@@ -418,19 +359,11 @@ public class MoneyTrackerDbContextTests : IDisposable
         var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-        
-        var userId = Guid.NewGuid();
-        var claims = new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) };
-        var identity = new ClaimsIdentity(claims, "TestAuth");
-        var claimsPrincipal = new ClaimsPrincipal(identity);
-        
-        var mockHttpContext = new Mock<HttpContext>();
-        mockHttpContext.Setup(x => x.User).Returns(claimsPrincipal);
-        
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(mockHttpContext.Object);
 
-        using var context = new MoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+        var userId = Guid.NewGuid();
+        var httpContextAccessor = new FakeHttpContextAccessor(userId);
+
+        using var context = new MoneyTrackerDbContext(options, httpContextAccessor);
         var category = new PaymentCategory
         {
             Id = Guid.NewGuid(),
@@ -507,19 +440,11 @@ public class MoneyTrackerDbContextTests : IDisposable
         var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-        
-        var userId = Guid.NewGuid();
-        var claims = new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) };
-        var identity = new ClaimsIdentity(claims, "TestAuth");
-        var claimsPrincipal = new ClaimsPrincipal(identity);
-        
-        var mockHttpContext = new Mock<HttpContext>();
-        mockHttpContext.Setup(x => x.User).Returns(claimsPrincipal);
-        
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(mockHttpContext.Object);
 
-        using var context = new MoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+        var userId = Guid.NewGuid();
+        var httpContextAccessor = new FakeHttpContextAccessor(userId);
+
+        using var context = new MoneyTrackerDbContext(options, httpContextAccessor);
         var category = new PaymentCategory
         {
             Id = Guid.NewGuid(),
@@ -563,7 +488,7 @@ public class MoneyTrackerDbContextTests : IDisposable
         var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-        
+
         using var context = new TestableMoneyTrackerDbContext(options, null);
 
         var userId = context.GetCurrentUserPublic();
@@ -577,11 +502,8 @@ public class MoneyTrackerDbContextTests : IDisposable
         var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-        
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        mockHttpContextAccessor.Setup(x => x.HttpContext).Returns((HttpContext?)null);
 
-        using var context = new TestableMoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+        using var context = new TestableMoneyTrackerDbContext(options, new FakeHttpContextAccessor(httpContext: null));
 
         var userId = context.GetCurrentUserPublic();
 
@@ -594,14 +516,9 @@ public class MoneyTrackerDbContextTests : IDisposable
         var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-        
-        var mockHttpContext = new Mock<HttpContext>();
-        mockHttpContext.Setup(x => x.User).Returns((ClaimsPrincipal)null!);
-        
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(mockHttpContext.Object);
 
-        using var context = new TestableMoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+        var httpContext = new DefaultHttpContext { User = null! };
+        using var context = new TestableMoneyTrackerDbContext(options, new FakeHttpContextAccessor(httpContext));
 
         var userId = context.GetCurrentUserPublic();
 
@@ -614,18 +531,11 @@ public class MoneyTrackerDbContextTests : IDisposable
         var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-        
+
         var claims = new[] { new Claim(ClaimTypes.Email, "test@example.com") };
         var identity = new ClaimsIdentity(claims);
-        var claimsPrincipal = new ClaimsPrincipal(identity);
-        
-        var mockHttpContext = new Mock<HttpContext>();
-        mockHttpContext.Setup(x => x.User).Returns(claimsPrincipal);
-        
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(mockHttpContext.Object);
-
-        using var context = new TestableMoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+        var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+        using var context = new TestableMoneyTrackerDbContext(options, new FakeHttpContextAccessor(httpContext));
 
         var userId = context.GetCurrentUserPublic();
 
@@ -638,18 +548,11 @@ public class MoneyTrackerDbContextTests : IDisposable
         var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-        
+
         var claims = new[] { new Claim(ClaimTypes.NameIdentifier, "not-a-guid") };
         var identity = new ClaimsIdentity(claims);
-        var claimsPrincipal = new ClaimsPrincipal(identity);
-        
-        var mockHttpContext = new Mock<HttpContext>();
-        mockHttpContext.Setup(x => x.User).Returns(claimsPrincipal);
-        
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(mockHttpContext.Object);
-
-        using var context = new TestableMoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+        var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+        using var context = new TestableMoneyTrackerDbContext(options, new FakeHttpContextAccessor(httpContext));
 
         var userId = context.GetCurrentUserPublic();
 
@@ -662,19 +565,12 @@ public class MoneyTrackerDbContextTests : IDisposable
         var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-        
+
         var expectedUserId = Guid.NewGuid();
         var claims = new[] { new Claim(ClaimTypes.NameIdentifier, expectedUserId.ToString()) };
         var identity = new ClaimsIdentity(claims);
-        var claimsPrincipal = new ClaimsPrincipal(identity);
-        
-        var mockHttpContext = new Mock<HttpContext>();
-        mockHttpContext.Setup(x => x.User).Returns(claimsPrincipal);
-        
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        mockHttpContextAccessor.Setup(x => x.HttpContext).Returns(mockHttpContext.Object);
-
-        using var context = new TestableMoneyTrackerDbContext(options, mockHttpContextAccessor.Object);
+        var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+        using var context = new TestableMoneyTrackerDbContext(options, new FakeHttpContextAccessor(httpContext));
 
         var userId = context.GetCurrentUserPublic();
 
@@ -689,5 +585,19 @@ public class MoneyTrackerDbContextTests : IDisposable
         }
 
         public Guid GetCurrentUserPublic() => GetCurrentUser();
+    }
+
+    private sealed class FakeHttpContextAccessor : IHttpContextAccessor
+    {
+        public HttpContext? HttpContext { get; set; }
+
+        public FakeHttpContextAccessor(HttpContext? httpContext = null) => HttpContext = httpContext;
+
+        public FakeHttpContextAccessor(Guid userId)
+        {
+            var claims = new[] { new Claim(ClaimTypes.NameIdentifier, userId.ToString()) };
+            var identity = new ClaimsIdentity(claims, "TestAuth");
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+        }
     }
 }

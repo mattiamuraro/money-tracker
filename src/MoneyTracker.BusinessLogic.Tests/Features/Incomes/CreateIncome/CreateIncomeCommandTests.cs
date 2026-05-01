@@ -15,7 +15,6 @@ public class CreateIncomeCommandTests
         Assert.Null(command.ForecastOccurrenceId);
         Assert.Equal(0m, command.Amount);
         Assert.Equal(default(DateTime), command.Date);
-        Assert.Equal(Guid.Empty, command.CreatedById);
         Assert.Null(command.IdempotencyKey);
     }
 
@@ -26,7 +25,6 @@ public class CreateIncomeCommandTests
         var description = "Test Income";
         var amount = 100.50m;
         var date = new DateTime(2024, 1, 15);
-        var createdById = Guid.NewGuid();
         var idempotencyKey = "test-key-123";
         var forecastOccurrenceId = Guid.NewGuid();
 
@@ -35,7 +33,6 @@ public class CreateIncomeCommandTests
             description,
             amount,
             date,
-            createdById,
             idempotencyKey,
             forecastOccurrenceId);
 
@@ -43,7 +40,6 @@ public class CreateIncomeCommandTests
         Assert.Equal(description, command.Description);
         Assert.Equal(amount, command.Amount);
         Assert.Equal(date, command.Date);
-        Assert.Equal(createdById, command.CreatedById);
         Assert.Equal(idempotencyKey, command.IdempotencyKey);
         Assert.Equal(forecastOccurrenceId, command.ForecastOccurrenceId);
     }
@@ -55,20 +51,17 @@ public class CreateIncomeCommandTests
         var description = "Test Income";
         var amount = 50.25m;
         var date = new DateTime(2024, 2, 20);
-        var createdById = Guid.NewGuid();
 
         // Act
         var command = new CreateIncomeCommand(
             description,
             amount,
-            date,
-            createdById);
+            date);
 
         // Assert
         Assert.Equal(description, command.Description);
         Assert.Equal(amount, command.Amount);
         Assert.Equal(date, command.Date);
-        Assert.Equal(createdById, command.CreatedById);
         Assert.Null(command.IdempotencyKey);
         Assert.Null(command.ForecastOccurrenceId);
     }
@@ -80,15 +73,13 @@ public class CreateIncomeCommandTests
         string? description = null;
         var amount = 100m;
         var date = DateTime.Now;
-        var createdById = Guid.NewGuid();
 
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() =>
             new CreateIncomeCommand(
                 description!,
                 amount,
-                date,
-                createdById));
+                date));
 
         Assert.Equal("description", exception.ParamName);
     }
@@ -100,20 +91,17 @@ public class CreateIncomeCommandTests
         var description = "Test Income";
         var amount = 0m;
         var date = DateTime.MinValue;
-        var createdById = Guid.Empty;
 
         // Act
         var command = new CreateIncomeCommand(
             description,
             amount,
-            date,
-            createdById);
+            date);
 
         // Assert
         Assert.Equal(description, command.Description);
         Assert.Equal(0m, command.Amount);
         Assert.Equal(DateTime.MinValue, command.Date);
-        Assert.Equal(Guid.Empty, command.CreatedById);
     }
 
     [Fact]
@@ -123,14 +111,12 @@ public class CreateIncomeCommandTests
         var description = "Refund Income";
         var amount = -50.75m;
         var date = new DateTime(2024, 3, 10);
-        var createdById = Guid.NewGuid();
 
         // Act
         var command = new CreateIncomeCommand(
             description,
             amount,
-            date,
-            createdById);
+            date);
 
         // Assert
         Assert.Equal(description, command.Description);
@@ -144,14 +130,12 @@ public class CreateIncomeCommandTests
         var description = "Zero Income";
         var amount = 0m;
         var date = new DateTime(2024, 4, 5);
-        var createdById = Guid.NewGuid();
 
         // Act
         var command = new CreateIncomeCommand(
             description,
             amount,
-            date,
-            createdById);
+            date);
 
         // Assert
         Assert.Equal(description, command.Description);
@@ -165,14 +149,12 @@ public class CreateIncomeCommandTests
         var description = "Large Income";
         var amount = 999999999.99m;
         var date = new DateTime(2024, 5, 25);
-        var createdById = Guid.NewGuid();
 
         // Act
         var command = new CreateIncomeCommand(
             description,
             amount,
-            date,
-            createdById);
+            date);
 
         // Assert
         Assert.Equal(description, command.Description);
@@ -186,14 +168,12 @@ public class CreateIncomeCommandTests
         var description = string.Empty;
         var amount = 25m;
         var date = new DateTime(2024, 6, 15);
-        var createdById = Guid.NewGuid();
 
         // Act
         var command = new CreateIncomeCommand(
             description,
             amount,
-            date,
-            createdById);
+            date);
 
         // Assert
         Assert.Equal(string.Empty, command.Description);
@@ -206,7 +186,6 @@ public class CreateIncomeCommandTests
         var description = "Income with Key";
         var amount = 200m;
         var date = new DateTime(2024, 9, 10);
-        var createdById = Guid.NewGuid();
         var idempotencyKey = "unique-key-456";
 
         // Act
@@ -214,7 +193,6 @@ public class CreateIncomeCommandTests
             description,
             amount,
             date,
-            createdById,
             idempotencyKey);
 
         // Assert
@@ -228,14 +206,12 @@ public class CreateIncomeCommandTests
         var description = "Income without Key";
         var amount = 150m;
         var date = new DateTime(2024, 10, 5);
-        var createdById = Guid.NewGuid();
 
         // Act
         var command = new CreateIncomeCommand(
             description,
             amount,
             date,
-            createdById,
             null);
 
         // Assert
@@ -249,7 +225,6 @@ public class CreateIncomeCommandTests
         var description = "Forecast Income";
         var amount = 300m;
         var date = new DateTime(2024, 11, 15);
-        var createdById = Guid.NewGuid();
         var forecastOccurrenceId = Guid.NewGuid();
 
         // Act
@@ -257,7 +232,6 @@ public class CreateIncomeCommandTests
             description,
             amount,
             date,
-            createdById,
             null,
             forecastOccurrenceId);
 
@@ -272,14 +246,12 @@ public class CreateIncomeCommandTests
         var description = "Non-Forecast Income";
         var amount = 250m;
         var date = new DateTime(2024, 12, 25);
-        var createdById = Guid.NewGuid();
 
         // Act
         var command = new CreateIncomeCommand(
             description,
             amount,
             date,
-            createdById,
             null,
             null);
 
@@ -294,7 +266,6 @@ public class CreateIncomeCommandTests
         var description = "Mixed Income";
         var amount = 175.50m;
         var date = new DateTime(2024, 1, 1);
-        var createdById = Guid.NewGuid();
         var forecastOccurrenceId = Guid.NewGuid();
 
         // Act
@@ -302,7 +273,6 @@ public class CreateIncomeCommandTests
             description,
             amount,
             date,
-            createdById,
             null,
             forecastOccurrenceId);
 
@@ -310,7 +280,6 @@ public class CreateIncomeCommandTests
         Assert.Equal(description, command.Description);
         Assert.Equal(amount, command.Amount);
         Assert.Equal(date, command.Date);
-        Assert.Equal(createdById, command.CreatedById);
         Assert.Null(command.IdempotencyKey);
         Assert.Equal(forecastOccurrenceId, command.ForecastOccurrenceId);
     }
@@ -322,36 +291,14 @@ public class CreateIncomeCommandTests
         var description = "Future Income";
         var amount = 500m;
         var date = DateTime.MaxValue;
-        var createdById = Guid.NewGuid();
-
+        
         // Act
         var command = new CreateIncomeCommand(
             description,
             amount,
-            date,
-            createdById);
+            date);
 
         // Assert
         Assert.Equal(DateTime.MaxValue, command.Date);
-    }
-
-    [Fact]
-    public void ParameterizedConstructor_ShouldSetProperties_WhenCalledWithSpecificGuid()
-    {
-        // Arrange
-        var description = "Specific GUID Income";
-        var amount = 450m;
-        var date = new DateTime(2024, 3, 15);
-        var createdById = new Guid("87654321-4321-4321-4321-210987654321");
-
-        // Act
-        var command = new CreateIncomeCommand(
-            description,
-            amount,
-            date,
-            createdById);
-
-        // Assert
-        Assert.Equal(new Guid("87654321-4321-4321-4321-210987654321"), command.CreatedById);
     }
 }

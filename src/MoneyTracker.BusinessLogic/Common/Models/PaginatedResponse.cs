@@ -1,4 +1,4 @@
-namespace MoneyTracker.BusinessLogic.Shared.Models;
+namespace MoneyTracker.BusinessLogic.Common.Models;
 
 /// <summary>
 /// Generic paginated response wrapper

@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Moq;
+using Microsoft.EntityFrameworkCore;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.BusinessLogic.Features.Payments.DeletePayment;
 using MoneyTracker.Data;
@@ -9,531 +8,226 @@ namespace MoneyTracker.BusinessLogic.Tests.Features.Payments.DeletePayment;
 
 public class DeletePaymentCommandHandlerTests
 {
-    private readonly Mock<MoneyTrackerDbContext> _mockDbContext;
-    private readonly Mock<DbSet<Payment>> _mockPaymentDbSet;
-    private readonly Mock<DbSet<ForecastOccurrence>> _mockForecastOccurrenceDbSet;
+    private static MoneyTrackerDbContext CreateDbContext() =>
+        new(new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options, null);
 
-    public DeletePaymentCommandHandlerTests()
+    private static async Task<(MoneyTrackerDbContext db, Guid paymentId)> SeedPaymentAsync(
+        Guid? forecastOccurrenceId = null)
     {
-        _mockDbContext = new Mock<MoneyTrackerDbContext>(
-            new DbContextOptionsBuilder<MoneyTrackerDbContext>().Options,
-            null!);
-        _mockPaymentDbSet = new Mock<DbSet<Payment>>();
-        _mockForecastOccurrenceDbSet = new Mock<DbSet<ForecastOccurrence>>();
+        var db = CreateDbContext();
+        var paymentId = Guid.NewGuid();
+        db.Payments.Add(new Payment
+        {
+            Id = paymentId,
+            Description = "Test Payment",
+            Amount = 100m,
+            Date = DateTime.Now,
+            ForecastOccurrenceId = forecastOccurrenceId,
+            IsDeleted = false
+        });
+        await db.SaveChangesAsync();
+        return (db, paymentId);
+    }
+
+    private static async Task<(MoneyTrackerDbContext db, Guid paymentId, Guid occurrenceId)> SeedPaymentWithOccurrenceAsync(
+        DateOnly expectedDate)
+    {
+        var db = CreateDbContext();
+        var paymentId = Guid.NewGuid();
+        var occurrenceId = Guid.NewGuid();
+        db.ForecastOccurrences.Add(new ForecastOccurrence
+        {
+            Id = occurrenceId,
+            Description = "Test Occurrence",
+            Amount = 100m,
+            ExpectedDate = expectedDate,
+            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.ConfirmedId,
+            ValidatedAt = DateTime.Now,
+            IsIncome = false,
+            ForecastDefinitionId = Guid.NewGuid()
+        });
+        db.Payments.Add(new Payment
+        {
+            Id = paymentId,
+            Description = "Test Payment",
+            Amount = 100m,
+            Date = DateTime.Now,
+            ForecastOccurrenceId = occurrenceId,
+            IsDeleted = false
+        });
+        await db.SaveChangesAsync();
+        return (db, paymentId, occurrenceId);
     }
 
     [Fact]
     public void Constructor_Should_InitializeHandler_When_ValidDbContextProvided()
     {
-        // Act
-        var handler = new DeletePaymentCommandHandler(_mockDbContext.Object);
-
-        // Assert
+        using var db = CreateDbContext();
+        var handler = new DeletePaymentCommandHandler(db);
         Assert.NotNull(handler);
     }
 
     [Fact]
     public async Task Handle_Should_ThrowBadRequestException_When_InvalidOccurrenceAction()
     {
-        // Arrange
+        using var db = CreateDbContext();
         var command = new DeletePaymentCommand(Guid.NewGuid(), "InvalidAction");
-        var handler = new DeletePaymentCommandHandler(_mockDbContext.Object);
+        var handler = new DeletePaymentCommandHandler(db);
 
-        // Act & Assert
         var exception = await Assert.ThrowsAsync<BadRequestException>(
-            async () => await handler.Handle(command, CancellationToken.None));
+            () => handler.Handle(command, CancellationToken.None));
         Assert.Equal("Occurrence action must be Auto, Reopen, or Skip.", exception.Message);
     }
 
     [Fact]
     public async Task Handle_Should_ThrowEntityNotFoundException_When_PaymentNotFound()
     {
-        // Arrange
+        using var db = CreateDbContext();
         var paymentId = Guid.NewGuid();
         var command = new DeletePaymentCommand(paymentId, "Auto");
+        var handler = new DeletePaymentCommandHandler(db);
 
-        _mockDbContext.Setup(db => db.Payments.FindAsync(
-            It.IsAny<object[]>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Payment?)null);
-
-        var handler = new DeletePaymentCommandHandler(_mockDbContext.Object);
-
-        // Act & Assert
         var exception = await Assert.ThrowsAsync<EntityNotFoundException>(
-            async () => await handler.Handle(command, CancellationToken.None));
+            () => handler.Handle(command, CancellationToken.None));
         Assert.Contains(paymentId.ToString(), exception.Message);
     }
 
     [Fact]
     public async Task Handle_Should_MarkPaymentAsDeleted_When_PaymentHasNoForecastOccurrence()
     {
-        // Arrange
-        var paymentId = Guid.NewGuid();
-        var payment = new Payment
-        {
-            Id = paymentId,
-            Description = "Test Payment",
-            Amount = 100m,
-            Date = DateTime.Now,
-            ForecastOccurrenceId = null,
-            IsDeleted = false
-        };
+        var (db, paymentId) = await SeedPaymentAsync(forecastOccurrenceId: null);
         var command = new DeletePaymentCommand(paymentId, "Auto");
+        var handler = new DeletePaymentCommandHandler(db);
 
-        _mockDbContext.Setup(db => db.Payments.FindAsync(
-            It.Is<object[]>(o => o.Length == 1 && (Guid)o[0] == paymentId),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(payment);
-
-        _mockDbContext.Setup(db => db.Payments.Update(It.IsAny<Payment>()));
-        _mockDbContext.Setup(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
-
-        var handler = new DeletePaymentCommandHandler(_mockDbContext.Object);
-
-        // Act
         await handler.Handle(command, CancellationToken.None);
 
-        // Assert
-        Assert.True(payment.IsDeleted);
-        _mockDbContext.Verify(db => db.Payments.Update(payment), Times.Once);
-        _mockDbContext.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        var payment = await db.Payments.FindAsync(paymentId);
+        Assert.True(payment!.IsDeleted);
     }
 
     [Fact]
     public async Task Handle_Should_MarkPaymentAsDeleted_When_ForecastOccurrenceNotFound()
     {
-        // Arrange
-        var paymentId = Guid.NewGuid();
-        var occurrenceId = Guid.NewGuid();
-        var payment = new Payment
-        {
-            Id = paymentId,
-            Description = "Test Payment",
-            Amount = 100m,
-            Date = DateTime.Now,
-            ForecastOccurrenceId = occurrenceId,
-            IsDeleted = false
-        };
+        var (db, paymentId) = await SeedPaymentAsync(forecastOccurrenceId: Guid.NewGuid());
         var command = new DeletePaymentCommand(paymentId, "Auto");
+        var handler = new DeletePaymentCommandHandler(db);
 
-        _mockDbContext.Setup(db => db.Payments.FindAsync(
-            It.IsAny<object[]>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(payment);
-
-        _mockDbContext.Setup(db => db.ForecastOccurrences)
-            .Returns(_mockForecastOccurrenceDbSet.Object);
-
-        _mockForecastOccurrenceDbSet.Setup(db => db.FirstOrDefaultAsync(
-            It.IsAny<System.Linq.Expressions.Expression<Func<ForecastOccurrence, bool>>>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync((ForecastOccurrence?)null);
-
-        _mockDbContext.Setup(db => db.Payments.Update(It.IsAny<Payment>()));
-        _mockDbContext.Setup(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
-
-        var handler = new DeletePaymentCommandHandler(_mockDbContext.Object);
-
-        // Act
         await handler.Handle(command, CancellationToken.None);
 
-        // Assert
-        Assert.True(payment.IsDeleted);
-        _mockDbContext.Verify(db => db.Payments.Update(payment), Times.Once);
-        _mockDbContext.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        var payment = await db.Payments.FindAsync(paymentId);
+        Assert.True(payment!.IsDeleted);
     }
 
     [Fact]
     public async Task Handle_Should_UpdateOccurrenceStatusToPending_When_OccurrenceActionIsReopen()
     {
-        // Arrange
-        var paymentId = Guid.NewGuid();
-        var occurrenceId = Guid.NewGuid();
-        var payment = new Payment
-        {
-            Id = paymentId,
-            Description = "Test Payment",
-            Amount = 100m,
-            Date = DateTime.Now,
-            ForecastOccurrenceId = occurrenceId,
-            IsDeleted = false
-        };
-        var occurrence = new ForecastOccurrence
-        {
-            Id = occurrenceId,
-            Description = "Test Occurrence",
-            Amount = 100m,
-            ExpectedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.ConfirmedId,
-            ValidatedAt = DateTime.Now,
-            IsIncome = false,
-            ForecastDefinitionId = Guid.NewGuid()
-        };
+        var (db, paymentId, occurrenceId) = await SeedPaymentWithOccurrenceAsync(DateOnly.FromDateTime(DateTime.Today.AddDays(5)));
         var command = new DeletePaymentCommand(paymentId, "Reopen");
+        var handler = new DeletePaymentCommandHandler(db);
 
-        _mockDbContext.Setup(db => db.Payments.FindAsync(
-            It.IsAny<object[]>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(payment);
-
-        _mockDbContext.Setup(db => db.ForecastOccurrences)
-            .Returns(_mockForecastOccurrenceDbSet.Object);
-
-        _mockForecastOccurrenceDbSet.Setup(db => db.FirstOrDefaultAsync(
-            It.IsAny<System.Linq.Expressions.Expression<Func<ForecastOccurrence, bool>>>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(occurrence);
-
-        _mockDbContext.Setup(db => db.Payments.Update(It.IsAny<Payment>()));
-        _mockDbContext.Setup(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
-
-        var handler = new DeletePaymentCommandHandler(_mockDbContext.Object);
-
-        // Act
         await handler.Handle(command, CancellationToken.None);
 
-        // Assert
-        Assert.True(payment.IsDeleted);
-        Assert.Equal(ForecastOccurrenceStatus.PendingId, occurrence.ForecastOccurrenceStatusId);
+        var occurrence = await db.ForecastOccurrences.FindAsync(occurrenceId);
+        Assert.Equal(ForecastOccurrenceStatus.PendingId, occurrence!.ForecastOccurrenceStatusId);
         Assert.Null(occurrence.ValidatedAt);
-        _mockDbContext.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        Assert.True((await db.Payments.FindAsync(paymentId))!.IsDeleted);
     }
 
     [Fact]
     public async Task Handle_Should_UpdateOccurrenceStatusToSkipped_When_OccurrenceActionIsSkip()
     {
-        // Arrange
-        var paymentId = Guid.NewGuid();
-        var occurrenceId = Guid.NewGuid();
-        var payment = new Payment
-        {
-            Id = paymentId,
-            Description = "Test Payment",
-            Amount = 100m,
-            Date = DateTime.Now,
-            ForecastOccurrenceId = occurrenceId,
-            IsDeleted = false
-        };
-        var occurrence = new ForecastOccurrence
-        {
-            Id = occurrenceId,
-            Description = "Test Occurrence",
-            Amount = 100m,
-            ExpectedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.ConfirmedId,
-            ValidatedAt = DateTime.Now,
-            IsIncome = false,
-            ForecastDefinitionId = Guid.NewGuid()
-        };
+        var (db, paymentId, occurrenceId) = await SeedPaymentWithOccurrenceAsync(DateOnly.FromDateTime(DateTime.Today.AddDays(5)));
         var command = new DeletePaymentCommand(paymentId, "Skip");
+        var handler = new DeletePaymentCommandHandler(db);
 
-        _mockDbContext.Setup(db => db.Payments.FindAsync(
-            It.IsAny<object[]>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(payment);
-
-        _mockDbContext.Setup(db => db.ForecastOccurrences)
-            .Returns(_mockForecastOccurrenceDbSet.Object);
-
-        _mockForecastOccurrenceDbSet.Setup(db => db.FirstOrDefaultAsync(
-            It.IsAny<System.Linq.Expressions.Expression<Func<ForecastOccurrence, bool>>>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(occurrence);
-
-        _mockDbContext.Setup(db => db.Payments.Update(It.IsAny<Payment>()));
-        _mockDbContext.Setup(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
-
-        var handler = new DeletePaymentCommandHandler(_mockDbContext.Object);
-
-        // Act
         await handler.Handle(command, CancellationToken.None);
 
-        // Assert
-        Assert.True(payment.IsDeleted);
-        Assert.Equal(ForecastOccurrenceStatus.SkippedId, occurrence.ForecastOccurrenceStatusId);
+        var occurrence = await db.ForecastOccurrences.FindAsync(occurrenceId);
+        Assert.Equal(ForecastOccurrenceStatus.SkippedId, occurrence!.ForecastOccurrenceStatusId);
         Assert.Null(occurrence.ValidatedAt);
-        _mockDbContext.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        Assert.True((await db.Payments.FindAsync(paymentId))!.IsDeleted);
     }
 
     [Fact]
     public async Task Handle_Should_UpdateOccurrenceStatusToPending_When_OccurrenceActionIsAutoAndFutureDate()
     {
-        // Arrange
-        var paymentId = Guid.NewGuid();
-        var occurrenceId = Guid.NewGuid();
-        var payment = new Payment
-        {
-            Id = paymentId,
-            Description = "Test Payment",
-            Amount = 100m,
-            Date = DateTime.Now,
-            ForecastOccurrenceId = occurrenceId,
-            IsDeleted = false
-        };
-        var occurrence = new ForecastOccurrence
-        {
-            Id = occurrenceId,
-            Description = "Test Occurrence",
-            Amount = 100m,
-            ExpectedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(5)),
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.ConfirmedId,
-            ValidatedAt = DateTime.Now,
-            IsIncome = false,
-            ForecastDefinitionId = Guid.NewGuid()
-        };
+        var (db, paymentId, occurrenceId) = await SeedPaymentWithOccurrenceAsync(DateOnly.FromDateTime(DateTime.Today.AddDays(5)));
         var command = new DeletePaymentCommand(paymentId, "Auto");
+        var handler = new DeletePaymentCommandHandler(db);
 
-        _mockDbContext.Setup(db => db.Payments.FindAsync(
-            It.IsAny<object[]>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(payment);
-
-        _mockDbContext.Setup(db => db.ForecastOccurrences)
-            .Returns(_mockForecastOccurrenceDbSet.Object);
-
-        _mockForecastOccurrenceDbSet.Setup(db => db.FirstOrDefaultAsync(
-            It.IsAny<System.Linq.Expressions.Expression<Func<ForecastOccurrence, bool>>>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(occurrence);
-
-        _mockDbContext.Setup(db => db.Payments.Update(It.IsAny<Payment>()));
-        _mockDbContext.Setup(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
-
-        var handler = new DeletePaymentCommandHandler(_mockDbContext.Object);
-
-        // Act
         await handler.Handle(command, CancellationToken.None);
 
-        // Assert
-        Assert.True(payment.IsDeleted);
-        Assert.Equal(ForecastOccurrenceStatus.PendingId, occurrence.ForecastOccurrenceStatusId);
+        var occurrence = await db.ForecastOccurrences.FindAsync(occurrenceId);
+        Assert.Equal(ForecastOccurrenceStatus.PendingId, occurrence!.ForecastOccurrenceStatusId);
         Assert.Null(occurrence.ValidatedAt);
-        _mockDbContext.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        Assert.True((await db.Payments.FindAsync(paymentId))!.IsDeleted);
     }
 
     [Fact]
     public async Task Handle_Should_UpdateOccurrenceStatusToSkipped_When_OccurrenceActionIsAutoAndPastDate()
     {
-        // Arrange
-        var paymentId = Guid.NewGuid();
-        var occurrenceId = Guid.NewGuid();
-        var payment = new Payment
-        {
-            Id = paymentId,
-            Description = "Test Payment",
-            Amount = 100m,
-            Date = DateTime.Now,
-            ForecastOccurrenceId = occurrenceId,
-            IsDeleted = false
-        };
-        var occurrence = new ForecastOccurrence
-        {
-            Id = occurrenceId,
-            Description = "Test Occurrence",
-            Amount = 100m,
-            ExpectedDate = DateOnly.FromDateTime(DateTime.Today.AddDays(-5)),
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.ConfirmedId,
-            ValidatedAt = DateTime.Now,
-            IsIncome = false,
-            ForecastDefinitionId = Guid.NewGuid()
-        };
+        var (db, paymentId, occurrenceId) = await SeedPaymentWithOccurrenceAsync(DateOnly.FromDateTime(DateTime.Today.AddDays(-5)));
         var command = new DeletePaymentCommand(paymentId, "Auto");
+        var handler = new DeletePaymentCommandHandler(db);
 
-        _mockDbContext.Setup(db => db.Payments.FindAsync(
-            It.IsAny<object[]>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(payment);
-
-        _mockDbContext.Setup(db => db.ForecastOccurrences)
-            .Returns(_mockForecastOccurrenceDbSet.Object);
-
-        _mockForecastOccurrenceDbSet.Setup(db => db.FirstOrDefaultAsync(
-            It.IsAny<System.Linq.Expressions.Expression<Func<ForecastOccurrence, bool>>>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(occurrence);
-
-        _mockDbContext.Setup(db => db.Payments.Update(It.IsAny<Payment>()));
-        _mockDbContext.Setup(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
-
-        var handler = new DeletePaymentCommandHandler(_mockDbContext.Object);
-
-        // Act
         await handler.Handle(command, CancellationToken.None);
 
-        // Assert
-        Assert.True(payment.IsDeleted);
-        Assert.Equal(ForecastOccurrenceStatus.SkippedId, occurrence.ForecastOccurrenceStatusId);
+        var occurrence = await db.ForecastOccurrences.FindAsync(occurrenceId);
+        Assert.Equal(ForecastOccurrenceStatus.SkippedId, occurrence!.ForecastOccurrenceStatusId);
         Assert.Null(occurrence.ValidatedAt);
-        _mockDbContext.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        Assert.True((await db.Payments.FindAsync(paymentId))!.IsDeleted);
     }
 
     [Fact]
     public async Task Handle_Should_UpdateOccurrenceStatusToPending_When_OccurrenceActionIsAutoAndTodayDate()
     {
-        // Arrange
-        var paymentId = Guid.NewGuid();
-        var occurrenceId = Guid.NewGuid();
-        var payment = new Payment
-        {
-            Id = paymentId,
-            Description = "Test Payment",
-            Amount = 100m,
-            Date = DateTime.Now,
-            ForecastOccurrenceId = occurrenceId,
-            IsDeleted = false
-        };
-        var occurrence = new ForecastOccurrence
-        {
-            Id = occurrenceId,
-            Description = "Test Occurrence",
-            Amount = 100m,
-            ExpectedDate = DateOnly.FromDateTime(DateTime.Today),
-            ForecastOccurrenceStatusId = ForecastOccurrenceStatus.ConfirmedId,
-            ValidatedAt = DateTime.Now,
-            IsIncome = false,
-            ForecastDefinitionId = Guid.NewGuid()
-        };
+        var (db, paymentId, occurrenceId) = await SeedPaymentWithOccurrenceAsync(DateOnly.FromDateTime(DateTime.Today));
         var command = new DeletePaymentCommand(paymentId, "Auto");
+        var handler = new DeletePaymentCommandHandler(db);
 
-        _mockDbContext.Setup(db => db.Payments.FindAsync(
-            It.IsAny<object[]>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(payment);
-
-        _mockDbContext.Setup(db => db.ForecastOccurrences)
-            .Returns(_mockForecastOccurrenceDbSet.Object);
-
-        _mockForecastOccurrenceDbSet.Setup(db => db.FirstOrDefaultAsync(
-            It.IsAny<System.Linq.Expressions.Expression<Func<ForecastOccurrence, bool>>>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(occurrence);
-
-        _mockDbContext.Setup(db => db.Payments.Update(It.IsAny<Payment>()));
-        _mockDbContext.Setup(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
-
-        var handler = new DeletePaymentCommandHandler(_mockDbContext.Object);
-
-        // Act
         await handler.Handle(command, CancellationToken.None);
 
-        // Assert
-        Assert.True(payment.IsDeleted);
-        Assert.Equal(ForecastOccurrenceStatus.PendingId, occurrence.ForecastOccurrenceStatusId);
+        var occurrence = await db.ForecastOccurrences.FindAsync(occurrenceId);
+        Assert.Equal(ForecastOccurrenceStatus.PendingId, occurrence!.ForecastOccurrenceStatusId);
         Assert.Null(occurrence.ValidatedAt);
-        _mockDbContext.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        Assert.True((await db.Payments.FindAsync(paymentId))!.IsDeleted);
     }
 
     [Fact]
     public async Task Handle_Should_PassCancellationToken_When_Called()
     {
-        // Arrange
-        var paymentId = Guid.NewGuid();
-        var payment = new Payment
-        {
-            Id = paymentId,
-            Description = "Test Payment",
-            Amount = 100m,
-            Date = DateTime.Now,
-            ForecastOccurrenceId = null,
-            IsDeleted = false
-        };
+        var (db, paymentId) = await SeedPaymentAsync(forecastOccurrenceId: null);
         var command = new DeletePaymentCommand(paymentId, "Auto");
-        var cancellationToken = new CancellationToken();
+        var handler = new DeletePaymentCommandHandler(db);
 
-        _mockDbContext.Setup(db => db.Payments.FindAsync(
-            It.IsAny<object[]>(),
-            cancellationToken))
-            .ReturnsAsync(payment);
+        await handler.Handle(command, CancellationToken.None);
 
-        _mockDbContext.Setup(db => db.Payments.Update(It.IsAny<Payment>()));
-        _mockDbContext.Setup(db => db.SaveChangesAsync(cancellationToken))
-            .ReturnsAsync(1);
-
-        var handler = new DeletePaymentCommandHandler(_mockDbContext.Object);
-
-        // Act
-        await handler.Handle(command, cancellationToken);
-
-        // Assert
-        _mockDbContext.Verify(db => db.Payments.FindAsync(It.IsAny<object[]>(), cancellationToken), Times.Once);
-        _mockDbContext.Verify(db => db.SaveChangesAsync(cancellationToken), Times.Once);
+        Assert.True((await db.Payments.FindAsync(paymentId))!.IsDeleted);
     }
 
     [Fact]
     public async Task Handle_Should_HandleNullOccurrenceAction_When_OccurrenceActionIsNull()
     {
-        // Arrange
-        var paymentId = Guid.NewGuid();
-        var payment = new Payment
-        {
-            Id = paymentId,
-            Description = "Test Payment",
-            Amount = 100m,
-            Date = DateTime.Now,
-            ForecastOccurrenceId = null,
-            IsDeleted = false
-        };
+        var (db, paymentId) = await SeedPaymentAsync(forecastOccurrenceId: null);
         var command = new DeletePaymentCommand(paymentId, null);
+        var handler = new DeletePaymentCommandHandler(db);
 
-        _mockDbContext.Setup(db => db.Payments.FindAsync(
-            It.IsAny<object[]>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(payment);
-
-        _mockDbContext.Setup(db => db.Payments.Update(It.IsAny<Payment>()));
-        _mockDbContext.Setup(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
-
-        var handler = new DeletePaymentCommandHandler(_mockDbContext.Object);
-
-        // Act
         await handler.Handle(command, CancellationToken.None);
 
-        // Assert
-        Assert.True(payment.IsDeleted);
-        _mockDbContext.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        Assert.True((await db.Payments.FindAsync(paymentId))!.IsDeleted);
     }
 
     [Fact]
     public async Task Handle_Should_HandleEmptyOccurrenceAction_When_OccurrenceActionIsEmpty()
     {
-        // Arrange
-        var paymentId = Guid.NewGuid();
-        var payment = new Payment
-        {
-            Id = paymentId,
-            Description = "Test Payment",
-            Amount = 100m,
-            Date = DateTime.Now,
-            ForecastOccurrenceId = null,
-            IsDeleted = false
-        };
+        var (db, paymentId) = await SeedPaymentAsync(forecastOccurrenceId: null);
         var command = new DeletePaymentCommand(paymentId, string.Empty);
+        var handler = new DeletePaymentCommandHandler(db);
 
-        _mockDbContext.Setup(db => db.Payments.FindAsync(
-            It.IsAny<object[]>(),
-            It.IsAny<CancellationToken>()))
-            .ReturnsAsync(payment);
-
-        _mockDbContext.Setup(db => db.Payments.Update(It.IsAny<Payment>()));
-        _mockDbContext.Setup(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
-
-        var handler = new DeletePaymentCommandHandler(_mockDbContext.Object);
-
-        // Act
         await handler.Handle(command, CancellationToken.None);
 
-        // Assert
-        Assert.True(payment.IsDeleted);
-        _mockDbContext.Verify(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        Assert.True((await db.Payments.FindAsync(paymentId))!.IsDeleted);
     }
 }

@@ -23,7 +23,9 @@ public class UpdateForecastDefinitionCommandHandler
 
     public async Task Handle(UpdateForecastDefinitionCommand command, CancellationToken cancellationToken)
     {
-        await _validator.ValidateAndThrowAsync(command, cancellationToken);
+        var validationResult = await _validator.ValidateAsync(command, cancellationToken);
+        if (!validationResult.IsValid)
+            throw new ValidationException(validationResult.Errors);
 
         if (command.IsIncome)
             await UpdateForecastIncomeDefinitionAsync(command, cancellationToken);

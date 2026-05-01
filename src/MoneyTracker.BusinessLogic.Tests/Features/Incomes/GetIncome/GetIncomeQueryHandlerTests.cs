@@ -1,24 +1,25 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Moq;
 using MoneyTracker.BusinessLogic.Features.Incomes.GetIncome;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
-using Xunit;
 
 namespace MoneyTracker.BusinessLogic.Tests.Features.Incomes.GetIncome;
 
 public class GetIncomeQueryHandlerTests
 {
+    private static MoneyTrackerDbContext CreateDbContext() =>
+        new(new DbContextOptionsBuilder<MoneyTrackerDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options, null);
+
     [Fact]
     public void Constructor_Should_Set_DbContext()
     {
         // Arrange
-        var mockDbContext = new Mock<MoneyTrackerDbContext>(
-            new DbContextOptionsBuilder<MoneyTrackerDbContext>().Options,
-            null!);
+        using var db = CreateDbContext();
 
         // Act
-        var handler = new GetIncomeQueryHandler(mockDbContext.Object);
+        var handler = new GetIncomeQueryHandler(db);
 
         // Assert
         Assert.NotNull(handler);

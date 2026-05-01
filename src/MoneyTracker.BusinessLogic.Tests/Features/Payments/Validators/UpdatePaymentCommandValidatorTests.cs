@@ -24,8 +24,7 @@ public class UpdatePaymentCommandValidatorTests
         {
             PaymentId = Guid.Empty,
             Description = "Updated Payment",
-            Amount = 150,
-            ModifiedById = Guid.NewGuid()
+            Amount = 150
         };
 
         // Act
@@ -35,24 +34,6 @@ public class UpdatePaymentCommandValidatorTests
         result.ShouldHaveValidationErrorFor(x => x.PaymentId);
     }
 
-    [Fact]
-    public void Should_Fail_When_ModifiedBy_Is_Empty()
-    {
-        // Arrange
-        var command = new UpdatePaymentCommand
-        {
-            PaymentId = Guid.NewGuid(),
-            Description = "Updated Payment",
-            Amount = 150,
-            ModifiedById = Guid.Empty
-        };
-
-        // Act
-        var result = _validator.TestValidate(command);
-
-        // Assert
-        result.ShouldHaveValidationErrorFor(x => x .ModifiedById);
-    }
 
     [Fact]
     public void Should_Fail_When_Description_Exceeds_Max_Length()
@@ -61,8 +42,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            Description = new string('a', 101),
-            ModifiedById = Guid.NewGuid()
+            Description = new string('a', 101)
         };
 
         // Act
@@ -79,8 +59,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            Amount = -50,
-            ModifiedById = Guid.NewGuid()
+            Amount = -50
         };
 
         // Act
@@ -97,8 +76,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            Date = DateTime.UtcNow.AddDays(1),
-            ModifiedById = Guid.NewGuid()
+            Date = DateTime.UtcNow.AddDays(1)
         };
 
         // Act
@@ -114,8 +92,7 @@ public class UpdatePaymentCommandValidatorTests
         // Arrange
         var command = new UpdatePaymentCommand
         {
-            PaymentId = Guid.NewGuid(),
-            ModifiedById = Guid.NewGuid()
+            PaymentId = Guid.NewGuid()
         };
 
         // Act
@@ -133,8 +110,7 @@ public class UpdatePaymentCommandValidatorTests
         {
             PaymentId = Guid.NewGuid(),
             Description = "Updated Description",
-            Amount = 200,
-            ModifiedById = Guid.NewGuid()
+            Amount = 200
         };
 
         // Act
@@ -153,8 +129,7 @@ public class UpdatePaymentCommandValidatorTests
             PaymentId = Guid.NewGuid(),
             Description = null,
             Amount = null,
-            Date = null,
-            ModifiedById = Guid.NewGuid()
+            Date = null
         };
 
         // Act
@@ -171,8 +146,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            Description = string.Empty,
-            ModifiedById = Guid.NewGuid()
+            Description = string.Empty
         };
 
         // Act
@@ -189,8 +163,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            Description = new string('a', 100),
-            ModifiedById = Guid.NewGuid()
+            Description = new string('a', 100)
         };
 
         // Act
@@ -207,8 +180,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            PaymentCategoryId = Guid.Empty,
-            ModifiedById = Guid.NewGuid()
+            PaymentCategoryId = Guid.Empty
         };
 
         // Act
@@ -225,8 +197,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            PaymentCategoryId = null,
-            ModifiedById = Guid.NewGuid()
+            PaymentCategoryId = null
         };
 
         // Act
@@ -243,8 +214,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            Amount = 0,
-            ModifiedById = Guid.NewGuid()
+            Amount = 0
         };
 
         // Act
@@ -261,8 +231,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            Amount = 100.123m,
-            ModifiedById = Guid.NewGuid()
+            Amount = 100.123m
         };
 
         // Act
@@ -279,8 +248,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            Amount = 100.12m,
-            ModifiedById = Guid.NewGuid()
+            Amount = 100.12m
         };
 
         // Act
@@ -297,8 +265,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            Amount = null,
-            ModifiedById = Guid.NewGuid()
+            Amount = null
         };
 
         // Act
@@ -315,8 +282,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            Amount = 100.5m,
-            ModifiedById = Guid.NewGuid()
+            Amount = 100.5m
         };
 
         // Act
@@ -333,8 +299,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            Amount = 100m,
-            ModifiedById = Guid.NewGuid()
+            Amount = 100m
         };
 
         // Act
@@ -351,8 +316,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            PaymentCategoryId = Guid.NewGuid(),
-            ModifiedById = Guid.NewGuid()
+            PaymentCategoryId = Guid.NewGuid()
         };
 
         // Act
@@ -368,8 +332,7 @@ public class UpdatePaymentCommandValidatorTests
         // Arrange
         var command = new UpdatePaymentCommand
         {
-            PaymentId = Guid.Empty,
-            ModifiedById = Guid.NewGuid()
+            PaymentId = Guid.Empty
         };
 
         // Act
@@ -387,8 +350,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            Description = new string('a', 101),
-            ModifiedById = Guid.NewGuid()
+            Description = new string('a', 101)
         };
 
         // Act
@@ -406,8 +368,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            PaymentCategoryId = Guid.Empty,
-            ModifiedById = Guid.NewGuid()
+            PaymentCategoryId = Guid.Empty
         };
 
         // Act
@@ -425,8 +386,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            Amount = 0,
-            ModifiedById = Guid.NewGuid()
+            Amount = 0
         };
 
         // Act
@@ -444,8 +404,7 @@ public class UpdatePaymentCommandValidatorTests
         var command = new UpdatePaymentCommand
         {
             PaymentId = Guid.NewGuid(),
-            Amount = 100.123m,
-            ModifiedById = Guid.NewGuid()
+            Amount = 100.123m
         };
 
         // Act
@@ -454,23 +413,5 @@ public class UpdatePaymentCommandValidatorTests
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.Amount)
             .WithErrorMessage("Amount must have maximum 2 decimal places");
-    }
-
-    [Fact]
-    public void Should_Have_Correct_Error_Message_For_ModifiedById()
-    {
-        // Arrange
-        var command = new UpdatePaymentCommand
-        {
-            PaymentId = Guid.NewGuid(),
-            ModifiedById = Guid.Empty
-        };
-
-        // Act
-        var result = _validator.TestValidate(command);
-
-        // Assert
-        result.ShouldHaveValidationErrorFor(x => x .ModifiedById)
-            .WithErrorMessage("ModifiedBy is required");
     }
 }
