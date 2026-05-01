@@ -1,34 +1,26 @@
 using Microsoft.EntityFrameworkCore;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
+using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
-using System.Collections;
 
 namespace MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRows;
 
 /// <summary>
 /// Handler for the GetForecastRowsQuery query
 /// </summary>
-public class GetForecastRowsQueryHandler
+public class GetForecastRowsQueryHandler(MoneyTrackerDbContext dbContext)
+    : IHandler<GetForecastRowsQuery, List<ForecastRow>>
 {
-    private readonly MoneyTrackerDbContext _dbContext;
-
-    public GetForecastRowsQueryHandler(MoneyTrackerDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
-
     public async Task<List<ForecastRow>> Handle(GetForecastRowsQuery query, CancellationToken cancellationToken)
     {
-
         if (query.EndDate < query.StartDate)
             throw new BadRequestException("End date must be greater than or equal to start date.");
 
         if ((query.EndDate.ToDateTime(TimeOnly.MinValue) - query.StartDate.ToDateTime(TimeOnly.MinValue)).TotalDays > 366)
             throw new BadRequestException("Date range cannot exceed 366 days.");
 
-        
-        return await _dbContext.ForecastOccurrences
+        return await dbContext.ForecastOccurrences
             .AsNoTracking()
             .Include(x => x.PaymentCategory)
             .Where(x => x.ForecastOccurrenceStatusId == ForecastOccurrenceStatus.PendingId

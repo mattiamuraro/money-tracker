@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.IdentityModel.Tokens;
 using MoneyTracker.Api.Endpoints.Auth;
 using MoneyTracker.Api.Endpoints.ForecastRecurrenceRuleTypes;
@@ -18,15 +19,9 @@ var builder = WebApplication.CreateBuilder(args);
 static bool IsAllowedDevelopmentOrigin(string? origin)
 {
     if (string.IsNullOrWhiteSpace(origin) || !Uri.TryCreate(origin, UriKind.Absolute, out var uri))
-    {
         return false;
-    }
-
     if (uri.Scheme is not ("http" or "https"))
-    {
         return false;
-    }
-
     return uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
         || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)
         || uri.Host.EndsWith(".dev.localhost", StringComparison.OrdinalIgnoreCase);
@@ -35,29 +30,19 @@ static bool IsAllowedDevelopmentOrigin(string? origin)
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
 
-// Add services to the container.
 builder.Services.AddProblemDetails();
-
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-// Add response compression
 builder.Services.AddResponseCompression(options =>
-{
-    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
-});
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>());
 
-// Add CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("default", policy =>
     {
         if (builder.Environment.IsDevelopment())
-        {
             policy.SetIsOriginAllowed(IsAllowedDevelopmentOrigin);
-        }
         else
-        {
             policy.WithOrigins(
                     "https://localhost:7001",
                     "http://localhost:5001",
@@ -66,25 +51,27 @@ builder.Services.AddCors(options =>
                     "https://localhost:58100",
                     "https://127.0.0.1:58100")
                 .SetIsOriginAllowedToAllowWildcardSubdomains();
-        }
 
-        policy.AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
+        policy.AllowAnyMethod().AllowAnyHeader().AllowCredentials();
     });
 });
 
+// Configure HTTP request/response logging (replaces the old RequestResponseLoggingMiddleware)
+builder.Services.AddHttpLogging(logging =>
+{
+    logging.LoggingFields = HttpLoggingFields.RequestMethod
+        | HttpLoggingFields.RequestPath
+        | HttpLoggingFields.RequestQuery
+        | HttpLoggingFields.ResponseStatusCode
+        | HttpLoggingFields.Duration;
+    logging.CombineLogs = true;
+});
+
 builder.Services.AddHttpContextAccessor();
-
-
 builder.AddServices();
-
 builder.AddSqlServerDbContext<MoneyTrackerDbContext>("moneytacker-db");
-
-// Register business logic services and handlers
 builder.Services.AddBusinessLogicServices();
 
-// Configure JWT Bearer authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -105,28 +92,29 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-// Add custom middleware (order matters!)
+// Middleware pipeline (order matters)
 app.UseHttpsRedirection();
-app.UseCorrelationId();
-app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
-app.UseMiddleware<RequestResponseLoggingMiddleware>();
 
-app.UseExceptionHandler();
+// 1. Enrich all logs with CorrelationId
+app.UseCorrelationId();
+
+// 2. Catch all unhandled exceptions
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
+
+// 3. Structured HTTP logging (method, path, status, duration)
+app.UseHttpLogging();
 
 if (app.Environment.IsDevelopment())
-{
     app.MapOpenApi();
-}
 
-// Use response compression
 app.UseResponseCompression();
-
-// Use CORS
 app.UseCors("default");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// 4. Enrich all logs with UserId + Username for authenticated requests
+app.UseUserScope();
 
 app.AddAuthApis();
 app.AddPaymentApis();

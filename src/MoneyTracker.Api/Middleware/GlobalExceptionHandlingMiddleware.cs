@@ -4,9 +4,10 @@ using MoneyTracker.BusinessLogic.Common.Models;
 namespace MoneyTracker.Api.Middleware;
 
 /// <summary>
-/// Global exception handling middleware
+/// Global exception handling middleware. Catches all unhandled exceptions and
+/// maps them to appropriate HTTP problem responses.
 /// </summary>
-public class GlobalExceptionHandlingMiddleware
+public partial class GlobalExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionHandlingMiddleware> _logger;
@@ -36,7 +37,7 @@ public class GlobalExceptionHandlingMiddleware
 
     private Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        _logger.LogError(exception, "An unhandled exception occurred");
+        LogUnhandledException(_logger, exception);
 
         var response = new ErrorResponse
         {
@@ -67,10 +68,10 @@ public class GlobalExceptionHandlingMiddleware
                 response.StatusCode = StatusCodes.Status403Forbidden;
                 break;
 
-            case ConflictException unauthorizedEx:
+            case ConflictException conflictEx:
                 context.Response.StatusCode = StatusCodes.Status409Conflict;
                 response.Code = "CONFLICT";
-                response.Message = unauthorizedEx.Message;
+                response.Message = conflictEx.Message;
                 response.StatusCode = StatusCodes.Status409Conflict;
                 break;
 
@@ -118,4 +119,7 @@ public class GlobalExceptionHandlingMiddleware
 
         return context.Response.WriteAsJsonAsync(response);
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "An unhandled exception occurred.")]
+    private static partial void LogUnhandledException(ILogger logger, Exception exception);
 }

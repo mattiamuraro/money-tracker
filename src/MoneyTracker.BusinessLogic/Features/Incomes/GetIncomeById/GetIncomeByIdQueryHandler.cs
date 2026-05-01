@@ -1,23 +1,17 @@
-﻿
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
+using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.BusinessLogic.Features.Incomes.GetIncome;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.Incomes.GetIncomeById;
 
-public class GetIncomeByIdQueryHandler
+public class GetIncomeByIdQueryHandler(MoneyTrackerDbContext dbContext)
+    : IHandler<GetIncomeByIdQuery, IncomeRow>
 {
-    private readonly MoneyTrackerDbContext _dbContext;
-
-    public GetIncomeByIdQueryHandler(MoneyTrackerDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
-
     public async Task<IncomeRow> Handle(GetIncomeByIdQuery request, CancellationToken cancellationToken)
     {
-        var result = await _dbContext.Incomes
+        var result = await dbContext.Incomes
             .Where(p => p.Id == request.Id)
             .Select(p => new IncomeRow
             {

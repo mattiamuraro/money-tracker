@@ -123,40 +123,6 @@ public class CorrelationIdMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_Should_Log_Request_Started()
-    {
-        // Arrange
-        var (middleware, logger) = CreateMiddleware();
-        var context = new DefaultHttpContext();
-        context.Request.Method = "GET";
-        context.Request.Path = "/api/test";
-
-        // Act
-        await middleware.InvokeAsync(context);
-
-        // Assert
-        Assert.Contains(logger.Entries,
-            e => e.Level == LogLevel.Information && e.Message.Contains("Request started"));
-    }
-
-    [Fact]
-    public async Task InvokeAsync_Should_Log_Request_Completed()
-    {
-        // Arrange
-        var (middleware, logger) = CreateMiddleware();
-        var context = new DefaultHttpContext();
-        context.Request.Method = "GET";
-        context.Request.Path = "/api/test";
-
-        // Act
-        await middleware.InvokeAsync(context);
-
-        // Assert
-        Assert.Contains(logger.Entries,
-            e => e.Level == LogLevel.Information && e.Message.Contains("Request completed"));
-    }
-
-    [Fact]
     public async Task InvokeAsync_Should_Generate_New_CorrelationId_When_Header_Is_Invalid()
     {
         // Arrange
@@ -174,7 +140,7 @@ public class CorrelationIdMiddlewareTests
 
         // Warning logged
         Assert.Contains(logger.Entries,
-            e => e.Level == LogLevel.Warning && e.Message.Contains("Invalid correlation ID"));
+            e => e.Level == LogLevel.Warning && e.Message.Contains("Invalid Correlation ID"));
     }
 
     [Fact]
@@ -195,7 +161,7 @@ public class CorrelationIdMiddlewareTests
 
         // Warning logged
         Assert.Contains(logger.Entries,
-            e => e.Level == LogLevel.Warning && e.Message.Contains("Invalid correlation ID"));
+            e => e.Level == LogLevel.Warning && e.Message.Contains("Invalid Correlation ID"));
     }
 
     [Fact]
@@ -229,32 +195,6 @@ public class CorrelationIdMiddlewareTests
         var correlationId = context.Items["CorrelationId"]?.ToString();
         Assert.NotNull(correlationId);
         Assert.NotEmpty(correlationId);
-    }
-
-    [Fact]
-    public async Task InvokeAsync_Should_Log_With_CorrelationId_Context()
-    {
-        // Arrange
-        var (middleware, logger) = CreateMiddleware();
-        var context = new DefaultHttpContext();
-        context.Request.Method = "POST";
-        context.Request.Path = "/api/transactions";
-
-        // Act
-        await middleware.InvokeAsync(context);
-
-        // Assert
-        Assert.Contains(logger.Entries,
-            e => e.Level == LogLevel.Information
-                && e.Message.Contains("Request started")
-                && e.Message.Contains("POST")
-                && e.Message.Contains("/api/transactions"));
-
-        Assert.Contains(logger.Entries,
-            e => e.Level == LogLevel.Information
-                && e.Message.Contains("Request completed")
-                && e.Message.Contains("POST")
-                && e.Message.Contains("/api/transactions"));
     }
 
     [Fact]

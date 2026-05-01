@@ -1,22 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
+using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.Payments.GetPaymentById;
 
-public class GetPaymentByIdQueryHandler
+public class GetPaymentByIdQueryHandler(MoneyTrackerDbContext dbContext)
+    : IHandler<GetPaymentByIdQuery, PaymentRow>
 {
-    private readonly MoneyTrackerDbContext _dbContext;
-
-    public GetPaymentByIdQueryHandler(MoneyTrackerDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
-
     public async Task<PaymentRow> Handle(GetPaymentByIdQuery request, CancellationToken cancellationToken)
     {
-        var result = await _dbContext.Payments
+        var result = await dbContext.Payments
             .Include(p => p.PaymentCategory)
             .Where(p => p.Id == request.Id)
             .Select(p => new PaymentRow
@@ -32,7 +27,6 @@ public class GetPaymentByIdQueryHandler
                 IsOneShot = p.IsOneShot
             })
             .FirstOrDefaultAsync(cancellationToken);
-
 
         if (result == null)
             throw new EntityNotFoundException($"Payment with id {request.Id} not found");

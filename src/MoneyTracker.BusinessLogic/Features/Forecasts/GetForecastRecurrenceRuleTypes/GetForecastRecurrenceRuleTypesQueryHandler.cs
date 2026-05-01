@@ -1,20 +1,15 @@
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRecurrenceRuleTypes;
 
-public class GetForecastRecurrenceRuleTypesQueryHandler
+public class GetForecastRecurrenceRuleTypesQueryHandler(MoneyTrackerDbContext dbContext)
+    : IHandler<GetForecastRecurrenceRuleTypesQuery, List<ForecastRecurrenceRuleTypeDto>>
 {
-    private readonly MoneyTrackerDbContext _dbContext;
-
-    public GetForecastRecurrenceRuleTypesQueryHandler(MoneyTrackerDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
-
     public async Task<List<ForecastRecurrenceRuleTypeDto>> Handle(GetForecastRecurrenceRuleTypesQuery request, CancellationToken cancellationToken)
     {
-        return await _dbContext.ForecastRecurrenceRuleTypes
+        return await dbContext.ForecastRecurrenceRuleTypes
             .AsNoTracking()
             .OrderBy(x => x.OrderIndex)
             .Select(x => new ForecastRecurrenceRuleTypeDto

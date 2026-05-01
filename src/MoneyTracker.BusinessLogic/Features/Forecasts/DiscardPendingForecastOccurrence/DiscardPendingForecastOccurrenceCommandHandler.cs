@@ -1,22 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
+using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.Forecasts.DiscardPendingForecastOccurrence;
 
-public class DiscardPendingForecastOccurrenceCommandHandler
+public class DiscardPendingForecastOccurrenceCommandHandler(MoneyTrackerDbContext dbContext)
+    : IHandler<DiscardPendingForecastOccurrenceCommand>
 {
-    private readonly MoneyTrackerDbContext _dbContext;
-
-    public DiscardPendingForecastOccurrenceCommandHandler(MoneyTrackerDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
-
     public async Task Handle(DiscardPendingForecastOccurrenceCommand request, CancellationToken cancellationToken)
     {
-        var occurrence = await _dbContext.ForecastOccurrences
+        var occurrence = await dbContext.ForecastOccurrences
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (occurrence is null)
@@ -28,6 +23,6 @@ public class DiscardPendingForecastOccurrenceCommandHandler
         occurrence.ForecastOccurrenceStatusId = ForecastOccurrenceStatus.SkippedId;
         occurrence.ValidatedAt = null;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

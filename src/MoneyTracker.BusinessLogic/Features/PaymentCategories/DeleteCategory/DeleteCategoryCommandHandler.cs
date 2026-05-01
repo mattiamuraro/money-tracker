@@ -1,36 +1,29 @@
 using Microsoft.EntityFrameworkCore;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
+using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.Data.EntityFramework;
 
-namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.DeleteCategory
+namespace MoneyTracker.BusinessLogic.Features.PaymentCategories.DeleteCategory;
+
+/// <summary>
+/// Handler for deleting a payment category
+/// </summary>
+public class DeleteCategoryCommandHandler(MoneyTrackerDbContext dbContext)
+    : IHandler<DeleteCategoryCommand>
 {
-    /// <summary>
-    /// Handler for deleting a payment category
-    /// </summary>
-    public class DeleteCategoryCommandHandler
+    public async Task Handle(DeleteCategoryCommand request, CancellationToken cancellationToken)
     {
-        private readonly MoneyTrackerDbContext _dbContext;
+        var category = await dbContext.PaymentCategories
+            .Include(c => c.Payments)
+            .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
 
-        public DeleteCategoryCommandHandler(MoneyTrackerDbContext dbContext)
-        {
-            _dbContext = dbContext;
-        }
+        if (category == null)
+            throw new EntityNotFoundException($"Payment category with id {request.Id} not found");
 
-        public async Task Handle(DeleteCategoryCommand request, CancellationToken cancellationToken)
-        {
-            var category = await _dbContext.PaymentCategories
-                .Include(c => c.Payments)
-                .FirstOrDefaultAsync(c => c.Id == request.Id, cancellationToken);
+        if (category.Payments.Any())
+            throw new InvalidOperationException("Cannot delete a category that has associated payments.");
 
-            if (category == null)
-                throw new EntityNotFoundException($"Payment category with id {request.Id} not found");
-
-            // Check if category has associated payments
-            if (category.Payments.Any())
-                throw new InvalidOperationException("Cannot delete a category that has associated payments.");
-
-            _dbContext.PaymentCategories.Remove(category);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-        }
+        dbContext.PaymentCategories.Remove(category);
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

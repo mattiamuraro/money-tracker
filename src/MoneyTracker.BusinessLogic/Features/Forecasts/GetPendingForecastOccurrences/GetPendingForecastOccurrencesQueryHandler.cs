@@ -1,21 +1,16 @@
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.BusinessLogic.Features.Forecasts.GetPendingForecastOccurrences;
 
-public class GetPendingForecastOccurrencesQueryHandler
+public class GetPendingForecastOccurrencesQueryHandler(MoneyTrackerDbContext dbContext)
+    : IHandler<GetPendingForecastOccurrencesQuery, List<ForecastOccurrenceRow>>
 {
-    private readonly MoneyTrackerDbContext _dbContext;
-
-    public GetPendingForecastOccurrencesQueryHandler(MoneyTrackerDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
-
     public async Task<List<ForecastOccurrenceRow>> Handle(GetPendingForecastOccurrencesQuery request, CancellationToken cancellationToken)
     {
-        return await _dbContext.ForecastOccurrences
+        return await dbContext.ForecastOccurrences
             .AsNoTracking()
             .Include(x => x.PaymentCategory)
             .Where(x => x.ForecastOccurrenceStatusId == ForecastOccurrenceStatus.PendingId
