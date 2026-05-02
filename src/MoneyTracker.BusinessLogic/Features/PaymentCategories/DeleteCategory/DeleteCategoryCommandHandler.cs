@@ -21,7 +21,7 @@ public class DeleteCategoryCommandHandler(MoneyTrackerDbContext dbContext)
             throw new EntityNotFoundException($"Payment category with id {request.Id} not found");
 
         if (category.Payments.Any())
-            throw new InvalidOperationException("Cannot delete a category that has associated payments.");
+            throw new ConflictException("Cannot delete a category that has associated payments.");
 
         dbContext.PaymentCategories.Remove(category);
         await dbContext.SaveChangesAsync(cancellationToken);

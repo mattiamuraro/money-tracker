@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.Data.EntityFramework;
@@ -24,9 +25,10 @@ public class UpdateCategoryCommandHandler(
         if (category == null)
             throw new EntityNotFoundException($"Payment category with id {command.Id} not found");
 
-        var existingCategory = dbContext.PaymentCategories.FirstOrDefault(c => c.Code == command.Code && c.Id != command.Id);
-        if (existingCategory != null)
-            throw new InvalidOperationException($"Category with code '{command.Code}' already exists.");
+        var categoryExists = await dbContext.PaymentCategories
+            .AnyAsync(c => c.Code == command.Code && c.Id != command.Id, cancellationToken);
+        if (categoryExists)
+            throw new ConflictException($"Category with code '{command.Code}' already exists.");
 
         category.Name = command.Name;
         category.Code = command.Code;

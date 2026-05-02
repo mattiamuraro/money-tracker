@@ -54,7 +54,7 @@ public class UpdatePaymentCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_ThrowInvalidOperationException_When_PaymentCategoryNotFound()
+    public async Task Handle_Should_ThrowEntityNotFoundException_When_PaymentCategoryNotFound()
     {
         // Arrange
         using var db = CreateDbContext();
@@ -76,7 +76,7 @@ public class UpdatePaymentCommandHandlerTests
         var handler = CreateHandler(db);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        var exception = await Assert.ThrowsAsync<EntityNotFoundException>(
             async () => await handler.Handle(command, CancellationToken.None));
         Assert.Contains(categoryId.ToString(), exception.Message);
     }

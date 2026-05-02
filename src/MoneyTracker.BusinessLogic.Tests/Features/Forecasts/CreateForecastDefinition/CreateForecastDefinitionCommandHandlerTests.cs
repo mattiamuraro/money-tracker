@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.BusinessLogic.Features.Forecasts.CreateForecastDefinition;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
@@ -137,7 +138,7 @@ public class CreateForecastDefinitionCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ExpenseCommandWithInvalidCategory_ThrowsInvalidOperationException()
+    public async Task Handle_ExpenseCommandWithInvalidCategory_ThrowsEntityNotFoundException()
     {
         // Arrange
         using var db = CreateDbContext();
@@ -156,7 +157,7 @@ public class CreateForecastDefinitionCommandHandlerTests
         };
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        var exception = await Assert.ThrowsAsync<EntityNotFoundException>(
             () => handler.Handle(command, CancellationToken.None));
 
         Assert.Equal("The requested payment category does not exist.", exception.Message);

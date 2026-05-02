@@ -39,15 +39,15 @@ public class CreatePaymentCommandHandler(
         if (request.ForecastOccurrenceId.HasValue)
         {
             if (occurrence == null)
-                throw new InvalidOperationException($"ForecastOccurrence with id {request.ForecastOccurrenceId.Value} not found");
+                throw new EntityNotFoundException($"ForecastOccurrence with id {request.ForecastOccurrenceId.Value} not found");
             if (occurrence.ForecastOccurrenceStatusId != ForecastOccurrenceStatus.PendingId)
-                throw new InvalidOperationException($"ForecastOccurrence with id {request.ForecastOccurrenceId.Value} is not pending");
+                throw new BadRequestException($"ForecastOccurrence with id {request.ForecastOccurrenceId.Value} is not pending");
         }
 
         var category = await dbContext.PaymentCategories.FindAsync(
             new object[] { request.PaymentCategoryId }, cancellationToken: cancellationToken);
         if (category == null)
-            throw new InvalidOperationException($"PaymentCategory with id {request.PaymentCategoryId} not found");
+            throw new EntityNotFoundException($"PaymentCategory with id {request.PaymentCategoryId} not found");
 
         var payment = new Payment
         {

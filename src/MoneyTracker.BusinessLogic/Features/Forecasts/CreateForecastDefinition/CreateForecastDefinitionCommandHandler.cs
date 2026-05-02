@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.BusinessLogic.Common.Extensions;
 using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.BusinessLogic.Features.Forecasts.CreateForecastDefinition.ExtensionMethods;
@@ -41,7 +42,7 @@ public class CreateForecastDefinitionCommandHandler(
     {
         var categoryExists = await dbContext.PaymentCategories.AnyAsync(x => x.Id == paymentCategoryId, cancellationToken);
         if (!categoryExists)
-            throw new InvalidOperationException("The requested payment category does not exist.");
+            throw new EntityNotFoundException("The requested payment category does not exist.");
     }
 
     private async Task<ForecastIncome> CreateForecastIncomeAsync(CreateForecastDefinitionCommand command)

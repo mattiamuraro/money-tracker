@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.BusinessLogic.Features.Payments.CreatePayment;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
@@ -116,7 +117,7 @@ public class CreatePaymentCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldThrowInvalidOperationException_WhenPaymentCategoryNotFound()
+    public async Task Handle_ShouldThrowEntityNotFoundException_WhenPaymentCategoryNotFound()
     {
         // Arrange
         var (handler, _) = CreateHandler();
@@ -131,13 +132,13 @@ public class CreatePaymentCommandHandlerTests
         );
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(command, CancellationToken.None));
+        var exception = await Assert.ThrowsAsync<EntityNotFoundException>(() => handler.Handle(command, CancellationToken.None));
         Assert.Contains("PaymentCategory with id", exception.Message);
         Assert.Contains("not found", exception.Message);
     }
 
     [Fact]
-    public async Task Handle_ShouldThrowInvalidOperationException_WhenForecastOccurrenceNotFound()
+    public async Task Handle_ShouldThrowEntityNotFoundException_WhenForecastOccurrenceNotFound()
     {
         // Arrange
         var (handler, db) = CreateHandler();
@@ -156,13 +157,13 @@ public class CreatePaymentCommandHandlerTests
         );
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(command, CancellationToken.None));
+        var exception = await Assert.ThrowsAsync<EntityNotFoundException>(() => handler.Handle(command, CancellationToken.None));
         Assert.Contains("ForecastOccurrence with id", exception.Message);
         Assert.Contains("not found", exception.Message);
     }
 
     [Fact]
-    public async Task Handle_ShouldThrowInvalidOperationException_WhenForecastOccurrenceIsNotPending()
+    public async Task Handle_ShouldThrowBadRequestException_WhenForecastOccurrenceIsNotPending()
     {
         // Arrange
         var (handler, db) = CreateHandler();
@@ -193,7 +194,7 @@ public class CreatePaymentCommandHandlerTests
         );
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(command, CancellationToken.None));
+        var exception = await Assert.ThrowsAsync<BadRequestException>(() => handler.Handle(command, CancellationToken.None));
         Assert.Contains("ForecastOccurrence with id", exception.Message);
         Assert.Contains("is not pending", exception.Message);
     }
@@ -422,7 +423,7 @@ public class CreatePaymentCommandHandlerTests
         );
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(command, CancellationToken.None));
+        var exception = await Assert.ThrowsAsync<EntityNotFoundException>(() => handler.Handle(command, CancellationToken.None));
         Assert.Contains("ForecastOccurrence with id", exception.Message);
         Assert.Contains("not found", exception.Message);
     }

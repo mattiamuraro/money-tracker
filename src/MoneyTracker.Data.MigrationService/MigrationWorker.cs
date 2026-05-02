@@ -34,6 +34,11 @@ public class MigrationWorker : IHostedService
 
             _logger.LogInformation("Seeded default data.");
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("Migration worker was canceled.");
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error while applying migrations.");

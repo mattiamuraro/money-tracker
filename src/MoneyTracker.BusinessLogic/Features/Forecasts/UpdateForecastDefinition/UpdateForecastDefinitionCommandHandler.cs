@@ -27,7 +27,7 @@ public class UpdateForecastDefinitionCommandHandler(
         {
             var categoryExists = await dbContext.PaymentCategories.AnyAsync(x => x.Id == command.PaymentCategoryId!.Value, cancellationToken);
             if (!categoryExists)
-                throw new InvalidOperationException("The requested payment category does not exist.");
+                throw new EntityNotFoundException("The requested payment category does not exist.");
             await UpdateForecastExpenseDefinitionAsync(command, cancellationToken);
         }
 

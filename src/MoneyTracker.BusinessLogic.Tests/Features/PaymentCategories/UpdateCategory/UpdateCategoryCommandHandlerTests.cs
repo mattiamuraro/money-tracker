@@ -74,7 +74,7 @@ public class UpdateCategoryCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldThrowInvalidOperationException_WhenCodeConflictsWithAnotherCategory()
+    public async Task Handle_ShouldThrowConflictException_WhenCodeConflictsWithAnotherCategory()
     {
         // Arrange
         using var db = CreateDbContext();
@@ -87,7 +87,7 @@ public class UpdateCategoryCommandHandlerTests
         var handler = CreateHandler(db);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(command, CancellationToken.None));
+        var exception = await Assert.ThrowsAsync<ConflictException>(() => handler.Handle(command, CancellationToken.None));
         Assert.Equal("Category with code 'CAT2' already exists.", exception.Message);
     }
 

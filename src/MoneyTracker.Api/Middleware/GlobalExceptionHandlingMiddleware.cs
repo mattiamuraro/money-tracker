@@ -1,5 +1,8 @@
+﻿using System.Data.Common;
+using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
+using MoneyTracker.Api.Resources;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
-using MoneyTracker.BusinessLogic.Common.Models;
 
 namespace MoneyTracker.Api.Middleware;
 
@@ -9,6 +12,8 @@ namespace MoneyTracker.Api.Middleware;
 /// </summary>
 public partial class GlobalExceptionHandlingMiddleware
 {
+    private static readonly JsonSerializerOptions ProblemDetailsJsonOptions = new(JsonSerializerDefaults.Web);
+
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionHandlingMiddleware> _logger;
     private readonly IWebHostEnvironment _environment;
@@ -29,6 +34,10 @@ public partial class GlobalExceptionHandlingMiddleware
         {
             await _next(context);
         }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            LogRequestCanceled(_logger);
+        }
         catch (Exception ex)
         {
             await HandleExceptionAsync(context, ex);
@@ -37,89 +46,126 @@ public partial class GlobalExceptionHandlingMiddleware
 
     private Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
+        using var logScope = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["TraceId"] = context.TraceIdentifier,
+            ["Path"] = context.Request.Path.Value ?? string.Empty
+        });
+
         LogUnhandledException(_logger, exception);
 
-        var response = new ErrorResponse
+        if (context.Response.HasStarted)
         {
-            TraceId = context.TraceIdentifier,
-            Timestamp = DateTime.UtcNow
-        };
-
-        context.Response.ContentType = "application/json";
-
-        switch (exception)
-        {
-            case FluentValidation.ValidationException validationEx:
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                response.Code = "VALIDATION_ERROR";
-                response.Message = "One or more validation errors occurred";
-                response.StatusCode = StatusCodes.Status400BadRequest;
-                response.Errors = validationEx.Errors
-                    .GroupBy(x => x.PropertyName)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.Select(x => x.ErrorMessage).ToArray());
-                break;
-
-            case UnauthorizedAccessException unauthorizedEx:
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                response.Code = "FORBIDDEN";
-                response.Message = unauthorizedEx.Message;
-                response.StatusCode = StatusCodes.Status403Forbidden;
-                break;
-
-            case ConflictException conflictEx:
-                context.Response.StatusCode = StatusCodes.Status409Conflict;
-                response.Code = "CONFLICT";
-                response.Message = conflictEx.Message;
-                response.StatusCode = StatusCodes.Status409Conflict;
-                break;
-
-            case BadRequestException badRequestEx:
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                response.Code = "BAD_REQUEST";
-                response.Message = badRequestEx.Message;
-                response.StatusCode = StatusCodes.Status400BadRequest;
-                break;
-
-            case ArgumentException argumentEx:
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                response.Code = "BAD_REQUEST";
-                response.Message = argumentEx.Message;
-                response.StatusCode = StatusCodes.Status400BadRequest;
-                break;
-
-            case InvalidOperationException invalidOpEx:
-                context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                response.Code = "INVALID_OPERATION";
-                response.Message = "The operation is invalid";
-                response.StatusCode = StatusCodes.Status400BadRequest;
-                if (_environment.IsDevelopment())
-                    response.Details = invalidOpEx.Message;
-                break;
-
-            case EntityNotFoundException notFoundEx:
-                context.Response.StatusCode = StatusCodes.Status404NotFound;
-                response.Code = "NOT_FOUND";
-                response.Message = "The requested resource was not found";
-                response.StatusCode = StatusCodes.Status404NotFound;
-                if (_environment.IsDevelopment())
-                    response.Details = notFoundEx.Message;
-                break;
-
-            default:
-                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                response.Code = "INTERNAL_SERVER_ERROR";
-                response.Message = "An internal server error occurred";
-                response.StatusCode = StatusCodes.Status500InternalServerError;
-                if (_environment.IsDevelopment())
-                    response.Details = exception.ToString();
-                break;
+            LogResponseAlreadyStarted(_logger);
+            return Task.CompletedTask;
         }
 
-        return context.Response.WriteAsJsonAsync(response);
+        if (exception is FluentValidation.ValidationException validationEx)
+        {
+            var validationProblem = CreateValidationProblemDetails(context, validationEx);
+            context.Response.StatusCode = validationProblem.Status ?? StatusCodes.Status400BadRequest;
+            return WriteProblemResponseAsync(context, validationProblem);
+        }
+
+        var problemDetails = CreateProblemDetails(context, exception);
+        context.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
+        return WriteProblemResponseAsync(context, problemDetails);
     }
+
+    private static Task WriteProblemResponseAsync(HttpContext context, ProblemDetails problemDetails)
+    {
+        context.Response.ContentType = "application/problem+json";
+        var payload = JsonSerializer.Serialize(problemDetails, problemDetails.GetType(), ProblemDetailsJsonOptions);
+        return context.Response.WriteAsync(payload, context.RequestAborted);
+    }
+
+    private ValidationProblemDetails CreateValidationProblemDetails(HttpContext context, FluentValidation.ValidationException exception)
+    {
+        var errors = exception.Errors
+            .GroupBy(x => x.PropertyName)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(x => x.ErrorMessage).ToArray());
+
+        return new ValidationProblemDetails(errors)
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Title = ErrorMessageResources.ValidationError,
+            Type = "https://httpstatuses.com/400",
+            Instance = context.Request.Path
+        }
+        .WithCommonExtensions(context, ErrorCodes.ValidationError);
+    }
+
+    private ProblemDetails CreateProblemDetails(HttpContext context, Exception exception)
+    {
+        var (statusCode, code, title, detail) = exception switch
+        {
+            UnauthorizedAccessException unauthorizedEx =>
+                (StatusCodes.Status403Forbidden, ErrorCodes.Forbidden, ErrorMessageResources.Forbidden, GetDevelopmentDetail(unauthorizedEx.Message)),
+            ConflictException conflictEx =>
+                (StatusCodes.Status409Conflict, ErrorCodes.Conflict, ErrorMessageResources.Conflict, GetDevelopmentDetail(conflictEx.Message)),
+            BadRequestException badRequestEx =>
+                (StatusCodes.Status400BadRequest, ErrorCodes.BadRequest, ErrorMessageResources.BadRequest, GetDevelopmentDetail(badRequestEx.Message)),
+            ArgumentException argumentEx =>
+                (StatusCodes.Status400BadRequest, ErrorCodes.BadRequest, ErrorMessageResources.BadRequest, GetDevelopmentDetail(argumentEx.Message)),
+            InvalidOperationException invalidOpEx =>
+                (StatusCodes.Status400BadRequest, ErrorCodes.InvalidOperation, ErrorMessageResources.InvalidOperation, GetDevelopmentDetail(invalidOpEx.Message)),
+            EntityNotFoundException notFoundEx =>
+                (StatusCodes.Status404NotFound, ErrorCodes.NotFound, ErrorMessageResources.NotFound, GetDevelopmentDetail(notFoundEx.Message)),
+            TimeoutException timeoutEx =>
+                (StatusCodes.Status503ServiceUnavailable, ErrorCodes.TransientFailure, ErrorMessageResources.TransientFailure, GetDevelopmentDetail(timeoutEx.Message)),
+            DbException dbException =>
+                (StatusCodes.Status503ServiceUnavailable, ErrorCodes.TransientFailure, ErrorMessageResources.TransientFailure, GetDevelopmentDetail(dbException.Message)),
+            _ =>
+                (StatusCodes.Status500InternalServerError, ErrorCodes.InternalServerError, ErrorMessageResources.InternalServerError, GetDevelopmentDetail(exception.ToString()))
+        };
+
+        return new ProblemDetails
+        {
+            Status = statusCode,
+            Title = title,
+            Detail = detail,
+            Type = $"https://httpstatuses.com/{statusCode}",
+            Instance = context.Request.Path
+        }
+        .WithCommonExtensions(context, code);
+    }
+
+    private string? GetDevelopmentDetail(string detail)
+        => _environment.IsDevelopment() ? detail : null;
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Request was canceled by the client.")]
+    private static partial void LogRequestCanceled(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "An unhandled exception occurred.")]
     private static partial void LogUnhandledException(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "The response has already started; the exception response cannot be written.")]
+    private static partial void LogResponseAlreadyStarted(ILogger logger);
 }
+
+internal static class ProblemDetailsExtensions
+{
+    private const string CorrelationIdItemKey = "CorrelationId";
+
+    public static T WithCommonExtensions<T>(this T problemDetails, HttpContext context, string code)
+        where T : ProblemDetails
+    {
+        problemDetails.Extensions["code"] = code;
+        problemDetails.Extensions["traceId"] = context.TraceIdentifier;
+        problemDetails.Extensions["timestamp"] = DateTime.UtcNow;
+
+        if (context.Items.TryGetValue(CorrelationIdItemKey, out var correlationId)
+            && correlationId is string correlationIdValue
+            && !string.IsNullOrWhiteSpace(correlationIdValue))
+        {
+            problemDetails.Extensions["correlationId"] = correlationIdValue;
+        }
+
+        return problemDetails;
+    }
+}
+
+
+

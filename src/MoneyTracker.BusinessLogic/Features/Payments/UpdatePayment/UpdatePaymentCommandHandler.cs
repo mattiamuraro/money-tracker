@@ -34,7 +34,7 @@ public class UpdatePaymentCommandHandler(
             var categoryExists = await dbContext.PaymentCategories.AnyAsync(
                 category => category.Id == request.PaymentCategoryId.Value, cancellationToken);
             if (!categoryExists)
-                throw new InvalidOperationException($"PaymentCategory with id {request.PaymentCategoryId.Value} not found");
+                throw new EntityNotFoundException($"PaymentCategory with id {request.PaymentCategoryId.Value} not found");
             payment.PaymentCategoryId = request.PaymentCategoryId.Value;
         }
 

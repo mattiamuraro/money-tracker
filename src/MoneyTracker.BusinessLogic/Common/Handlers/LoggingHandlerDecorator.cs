@@ -24,6 +24,12 @@ public partial class LoggingHandlerDecorator<TRequest, TResult>(
             LogHandlerSucceeded(logger, operationName, sw.ElapsedMilliseconds);
             return result;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            sw.Stop();
+            LogHandlerCanceled(logger, operationName, sw.ElapsedMilliseconds);
+            throw;
+        }
         catch (Exception ex)
         {
             sw.Stop();
@@ -37,6 +43,9 @@ public partial class LoggingHandlerDecorator<TRequest, TResult>(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Handler succeeded: {OperationName} in {ElapsedMs}ms")]
     private static partial void LogHandlerSucceeded(ILogger logger, string operationName, long elapsedMs);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Handler canceled: {OperationName} after {ElapsedMs}ms")]
+    private static partial void LogHandlerCanceled(ILogger logger, string operationName, long elapsedMs);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Handler failed: {OperationName} after {ElapsedMs}ms")]
     private static partial void LogHandlerFailed(ILogger logger, string operationName, long elapsedMs, Exception exception);
@@ -61,6 +70,12 @@ public partial class LoggingHandlerDecorator<TRequest>(
             sw.Stop();
             LogHandlerSucceeded(logger, operationName, sw.ElapsedMilliseconds);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            sw.Stop();
+            LogHandlerCanceled(logger, operationName, sw.ElapsedMilliseconds);
+            throw;
+        }
         catch (Exception ex)
         {
             sw.Stop();
@@ -74,6 +89,9 @@ public partial class LoggingHandlerDecorator<TRequest>(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Handler succeeded: {OperationName} in {ElapsedMs}ms")]
     private static partial void LogHandlerSucceeded(ILogger logger, string operationName, long elapsedMs);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Handler canceled: {OperationName} after {ElapsedMs}ms")]
+    private static partial void LogHandlerCanceled(ILogger logger, string operationName, long elapsedMs);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Handler failed: {OperationName} after {ElapsedMs}ms")]
     private static partial void LogHandlerFailed(ILogger logger, string operationName, long elapsedMs, Exception exception);

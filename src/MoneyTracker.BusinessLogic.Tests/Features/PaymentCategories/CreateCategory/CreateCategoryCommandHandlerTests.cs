@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.CreateCategory;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
@@ -56,7 +57,7 @@ public class CreateCategoryCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldThrowInvalidOperationException_WhenCategoryCodeAlreadyExists()
+    public async Task Handle_ShouldThrowConflictException_WhenCategoryCodeAlreadyExists()
     {
         // Arrange
         using var db = CreateDbContext();
@@ -67,7 +68,7 @@ public class CreateCategoryCommandHandlerTests
         var handler = CreateHandler(db);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => handler.Handle(command, CancellationToken.None));
+        var exception = await Assert.ThrowsAsync<ConflictException>(() => handler.Handle(command, CancellationToken.None));
         Assert.Equal("Category with code 'EXIST' already exists.", exception.Message);
     }
 
@@ -235,7 +236,7 @@ public class CreateCategoryCommandHandlerTests
         // Arrange
         using var db = CreateDbContext();
         var tooLongCode = "LONGCODE";
-        
+
         var command = new CreateCategoryCommand { Name = "Long Category", Code = tooLongCode };
         var handler = CreateHandler(db);
 
@@ -258,7 +259,7 @@ public class CreateCategoryCommandHandlerTests
         var handler = CreateHandler(db);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        var exception = await Assert.ThrowsAsync<ConflictException>(
             () => handler.Handle(command, CancellationToken.None));
         Assert.Contains(existingCode, exception.Message);
         Assert.Contains("already exists", exception.Message);

@@ -1,6 +1,7 @@
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.BusinessLogic.Features.Incomes.CreateIncome;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
@@ -209,7 +210,7 @@ public class CreateIncomeCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldThrowException_WhenForecastOccurrenceNotFound()
+    public async Task Handle_ShouldThrowEntityNotFoundException_WhenForecastOccurrenceNotFound()
     {
         // Arrange
         using var db = CreateDbContext();
@@ -225,14 +226,14 @@ public class CreateIncomeCommandHandlerTests
         var handler = CreateHandler(db);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        var exception = await Assert.ThrowsAsync<EntityNotFoundException>(
             () => handler.Handle(command, CancellationToken.None));
         Assert.Contains(nonExistentOccurrenceId.ToString(), exception.Message);
         Assert.Contains("not found", exception.Message);
     }
 
     [Fact]
-    public async Task Handle_ShouldThrowException_WhenForecastOccurrenceIsNotIncome()
+    public async Task Handle_ShouldThrowEntityNotFoundException_WhenForecastOccurrenceIsNotIncome()
     {
         // Arrange
         using var db = CreateDbContext();
@@ -262,14 +263,14 @@ public class CreateIncomeCommandHandlerTests
         var handler = CreateHandler(db);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        var exception = await Assert.ThrowsAsync<EntityNotFoundException>(
             () => handler.Handle(command, CancellationToken.None));
         Assert.Contains(occurrenceId.ToString(), exception.Message);
         Assert.Contains("not found", exception.Message);
     }
 
     [Fact]
-    public async Task Handle_ShouldThrowException_WhenForecastOccurrenceIsNotPending()
+    public async Task Handle_ShouldThrowBadRequestException_WhenForecastOccurrenceIsNotPending()
     {
         // Arrange
         using var db = CreateDbContext();
@@ -299,7 +300,7 @@ public class CreateIncomeCommandHandlerTests
         var handler = CreateHandler(db);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        var exception = await Assert.ThrowsAsync<BadRequestException>(
             () => handler.Handle(command, CancellationToken.None));
         Assert.Contains(occurrenceId.ToString(), exception.Message);
         Assert.Contains("not pending", exception.Message);

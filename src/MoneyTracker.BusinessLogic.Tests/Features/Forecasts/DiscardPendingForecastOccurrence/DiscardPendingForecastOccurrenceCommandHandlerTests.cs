@@ -93,7 +93,7 @@ public class DiscardPendingForecastOccurrenceCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OccurrenceNotPending_ThrowsInvalidOperationException()
+    public async Task Handle_OccurrenceNotPending_ThrowsConflictException()
     {
         // Arrange
         var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
@@ -129,13 +129,13 @@ public class DiscardPendingForecastOccurrenceCommandHandlerTests
         var command = new DiscardPendingForecastOccurrenceCommand(occurrenceId);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        var exception = await Assert.ThrowsAsync<ConflictException>(
             () => handler.Handle(command, CancellationToken.None));
         Assert.Equal("Only pending forecast occurrences can be discarded.", exception.Message);
     }
 
     [Fact]
-    public async Task Handle_OccurrenceAlreadySkipped_ThrowsInvalidOperationException()
+    public async Task Handle_OccurrenceAlreadySkipped_ThrowsConflictException()
     {
         // Arrange
         var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
@@ -171,13 +171,13 @@ public class DiscardPendingForecastOccurrenceCommandHandlerTests
         var command = new DiscardPendingForecastOccurrenceCommand(occurrenceId);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        var exception = await Assert.ThrowsAsync<ConflictException>(
             () => handler.Handle(command, CancellationToken.None));
         Assert.Equal("Only pending forecast occurrences can be discarded.", exception.Message);
     }
 
     [Fact]
-    public async Task Handle_OccurrenceCancelled_ThrowsInvalidOperationException()
+    public async Task Handle_OccurrenceCancelled_ThrowsConflictException()
     {
         // Arrange
         var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
@@ -213,7 +213,7 @@ public class DiscardPendingForecastOccurrenceCommandHandlerTests
         var command = new DiscardPendingForecastOccurrenceCommand(occurrenceId);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        var exception = await Assert.ThrowsAsync<ConflictException>(
             () => handler.Handle(command, CancellationToken.None));
         Assert.Equal("Only pending forecast occurrences can be discarded.", exception.Message);
     }

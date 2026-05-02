@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
@@ -34,9 +35,9 @@ public class CreateIncomeCommandHandler(
         if (command.ForecastOccurrenceId.HasValue)
         {
             if (occurrence == null)
-                throw new InvalidOperationException($"ForecastOccurrence with id {command.ForecastOccurrenceId.Value} not found");
+                throw new EntityNotFoundException($"ForecastOccurrence with id {command.ForecastOccurrenceId.Value} not found");
             if (occurrence.ForecastOccurrenceStatusId != ForecastOccurrenceStatus.PendingId)
-                throw new InvalidOperationException($"ForecastOccurrence with id {command.ForecastOccurrenceId.Value} is not pending");
+                throw new BadRequestException($"ForecastOccurrence with id {command.ForecastOccurrenceId.Value} is not pending");
         }
 
         var income = new Income

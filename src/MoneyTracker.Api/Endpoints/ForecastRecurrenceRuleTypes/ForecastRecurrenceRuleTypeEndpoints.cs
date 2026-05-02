@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.ForecastRecurrenceRuleTypes.Contracts;
 using MoneyTracker.Api.Endpoints.ForecastRecurrenceRuleTypes.ExtensionMethods;
-using MoneyTracker.BusinessLogic.Common.Models;
 using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRecurrenceRuleTypes;
 
 namespace MoneyTracker.Api.Endpoints.ForecastRecurrenceRuleTypes
@@ -24,7 +23,7 @@ namespace MoneyTracker.Api.Endpoints.ForecastRecurrenceRuleTypes
                 .WithName("GetForecastRecurrenceRuleTypes")
                 .WithDescription("Retrieves forecast recurrence rule types")
                 .Produces<List<ForecastRecurrenceRuleTypeResponse>>(StatusCodes.Status200OK)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             return app;
         }

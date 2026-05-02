@@ -1,4 +1,5 @@
-using System.Globalization;
+﻿using System.Globalization;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 
 namespace MoneyTracker.Api.Endpoints.Payments.Contracts;
 
@@ -41,12 +42,12 @@ public class PaymentFilterQuery : PaginationQuery
     {
         if (string.IsNullOrWhiteSpace(Month))
         {
-            throw new ArgumentException("Month filter is required and must use yyyy-MM format.");
+            throw new BadRequestException("Month filter is required and must use yyyy-MM format.");
         }
 
         if (!DateTime.TryParseExact(Month, "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedMonth))
         {
-            throw new ArgumentException("Month filter is required and must use yyyy-MM format.");
+            throw new BadRequestException("Month filter is required and must use yyyy-MM format.");
         }
 
         return (parsedMonth.Year, parsedMonth.Month);

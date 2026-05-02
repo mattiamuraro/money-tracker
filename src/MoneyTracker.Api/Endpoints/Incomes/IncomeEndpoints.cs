@@ -31,8 +31,8 @@ public static class IncomeEndpoints
             .WithName("GetIncomes")
             .WithDescription("Retrieves incomes with required month filtering and pagination")
             .Produces<PaginatedResponse<IncomeRowResponse>>(StatusCodes.Status200OK)
-            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-            .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapGet("/{id:guid}", static async ([FromServices] GetIncomeByIdQueryHandler handler, Guid id, CancellationToken cancellationToken) =>
             {
@@ -45,8 +45,8 @@ public static class IncomeEndpoints
             .WithName("GetIncomeById")
             .WithDescription("Retrieves a specific income by ID")
             .Produces<IncomeRowResponse>(StatusCodes.Status200OK)
-            .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
-            .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapPost("/", static async (HttpContext httpContext, [FromServices] CreateIncomeCommandHandler handler, CreateIncomeRequest request, CancellationToken cancellationToken) =>
             {
@@ -59,9 +59,9 @@ public static class IncomeEndpoints
             .WithDescription("Creates a new income")
             .Accepts<CreateIncomeRequest>("application/json")
             .Produces<Guid>(StatusCodes.Status201Created)
-            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesValidationProblem()
-            .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapPut("/{id:guid}", static async (HttpContext httpContext, [FromServices] UpdateIncomeCommandHandler handler, Guid id, UpdateIncomeRequest request, CancellationToken cancellationToken) =>
             {
@@ -74,9 +74,9 @@ public static class IncomeEndpoints
             .WithDescription("Updates an income")
             .Accepts<UpdateIncomeRequest>("application/json")
             .Produces(StatusCodes.Status204NoContent)
-            .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesValidationProblem()
-            .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapDelete("/{id:guid}", static async (HttpContext httpContext, [FromServices] DeleteIncomeCommandHandler handler, Guid id, [FromQuery] string? occurrenceAction, CancellationToken cancellationToken) =>
             {
@@ -88,9 +88,9 @@ public static class IncomeEndpoints
             .WithName("DeleteIncome")
             .WithDescription("Deletes an income")
             .Produces(StatusCodes.Status204NoContent)
-            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-            .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
-            .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         return app;
     }

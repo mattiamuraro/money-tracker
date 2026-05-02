@@ -31,8 +31,8 @@ namespace MoneyTracker.Api.Endpoints.Payments
                 .WithName("GetPayments")
                 .WithDescription("Retrieves all payments with required month filtering and pagination")
                 .Produces<PaginatedResponse<PaymentRowResponse>>(StatusCodes.Status200OK)
-                .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status400BadRequest)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             // GET payment by ID
             group.MapGet("/{id:guid}", async ([FromServices] GetPaymentByIdQueryHandler handler, Guid id, CancellationToken cancellationToken) =>
@@ -46,8 +46,8 @@ namespace MoneyTracker.Api.Endpoints.Payments
                 .WithName("GetPaymentById")
                 .WithDescription("Retrieves a specific payment by ID")
                 .Produces<PaymentRowResponse>(StatusCodes.Status200OK)
-                .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status404NotFound)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             // POST create payment
             group.MapPost("/", async (HttpContext httpContext, [FromServices] CreatePaymentCommandHandler handler, CreatePaymentRequest request, CancellationToken cancellationToken) =>
@@ -61,8 +61,8 @@ namespace MoneyTracker.Api.Endpoints.Payments
                 .WithDescription("Creates a new payment (supports idempotency with X-Idempotency-Key header)")
                 .Accepts<CreatePaymentRequest>("application/json")
                 .Produces<Guid>(StatusCodes.Status201Created)
-                .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status400BadRequest)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             // PUT update payment
             group.MapPut("/{id:guid}", async (HttpContext httpContext, [FromServices] UpdatePaymentCommandHandler handler, Guid id, UpdatePaymentRequest request, CancellationToken cancellationToken) =>
@@ -76,9 +76,9 @@ namespace MoneyTracker.Api.Endpoints.Payments
                 .WithDescription("Updates an existing payment")
                 .Accepts<UpdatePaymentRequest>("application/json")
                 .Produces(StatusCodes.Status204NoContent)
-                .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
-                .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status404NotFound)
+                .ProducesProblem(StatusCodes.Status400BadRequest)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             // DELETE payment
             group.MapDelete("/{id:guid}", async (HttpContext httpContext, [FromServices] DeletePaymentCommandHandler handler, Guid id, [FromQuery] string? occurrenceAction, CancellationToken cancellationToken) =>
@@ -91,9 +91,9 @@ namespace MoneyTracker.Api.Endpoints.Payments
                 .WithName("DeletePayment")
                 .WithDescription("Deletes a payment")
                 .Produces(StatusCodes.Status204NoContent)
-                .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-                .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status400BadRequest)
+                .ProducesProblem(StatusCodes.Status404NotFound)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             return app;
         }

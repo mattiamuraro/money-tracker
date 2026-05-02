@@ -69,7 +69,7 @@ public class DeleteCategoryCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ShouldThrowInvalidOperationException_WhenCategoryHasAssociatedPayments()
+    public async Task Handle_ShouldThrowConflictException_WhenCategoryHasAssociatedPayments()
     {
         // Arrange
         var categoryId = Guid.NewGuid();
@@ -98,7 +98,7 @@ public class DeleteCategoryCommandHandlerTests
         var handler = new DeleteCategoryCommandHandler(_dbContext);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+        var exception = await Assert.ThrowsAsync<ConflictException>(
             () => handler.Handle(command, CancellationToken.None));
         Assert.Equal("Cannot delete a category that has associated payments.", exception.Message);
     }

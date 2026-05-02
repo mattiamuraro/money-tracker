@@ -1,5 +1,6 @@
-using Xunit;
+﻿using Xunit;
 using MoneyTracker.Api.Endpoints.Payments.Contracts;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 
 namespace MoneyTracker.Api.Tests.Endpoints.Payments.Contracts;
 
@@ -69,8 +70,8 @@ public class PaymentFilterQueryTests
         var missing = new PaymentFilterQuery();
         var invalid = new PaymentFilterQuery { Month = "07-2026" };
 
-        Xunit.Assert.Throws<ArgumentException>(() => missing.GetRequiredYearMonth());
-        Xunit.Assert.Throws<ArgumentException>(() => invalid.GetRequiredYearMonth());
+        Xunit.Assert.Throws<BadRequestException>(() => missing.GetRequiredYearMonth());
+        Xunit.Assert.Throws<BadRequestException>(() => invalid.GetRequiredYearMonth());
     }
 
     [Fact]
@@ -78,7 +79,7 @@ public class PaymentFilterQueryTests
     {
         var query = new PaymentFilterQuery { Month = "   " };
 
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
 
         Xunit.Assert.Equal("Month filter is required and must use yyyy-MM format.", exception.Message);
     }
@@ -88,7 +89,7 @@ public class PaymentFilterQueryTests
     {
         var query = new PaymentFilterQuery { Month = "" };
 
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
 
         Xunit.Assert.Equal("Month filter is required and must use yyyy-MM format.", exception.Message);
     }
@@ -120,7 +121,7 @@ public class PaymentFilterQueryTests
     {
         var query = new PaymentFilterQuery { Month = "2026-1" };
 
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
 
         Xunit.Assert.Equal("Month filter is required and must use yyyy-MM format.", exception.Message);
     }
@@ -130,7 +131,7 @@ public class PaymentFilterQueryTests
     {
         var query = new PaymentFilterQuery { Month = "2026-JAN" };
 
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
 
         Xunit.Assert.Equal("Month filter is required and must use yyyy-MM format.", exception.Message);
     }
@@ -140,7 +141,7 @@ public class PaymentFilterQueryTests
     {
         var query = new PaymentFilterQuery { Month = "2026" };
 
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
 
         Xunit.Assert.Equal("Month filter is required and must use yyyy-MM format.", exception.Message);
     }
@@ -150,7 +151,7 @@ public class PaymentFilterQueryTests
     {
         var query = new PaymentFilterQuery { Month = "2026-07-15" };
 
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
 
         Xunit.Assert.Equal("Month filter is required and must use yyyy-MM format.", exception.Message);
     }
@@ -160,7 +161,7 @@ public class PaymentFilterQueryTests
     {
         var query = new PaymentFilterQuery { Month = "2026-13" };
 
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
 
         Xunit.Assert.Equal("Month filter is required and must use yyyy-MM format.", exception.Message);
     }
@@ -170,8 +171,11 @@ public class PaymentFilterQueryTests
     {
         var query = new PaymentFilterQuery { Month = "2026-00" };
 
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
 
         Xunit.Assert.Equal("Month filter is required and must use yyyy-MM format.", exception.Message);
     }
 }
+
+
+

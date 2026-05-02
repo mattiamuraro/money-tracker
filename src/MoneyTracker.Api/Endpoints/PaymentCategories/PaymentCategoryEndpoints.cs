@@ -2,7 +2,6 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.PaymentCategories.Contracts;
 using MoneyTracker.Api.Endpoints.PaymentCategories.ExtensionMethods;
-using MoneyTracker.BusinessLogic.Common.Models;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.CreateCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.DeleteCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.GetAllCategories;
@@ -30,7 +29,7 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                 .WithName("GetAllCategories")
                 .WithDescription("Retrieves all payment categories")
                 .Produces<IEnumerable<PaymentCategoryResponse>>(StatusCodes.Status200OK)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             // GET category by ID
             group.MapGet("/{id:guid}", async ([FromServices] GetCategoryByIdQueryHandler handler, Guid id, CancellationToken cancellationToken) =>
@@ -44,8 +43,8 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                 .WithName("GetCategoryById")
                 .WithDescription("Retrieves a specific payment category by ID")
                 .Produces<PaymentCategoryResponse>(StatusCodes.Status200OK)
-                .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status404NotFound)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             // POST create category
             group.MapPost("/", async ([FromServices] CreateCategoryCommandHandler handler, CreatePaymentCategoryRequest request, CancellationToken cancellationToken) =>
@@ -59,8 +58,8 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                 .WithDescription("Creates a new payment category")
                 .Accepts<CreatePaymentCategoryRequest>("application/json")
                 .Produces<Guid>(StatusCodes.Status201Created)
-                .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status400BadRequest)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             // PUT update category
             group.MapPut("/{id:guid}", async ([FromServices] UpdateCategoryCommandHandler handler, Guid id, UpdatePaymentCategoryRequest request, CancellationToken cancellationToken) =>
@@ -74,9 +73,9 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                 .WithDescription("Updates an existing payment category")
                 .Accepts<UpdatePaymentCategoryRequest>("application/json")
                 .Produces(StatusCodes.Status204NoContent)
-                .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-                .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status400BadRequest)
+                .ProducesProblem(StatusCodes.Status404NotFound)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             // DELETE category
             group.MapDelete("/{id:guid}", async ([FromServices] DeleteCategoryCommandHandler handler, Guid id, CancellationToken cancellationToken) =>
@@ -89,9 +88,9 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                 .WithName("DeleteCategory")
                 .WithDescription("Deletes a payment category")
                 .Produces(StatusCodes.Status204NoContent)
-                .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-                .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status400BadRequest)
+                .ProducesProblem(StatusCodes.Status404NotFound)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             return app;
         }

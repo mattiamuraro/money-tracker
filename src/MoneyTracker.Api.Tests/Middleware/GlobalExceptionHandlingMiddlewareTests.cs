@@ -1,3 +1,7 @@
+﻿using System.Text.Json;
+using FluentValidation;
+using FluentValidation.Results;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
@@ -89,7 +93,7 @@ public class GlobalExceptionHandlingMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_Should_Set_Response_ContentType_When_Exception_Occurs()
+    public async Task InvokeAsync_Should_Set_ProblemDetails_ContentType_When_Exception_Occurs()
     {
         // Arrange
         var (middleware, _) = CreateMiddleware(_ => throw new Exception("Test exception"));
@@ -100,7 +104,22 @@ public class GlobalExceptionHandlingMiddlewareTests
         await middleware.InvokeAsync(context);
 
         // Assert
-        Assert.StartsWith("application/json", context.Response.ContentType);
+        Assert.Equal("application/problem+json", context.Response.ContentType);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Return_InternalServerError_When_Exception_Occurs()
+    {
+        // Arrange
+        var (middleware, _) = CreateMiddleware(_ => throw new Exception("Test exception"));
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        Assert.Equal(StatusCodes.Status500InternalServerError, context.Response.StatusCode);
     }
 
     [Fact]
@@ -114,4 +133,76 @@ public class GlobalExceptionHandlingMiddlewareTests
         // Act & Assert - should not throw
         await middleware.InvokeAsync(context);
     }
+
+    [Theory]
+    [InlineData(typeof(BadRequestException), StatusCodes.Status400BadRequest, "BAD_REQUEST")]
+    [InlineData(typeof(UnauthorizedAccessException), StatusCodes.Status403Forbidden, "FORBIDDEN")]
+    [InlineData(typeof(EntityNotFoundException), StatusCodes.Status404NotFound, "NOT_FOUND")]
+    [InlineData(typeof(ConflictException), StatusCodes.Status409Conflict, "CONFLICT")]
+    public async Task InvokeAsync_Should_Map_Known_Exceptions_To_Expected_Status_And_Code(Type exceptionType, int expectedStatus, string expectedCode)
+    {
+        Exception exception = exceptionType == typeof(BadRequestException)
+            ? new BadRequestException("bad")
+            : exceptionType == typeof(UnauthorizedAccessException)
+                ? new UnauthorizedAccessException("forbidden")
+                : exceptionType == typeof(EntityNotFoundException)
+                    ? new EntityNotFoundException("missing")
+                    : new ConflictException("conflict");
+
+        var (middleware, _) = CreateMiddleware(_ => throw exception);
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+        context.Items["CorrelationId"] = "corr-123";
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        Assert.Equal(expectedStatus, context.Response.StatusCode);
+        Assert.Equal(expectedCode, doc.RootElement.GetProperty("code").GetString());
+        Assert.Equal("corr-123", doc.RootElement.GetProperty("correlationId").GetString());
+        Assert.True(doc.RootElement.TryGetProperty("traceId", out _));
+        Assert.True(doc.RootElement.TryGetProperty("timestamp", out _));
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Return_ValidationProblemDetails_When_ValidationException_Thrown()
+    {
+        var validationException = new ValidationException([
+            new ValidationFailure("Month", "Month is required")
+        ]);
+
+        var (middleware, _) = CreateMiddleware(_ => throw validationException);
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        Assert.Equal("VALIDATION_ERROR", doc.RootElement.GetProperty("code").GetString());
+        Assert.True(doc.RootElement.TryGetProperty("errors", out var errors));
+        Assert.True(errors.TryGetProperty("Month", out _));
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Not_Write_Response_When_Request_Is_Canceled()
+    {
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var (middleware, logger) = CreateMiddleware(_ => throw new OperationCanceledException(cts.Token));
+        var context = new DefaultHttpContext();
+        context.RequestAborted = cts.Token;
+        context.Response.Body = new MemoryStream();
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
+        Assert.DoesNotContain(logger.Entries, e => e.Level == LogLevel.Error);
+    }
 }
+

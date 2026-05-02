@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using MoneyTracker.Api.Endpoints.Auth.Contracts;
 using MoneyTracker.Api.Endpoints.Auth.ExtensionMethods;
-using MoneyTracker.BusinessLogic.Common.Models;
 using MoneyTracker.BusinessLogic.Common.Options;
 using MoneyTracker.BusinessLogic.Features.Auth.Login;
 using MoneyTracker.BusinessLogic.Features.Auth.Register;
@@ -30,8 +29,8 @@ public static class AuthEndpoints
             .Accepts<LoginRequest>("application/json")
             .Produces<AuthTokenResponse>(StatusCodes.Status200OK)
             .ProducesValidationProblem()
-            .Produces(StatusCodes.Status401Unauthorized)
-            .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapPost("/register", async ([FromServices] RegisterCommandHandler handler, RegisterRequest request, CancellationToken cancellationToken) =>
             {
@@ -46,9 +45,9 @@ public static class AuthEndpoints
             .Accepts<RegisterRequest>("application/json")
             .Produces<AuthTokenResponse>(StatusCodes.Status200OK)
             .ProducesValidationProblem()
-            .Produces(StatusCodes.Status403Forbidden)
-            .Produces<ErrorResponse>(StatusCodes.Status409Conflict)
-            .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapGet("/config", ([FromServices] IOptions<AuthOptions> authOptions) =>
                 Results.Ok(new AuthConfigResponse { AllowRegistration = authOptions.Value.AllowRegistration }))

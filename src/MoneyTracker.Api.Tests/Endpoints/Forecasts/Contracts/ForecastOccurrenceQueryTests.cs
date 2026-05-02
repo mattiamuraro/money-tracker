@@ -1,5 +1,6 @@
 ﻿using Xunit;
 using MoneyTracker.Api.Endpoints.Forecasts.Contracts;
+using MoneyTracker.BusinessLogic.Common.Exceptions;
 
 namespace MoneyTracker.Api.Tests.Endpoints.Forecasts.Contracts;
 
@@ -43,7 +44,7 @@ public class ForecastOccurrenceQueryTests
         var query = new ForecastOccurrenceQuery { Month = null! };
 
         // Act & Assert
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
         Xunit.Assert.Equal("Month is required and must use yyyy-MM format.", exception.Message);
     }
 
@@ -54,7 +55,7 @@ public class ForecastOccurrenceQueryTests
         var query = new ForecastOccurrenceQuery { Month = "" };
 
         // Act & Assert
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
         Xunit.Assert.Equal("Month is required and must use yyyy-MM format.", exception.Message);
     }
 
@@ -65,7 +66,7 @@ public class ForecastOccurrenceQueryTests
         var query = new ForecastOccurrenceQuery { Month = "   " };
 
         // Act & Assert
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
         Xunit.Assert.Equal("Month is required and must use yyyy-MM format.", exception.Message);
     }
 
@@ -76,7 +77,7 @@ public class ForecastOccurrenceQueryTests
         var query = new ForecastOccurrenceQuery { Month = "202401" };
 
         // Act & Assert
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
         Xunit.Assert.Equal("Month is required and must use yyyy-MM format.", exception.Message);
     }
 
@@ -87,7 +88,7 @@ public class ForecastOccurrenceQueryTests
         var query = new ForecastOccurrenceQuery { Month = "2024-01-15" };
 
         // Act & Assert
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
         Xunit.Assert.Equal("Month is required and must use yyyy-MM format.", exception.Message);
     }
 
@@ -98,7 +99,7 @@ public class ForecastOccurrenceQueryTests
         var query = new ForecastOccurrenceQuery { Month = "abcd-01" };
 
         // Act & Assert
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
         Xunit.Assert.Equal("Month is required and must use yyyy-MM format.", exception.Message);
     }
 
@@ -109,7 +110,7 @@ public class ForecastOccurrenceQueryTests
         var query = new ForecastOccurrenceQuery { Month = "2024-ab" };
 
         // Act & Assert
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
         Xunit.Assert.Equal("Month is required and must use yyyy-MM format.", exception.Message);
     }
 
@@ -120,7 +121,7 @@ public class ForecastOccurrenceQueryTests
         var query = new ForecastOccurrenceQuery { Month = "2024-00" };
 
         // Act & Assert
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
         Xunit.Assert.Equal("Month is required and must use yyyy-MM format.", exception.Message);
     }
 
@@ -131,7 +132,7 @@ public class ForecastOccurrenceQueryTests
         var query = new ForecastOccurrenceQuery { Month = "2024-13" };
 
         // Act & Assert
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
         Xunit.Assert.Equal("Month is required and must use yyyy-MM format.", exception.Message);
     }
 
@@ -170,7 +171,7 @@ public class ForecastOccurrenceQueryTests
         var query = new ForecastOccurrenceQuery { Month = "2024" };
 
         // Act & Assert
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
         Xunit.Assert.Equal("Month is required and must use yyyy-MM format.", exception.Message);
     }
 
@@ -181,7 +182,10 @@ public class ForecastOccurrenceQueryTests
         var query = new ForecastOccurrenceQuery { Month = "-" };
 
         // Act & Assert
-        var exception = Xunit.Assert.Throws<ArgumentException>(() => query.GetRequiredYearMonth());
+        var exception = Xunit.Assert.Throws<BadRequestException>(() => query.GetRequiredYearMonth());
         Xunit.Assert.Equal("Month is required and must use yyyy-MM format.", exception.Message);
     }
 }
+
+
+

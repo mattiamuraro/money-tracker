@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.Forecasts.Contracts;
 using MoneyTracker.Api.Endpoints.Forecasts.ExtensionMethods;
-using MoneyTracker.BusinessLogic.Common.Models;
 using MoneyTracker.BusinessLogic.Features.Forecasts.CreateForecastDefinition;
 using MoneyTracker.BusinessLogic.Features.Forecasts.DeleteForecastDefinition;
 using MoneyTracker.BusinessLogic.Features.Forecasts.DiscardPendingForecastOccurrence;
@@ -38,8 +37,8 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                 .WithName("GetForecasts")
                 .WithDescription("Retrieves forecasts for a given date range")
                 .Produces<List<ForecastRowResponse>>(StatusCodes.Status200OK)
-                .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status400BadRequest)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             group.MapGet("/definitions", static async ([FromServices] GetForecastDefinitionsQueryHandler handler, CancellationToken cancellationToken) =>
                 {
@@ -51,7 +50,7 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                 .WithName("GetForecastDefinitions")
                 .WithDescription("Retrieves all forecast definitions")
                 .Produces<List<ForecastDefinitionResponse>>(StatusCodes.Status200OK)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             group.MapGet("/definitions/{id:guid}", static async ([FromServices] GetForecastDefinitionByIdQueryHandler handler, Guid id, CancellationToken cancellationToken) =>
                 {
@@ -63,8 +62,8 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                 .WithName("GetForecastDefinitionById")
                 .WithDescription("Retrieves a specific forecast definition by ID")
                 .Produces<ForecastDefinitionResponse>(StatusCodes.Status200OK)
-                .Produces(StatusCodes.Status404NotFound)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status404NotFound)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             group.MapPost("/definitions", static async (
                     [FromServices] CreateForecastDefinitionCommandHandler createHandler,
@@ -81,8 +80,8 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                 .WithDescription("Creates a new forecast definition")
                 .Accepts<CreateForecastRequest>("application/json")
                 .Produces<Guid>(StatusCodes.Status201Created)
-                .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status400BadRequest)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             group.MapPut("/definitions/{id:guid}", static async (
                     [FromServices] UpdateForecastDefinitionCommandHandler updateHandler,
@@ -100,9 +99,9 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                 .WithDescription("Updates an existing forecast definition")
                 .Accepts<UpdateForecastRequest>("application/json")
                 .Produces(StatusCodes.Status204NoContent)
-                .Produces(StatusCodes.Status404NotFound)
-                .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status404NotFound)
+                .ProducesProblem(StatusCodes.Status400BadRequest)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             group.MapDelete("/definitions/{id:guid}", static async (
                     [FromServices] DeleteForecastDefinitionCommandHandler deleteHandler,
@@ -118,8 +117,8 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                 .WithName("DeleteForecastDefinition")
                 .WithDescription("Deletes a forecast definition")
                 .Produces(StatusCodes.Status204NoContent)
-                .Produces(StatusCodes.Status404NotFound)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status404NotFound)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             group.MapGet("/occurrences", static async (
                     [FromServices] GetPendingForecastOccurrencesQueryHandler handler,
@@ -136,8 +135,8 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                 .WithName("GetForecastOccurrences")
                 .WithDescription("Retrieves pending forecast occurrences for a month and type")
                 .Produces<List<ForecastOccurrenceResponse>>(StatusCodes.Status200OK)
-                .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status400BadRequest)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             group.MapDelete("/occurrences/{id:guid}", static async ([FromServices] DiscardPendingForecastOccurrenceCommandHandler handler, Guid id, CancellationToken cancellationToken) =>
                 {
@@ -149,9 +148,9 @@ namespace MoneyTracker.Api.Endpoints.Forecasts
                 .WithName("DiscardForecastOccurrence")
                 .WithDescription("Discards a pending forecast occurrence")
                 .Produces(StatusCodes.Status204NoContent)
-                .Produces(StatusCodes.Status404NotFound)
-                .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-                .Produces<ErrorResponse>(StatusCodes.Status500InternalServerError);
+                .ProducesProblem(StatusCodes.Status404NotFound)
+                .ProducesProblem(StatusCodes.Status400BadRequest)
+                .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             return app;
         }
