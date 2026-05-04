@@ -44,36 +44,12 @@ export interface IncomeRow {
   date: string;
 }
 
-export interface ForecastRow {
-  id: string;
-  forecastDefinitionId: string;
-  description: string;
-  amount: number;
-  date: string;
-  isIncome: boolean;
-  paymentCategoryId?: string | null;
-  category?: string | null;
-}
-
 export interface ForecastOccurrenceRow {
   id: string;
   forecastDefinitionId: string;
   description: string;
   amount: number;
   expectedDate: string;
-  isIncome: boolean;
-  paymentCategoryId?: string | null;
-  category?: string | null;
-}
-
-export interface ForecastDefinition {
-  id: string;
-  forecastRecurrenceRuleTypeId: string;
-  description: string;
-  amount: number;
-  recurrenceStart: string;
-  recurrenceEnd: string | null;
-  interval: number;
   isIncome: boolean;
   paymentCategoryId?: string | null;
   category?: string | null;
@@ -93,17 +69,6 @@ export interface IncomeFormModel {
   forecastOccurrenceId?: string | null;
   amount: number | null;
   date: string;
-}
-
-export interface ForecastFormModel {
-  forecastRecurrenceRuleTypeId: string;
-  description: string;
-  amount: number | null;
-  recurrenceStart: string;
-  recurrenceEnd: string;
-  interval: number;
-  isIncome: boolean;
-  paymentCategoryId: string;
 }
 
 export type OccurrenceDeleteAction = 'Auto' | 'Reopen' | 'Skip';
@@ -135,4 +100,63 @@ export interface IncomeQuery {
   pageSize?: number;
   sortBy?: string;
   sortOrder?: string;
+}
+
+export interface ForecastIncomeRow {
+  id: string;
+  forecastDefinitionId: string;
+  description: string;
+  amount: number;
+  date: string;
+}
+
+export interface ForecastExpenseRow {
+  id: string;
+  forecastDefinitionId: string;
+  description: string;
+  amount: number;
+  date: string;
+  paymentCategoryId?: string | null;
+  category?: string | null;
+}
+
+export interface ForecastIncomeDefinition {
+  id: string;
+  forecastRecurrenceRuleTypeId: string;
+  description: string;
+  amount: number;
+  recurrenceStart: string;
+  recurrenceEnd: string | null;
+  interval: number;
+}
+
+export interface ForecastExpenseDefinition {
+  id: string;
+  forecastRecurrenceRuleTypeId: string;
+  description: string;
+  amount: number;
+  recurrenceStart: string;
+  recurrenceEnd: string | null;
+  interval: number;
+  paymentCategoryId?: string | null;
+  category?: string | null;
+}
+
+export interface ForecastIncomeFormModel {
+  forecastRecurrenceRuleTypeId: string;
+  description: string;
+  amount: number | null;
+  recurrenceStart: string;
+  recurrenceEnd: string;
+  interval: number;
+}
+
+export interface ForecastExpenseFormModel {
+  forecastRecurrenceRuleTypeId: string;
+  description: string;
+  amount: number | null;
+  recurrenceStart: string;
+  recurrenceEnd: string;
+  interval: number;
+  paymentCategoryId: string;
 }

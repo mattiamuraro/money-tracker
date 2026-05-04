@@ -4,16 +4,22 @@ using Microsoft.Extensions.DependencyInjection;
 using MoneyTracker.BusinessLogic.Common.Extensions;
 using MoneyTracker.BusinessLogic.Features.Auth.Login;
 using MoneyTracker.BusinessLogic.Features.Auth.Register;
-using MoneyTracker.BusinessLogic.Features.Forecasts.CreateForecastDefinition;
-using MoneyTracker.BusinessLogic.Features.Forecasts.DeleteForecastDefinition;
-using MoneyTracker.BusinessLogic.Features.Forecasts.DiscardPendingForecastOccurrence;
-using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastDefinitionById;
-using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastDefinitions;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.CreateForecastExpenseDefinition;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.DeleteForecastExpenseDefinition;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.DiscardForecastExpenseOccurrence;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.GetForecastExpenseDefinitions;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.GetForecastExpenseRows;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.GetPendingForecastExpenseOccurrences;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.UpdateForecastExpenseDefinition;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.CreateForecastIncomeDefinition;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.DeleteForecastIncomeDefinition;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.DiscardForecastIncomeOccurrence;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetForecastIncomeDefinitions;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetForecastIncomeRows;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetPendingForecastIncomeOccurrences;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.UpdateForecastIncomeDefinition;
 using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRecurrenceRuleTypes;
-using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRows;
-using MoneyTracker.BusinessLogic.Features.Forecasts.GetPendingForecastOccurrences;
 using MoneyTracker.BusinessLogic.Features.Forecasts.SynchronizeForecastOccurrences;
-using MoneyTracker.BusinessLogic.Features.Forecasts.UpdateForecastDefinition;
 using MoneyTracker.BusinessLogic.Features.Incomes.CreateIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.DeleteIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.GetIncome;
@@ -269,42 +275,6 @@ public class BusinessLogicServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddBusinessLogicServices_Should_Register_GetForecastRowsQueryHandler_As_Scoped()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        services.AddBusinessLogicServices();
-
-        // Assert
-        var serviceDescriptor = services.FirstOrDefault(x =>
-            x.ServiceType == typeof(GetForecastRowsQueryHandler) &&
-            x.ImplementationType == typeof(GetForecastRowsQueryHandler));
-
-        Assert.NotNull(serviceDescriptor);
-        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
-    }
-
-    [Fact]
-    public void AddBusinessLogicServices_Should_Register_GetPendingForecastOccurrencesQueryHandler_As_Scoped()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        services.AddBusinessLogicServices();
-
-        // Assert
-        var serviceDescriptor = services.FirstOrDefault(x =>
-            x.ServiceType == typeof(GetPendingForecastOccurrencesQueryHandler) &&
-            x.ImplementationType == typeof(GetPendingForecastOccurrencesQueryHandler));
-
-        Assert.NotNull(serviceDescriptor);
-        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
-    }
-
-    [Fact]
     public void AddBusinessLogicServices_Should_Register_GetForecastRecurrenceRuleTypesQueryHandler_As_Scoped()
     {
         // Arrange
@@ -317,42 +287,6 @@ public class BusinessLogicServiceCollectionExtensionsTests
         var serviceDescriptor = services.FirstOrDefault(x =>
             x.ServiceType == typeof(GetForecastRecurrenceRuleTypesQueryHandler) &&
             x.ImplementationType == typeof(GetForecastRecurrenceRuleTypesQueryHandler));
-
-        Assert.NotNull(serviceDescriptor);
-        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
-    }
-
-    [Fact]
-    public void AddBusinessLogicServices_Should_Register_GetForecastDefinitionsQueryHandler_As_Scoped()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        services.AddBusinessLogicServices();
-
-        // Assert
-        var serviceDescriptor = services.FirstOrDefault(x =>
-            x.ServiceType == typeof(GetForecastDefinitionsQueryHandler) &&
-            x.ImplementationType == typeof(GetForecastDefinitionsQueryHandler));
-
-        Assert.NotNull(serviceDescriptor);
-        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
-    }
-
-    [Fact]
-    public void AddBusinessLogicServices_Should_Register_GetForecastDefinitionByIdQueryHandler_As_Scoped()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        services.AddBusinessLogicServices();
-
-        // Assert
-        var serviceDescriptor = services.FirstOrDefault(x =>
-            x.ServiceType == typeof(GetForecastDefinitionByIdQueryHandler) &&
-            x.ImplementationType == typeof(GetForecastDefinitionByIdQueryHandler));
 
         Assert.NotNull(serviceDescriptor);
         Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
@@ -377,7 +311,7 @@ public class BusinessLogicServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddBusinessLogicServices_Should_Register_DiscardPendingForecastOccurrenceCommandHandler_As_Scoped()
+    public void AddBusinessLogicServices_Should_Register_GetForecastIncomeRowsQueryHandler_As_Scoped()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -387,15 +321,15 @@ public class BusinessLogicServiceCollectionExtensionsTests
 
         // Assert
         var serviceDescriptor = services.FirstOrDefault(x =>
-            x.ServiceType == typeof(DiscardPendingForecastOccurrenceCommandHandler) &&
-            x.ImplementationType == typeof(DiscardPendingForecastOccurrenceCommandHandler));
+            x.ServiceType == typeof(GetForecastIncomeRowsQueryHandler) &&
+            x.ImplementationType == typeof(GetForecastIncomeRowsQueryHandler));
 
         Assert.NotNull(serviceDescriptor);
         Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
     }
 
     [Fact]
-    public void AddBusinessLogicServices_Should_Register_CreateForecastDefinitionCommandHandler_As_Scoped()
+    public void AddBusinessLogicServices_Should_Register_GetForecastExpenseRowsQueryHandler_As_Scoped()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -405,15 +339,15 @@ public class BusinessLogicServiceCollectionExtensionsTests
 
         // Assert
         var serviceDescriptor = services.FirstOrDefault(x =>
-            x.ServiceType == typeof(CreateForecastDefinitionCommandHandler) &&
-            x.ImplementationType == typeof(CreateForecastDefinitionCommandHandler));
+            x.ServiceType == typeof(GetForecastExpenseRowsQueryHandler) &&
+            x.ImplementationType == typeof(GetForecastExpenseRowsQueryHandler));
 
         Assert.NotNull(serviceDescriptor);
         Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
     }
 
     [Fact]
-    public void AddBusinessLogicServices_Should_Register_UpdateForecastDefinitionCommandHandler_As_Scoped()
+    public void AddBusinessLogicServices_Should_Register_GetPendingForecastIncomeOccurrencesQueryHandler_As_Scoped()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -423,15 +357,15 @@ public class BusinessLogicServiceCollectionExtensionsTests
 
         // Assert
         var serviceDescriptor = services.FirstOrDefault(x =>
-            x.ServiceType == typeof(UpdateForecastDefinitionCommandHandler) &&
-            x.ImplementationType == typeof(UpdateForecastDefinitionCommandHandler));
+            x.ServiceType == typeof(GetPendingForecastIncomeOccurrencesQueryHandler) &&
+            x.ImplementationType == typeof(GetPendingForecastIncomeOccurrencesQueryHandler));
 
         Assert.NotNull(serviceDescriptor);
         Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
     }
 
     [Fact]
-    public void AddBusinessLogicServices_Should_Register_DeleteForecastDefinitionCommandHandler_As_Scoped()
+    public void AddBusinessLogicServices_Should_Register_GetPendingForecastExpenseOccurrencesQueryHandler_As_Scoped()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -441,8 +375,188 @@ public class BusinessLogicServiceCollectionExtensionsTests
 
         // Assert
         var serviceDescriptor = services.FirstOrDefault(x =>
-            x.ServiceType == typeof(DeleteForecastDefinitionCommandHandler) &&
-            x.ImplementationType == typeof(DeleteForecastDefinitionCommandHandler));
+            x.ServiceType == typeof(GetPendingForecastExpenseOccurrencesQueryHandler) &&
+            x.ImplementationType == typeof(GetPendingForecastExpenseOccurrencesQueryHandler));
+
+        Assert.NotNull(serviceDescriptor);
+        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddBusinessLogicServices_Should_Register_GetForecastIncomeDefinitionsQueryHandler_As_Scoped()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddBusinessLogicServices();
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(x =>
+            x.ServiceType == typeof(GetForecastIncomeDefinitionsQueryHandler) &&
+            x.ImplementationType == typeof(GetForecastIncomeDefinitionsQueryHandler));
+
+        Assert.NotNull(serviceDescriptor);
+        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddBusinessLogicServices_Should_Register_GetForecastExpenseDefinitionsQueryHandler_As_Scoped()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddBusinessLogicServices();
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(x =>
+            x.ServiceType == typeof(GetForecastExpenseDefinitionsQueryHandler) &&
+            x.ImplementationType == typeof(GetForecastExpenseDefinitionsQueryHandler));
+
+        Assert.NotNull(serviceDescriptor);
+        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddBusinessLogicServices_Should_Register_CreateForecastIncomeDefinitionCommandHandler_As_Scoped()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddBusinessLogicServices();
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(x =>
+            x.ServiceType == typeof(CreateForecastIncomeDefinitionCommandHandler) &&
+            x.ImplementationType == typeof(CreateForecastIncomeDefinitionCommandHandler));
+
+        Assert.NotNull(serviceDescriptor);
+        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddBusinessLogicServices_Should_Register_UpdateForecastIncomeDefinitionCommandHandler_As_Scoped()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddBusinessLogicServices();
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(x =>
+            x.ServiceType == typeof(UpdateForecastIncomeDefinitionCommandHandler) &&
+            x.ImplementationType == typeof(UpdateForecastIncomeDefinitionCommandHandler));
+
+        Assert.NotNull(serviceDescriptor);
+        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddBusinessLogicServices_Should_Register_DeleteForecastIncomeDefinitionCommandHandler_As_Scoped()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddBusinessLogicServices();
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(x =>
+            x.ServiceType == typeof(DeleteForecastIncomeDefinitionCommandHandler) &&
+            x.ImplementationType == typeof(DeleteForecastIncomeDefinitionCommandHandler));
+
+        Assert.NotNull(serviceDescriptor);
+        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddBusinessLogicServices_Should_Register_DiscardForecastIncomeOccurrenceCommandHandler_As_Scoped()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddBusinessLogicServices();
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(x =>
+            x.ServiceType == typeof(DiscardForecastIncomeOccurrenceCommandHandler) &&
+            x.ImplementationType == typeof(DiscardForecastIncomeOccurrenceCommandHandler));
+
+        Assert.NotNull(serviceDescriptor);
+        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddBusinessLogicServices_Should_Register_CreateForecastExpenseDefinitionCommandHandler_As_Scoped()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddBusinessLogicServices();
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(x =>
+            x.ServiceType == typeof(CreateForecastExpenseDefinitionCommandHandler) &&
+            x.ImplementationType == typeof(CreateForecastExpenseDefinitionCommandHandler));
+
+        Assert.NotNull(serviceDescriptor);
+        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddBusinessLogicServices_Should_Register_UpdateForecastExpenseDefinitionCommandHandler_As_Scoped()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddBusinessLogicServices();
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(x =>
+            x.ServiceType == typeof(UpdateForecastExpenseDefinitionCommandHandler) &&
+            x.ImplementationType == typeof(UpdateForecastExpenseDefinitionCommandHandler));
+
+        Assert.NotNull(serviceDescriptor);
+        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddBusinessLogicServices_Should_Register_DeleteForecastExpenseDefinitionCommandHandler_As_Scoped()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddBusinessLogicServices();
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(x =>
+            x.ServiceType == typeof(DeleteForecastExpenseDefinitionCommandHandler) &&
+            x.ImplementationType == typeof(DeleteForecastExpenseDefinitionCommandHandler));
+
+        Assert.NotNull(serviceDescriptor);
+        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddBusinessLogicServices_Should_Register_DiscardForecastExpenseOccurrenceCommandHandler_As_Scoped()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddBusinessLogicServices();
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(x =>
+            x.ServiceType == typeof(DiscardForecastExpenseOccurrenceCommandHandler) &&
+            x.ImplementationType == typeof(DiscardForecastExpenseOccurrenceCommandHandler));
 
         Assert.NotNull(serviceDescriptor);
         Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
@@ -683,7 +797,7 @@ public class BusinessLogicServiceCollectionExtensionsTests
     }
 
     [Fact]
-    public void AddBusinessLogicServices_Should_Register_CreateForecastDefinitionCommandValidator_As_Scoped()
+    public void AddBusinessLogicServices_Should_Register_CreateForecastIncomeDefinitionCommandValidator_As_Scoped()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -693,15 +807,15 @@ public class BusinessLogicServiceCollectionExtensionsTests
 
         // Assert
         var serviceDescriptor = services.FirstOrDefault(x =>
-            x.ServiceType == typeof(IValidator<CreateForecastDefinitionCommand>) &&
-            x.ImplementationType == typeof(CreateForecastDefinitionCommandValidator));
+            x.ServiceType == typeof(IValidator<CreateForecastIncomeDefinitionCommand>) &&
+            x.ImplementationType == typeof(CreateForecastIncomeDefinitionCommandValidator));
 
         Assert.NotNull(serviceDescriptor);
         Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
     }
 
     [Fact]
-    public void AddBusinessLogicServices_Should_Register_UpdateForecastDefinitionCommandValidator_As_Scoped()
+    public void AddBusinessLogicServices_Should_Register_UpdateForecastIncomeDefinitionCommandValidator_As_Scoped()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -711,8 +825,44 @@ public class BusinessLogicServiceCollectionExtensionsTests
 
         // Assert
         var serviceDescriptor = services.FirstOrDefault(x =>
-            x.ServiceType == typeof(IValidator<UpdateForecastDefinitionCommand>) &&
-            x.ImplementationType == typeof(UpdateForecastDefinitionCommandValidator));
+            x.ServiceType == typeof(IValidator<UpdateForecastIncomeDefinitionCommand>) &&
+            x.ImplementationType == typeof(UpdateForecastIncomeDefinitionCommandValidator));
+
+        Assert.NotNull(serviceDescriptor);
+        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddBusinessLogicServices_Should_Register_CreateForecastExpenseDefinitionCommandValidator_As_Scoped()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddBusinessLogicServices();
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(x =>
+            x.ServiceType == typeof(IValidator<CreateForecastExpenseDefinitionCommand>) &&
+            x.ImplementationType == typeof(CreateForecastExpenseDefinitionCommandValidator));
+
+        Assert.NotNull(serviceDescriptor);
+        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddBusinessLogicServices_Should_Register_UpdateForecastExpenseDefinitionCommandValidator_As_Scoped()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddBusinessLogicServices();
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(x =>
+            x.ServiceType == typeof(IValidator<UpdateForecastExpenseDefinitionCommand>) &&
+            x.ImplementationType == typeof(UpdateForecastExpenseDefinitionCommandValidator));
 
         Assert.NotNull(serviceDescriptor);
         Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
@@ -755,16 +905,22 @@ public class BusinessLogicServiceCollectionExtensionsTests
         Assert.NotNull(serviceProvider.GetService<DeleteIncomeCommandHandler>());
         Assert.NotNull(serviceProvider.GetService<GetIncomeQueryHandler>());
         Assert.NotNull(serviceProvider.GetService<GetIncomeByIdQueryHandler>());
-        Assert.NotNull(serviceProvider.GetService<GetForecastRowsQueryHandler>());
-        Assert.NotNull(serviceProvider.GetService<GetPendingForecastOccurrencesQueryHandler>());
         Assert.NotNull(serviceProvider.GetService<GetForecastRecurrenceRuleTypesQueryHandler>());
-        Assert.NotNull(serviceProvider.GetService<GetForecastDefinitionsQueryHandler>());
-        Assert.NotNull(serviceProvider.GetService<GetForecastDefinitionByIdQueryHandler>());
         Assert.NotNull(serviceProvider.GetService<SynchronizeForecastOccurrencesCommandHandler>());
-        Assert.NotNull(serviceProvider.GetService<DiscardPendingForecastOccurrenceCommandHandler>());
-        Assert.NotNull(serviceProvider.GetService<CreateForecastDefinitionCommandHandler>());
-        Assert.NotNull(serviceProvider.GetService<UpdateForecastDefinitionCommandHandler>());
-        Assert.NotNull(serviceProvider.GetService<DeleteForecastDefinitionCommandHandler>());
+        Assert.NotNull(serviceProvider.GetService<GetForecastIncomeRowsQueryHandler>());
+        Assert.NotNull(serviceProvider.GetService<GetForecastExpenseRowsQueryHandler>());
+        Assert.NotNull(serviceProvider.GetService<GetPendingForecastIncomeOccurrencesQueryHandler>());
+        Assert.NotNull(serviceProvider.GetService<GetPendingForecastExpenseOccurrencesQueryHandler>());
+        Assert.NotNull(serviceProvider.GetService<GetForecastIncomeDefinitionsQueryHandler>());
+        Assert.NotNull(serviceProvider.GetService<GetForecastExpenseDefinitionsQueryHandler>());
+        Assert.NotNull(serviceProvider.GetService<CreateForecastIncomeDefinitionCommandHandler>());
+        Assert.NotNull(serviceProvider.GetService<UpdateForecastIncomeDefinitionCommandHandler>());
+        Assert.NotNull(serviceProvider.GetService<DeleteForecastIncomeDefinitionCommandHandler>());
+        Assert.NotNull(serviceProvider.GetService<DiscardForecastIncomeOccurrenceCommandHandler>());
+        Assert.NotNull(serviceProvider.GetService<CreateForecastExpenseDefinitionCommandHandler>());
+        Assert.NotNull(serviceProvider.GetService<UpdateForecastExpenseDefinitionCommandHandler>());
+        Assert.NotNull(serviceProvider.GetService<DeleteForecastExpenseDefinitionCommandHandler>());
+        Assert.NotNull(serviceProvider.GetService<DiscardForecastExpenseOccurrenceCommandHandler>());
         Assert.NotNull(serviceProvider.GetService<CreateCategoryCommandHandler>());
         Assert.NotNull(serviceProvider.GetService<UpdateCategoryCommandHandler>());
         Assert.NotNull(serviceProvider.GetService<DeleteCategoryCommandHandler>());
@@ -780,7 +936,9 @@ public class BusinessLogicServiceCollectionExtensionsTests
         Assert.NotNull(serviceProvider.GetService<IValidator<UpdateCategoryCommand>>());
         Assert.NotNull(serviceProvider.GetService<IValidator<LoginCommand>>());
         Assert.NotNull(serviceProvider.GetService<IValidator<RegisterCommand>>());
-        Assert.NotNull(serviceProvider.GetService<IValidator<CreateForecastDefinitionCommand>>());
-        Assert.NotNull(serviceProvider.GetService<IValidator<UpdateForecastDefinitionCommand>>());
+        Assert.NotNull(serviceProvider.GetService<IValidator<CreateForecastIncomeDefinitionCommand>>());
+        Assert.NotNull(serviceProvider.GetService<IValidator<UpdateForecastIncomeDefinitionCommand>>());
+        Assert.NotNull(serviceProvider.GetService<IValidator<CreateForecastExpenseDefinitionCommand>>());
+        Assert.NotNull(serviceProvider.GetService<IValidator<UpdateForecastExpenseDefinitionCommand>>());
     }
 }

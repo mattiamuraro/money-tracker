@@ -2,11 +2,14 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
-  ForecastDefinition,
-  ForecastFormModel,
+  ForecastExpenseDefinition,
+  ForecastExpenseFormModel,
+  ForecastExpenseRow,
+  ForecastIncomeDefinition,
+  ForecastIncomeFormModel,
+  ForecastIncomeRow,
   ForecastOccurrenceRow,
   ForecastRecurrenceRuleTypeOption,
-  ForecastRow,
   IncomeFormModel,
   IncomeQuery,
   IncomeRow,
@@ -139,18 +142,32 @@ export class MoneyTrackerApiService {
     return firstValueFrom(this.httpClient.delete<void>(`${this.apiBaseUrl}/incomes/${id}`, { params }));
   }
 
-  getForecastRows(startDate: string, endDate: string): Promise<ForecastRow[]> {
+  getForecastIncomeRows(startDate: string, endDate: string): Promise<ForecastIncomeRow[]> {
     const params = new HttpParams().set('startDate', startDate).set('endDate', endDate);
-    return firstValueFrom(this.httpClient.get<ForecastRow[]>(`${this.apiBaseUrl}/forecasts`, { params }));
+    return firstValueFrom(this.httpClient.get<ForecastIncomeRow[]>(`${this.apiBaseUrl}/forecast-incomes`, { params }));
   }
 
-  getForecastOccurrences(month: string, isIncome: boolean): Promise<ForecastOccurrenceRow[]> {
-    const params = new HttpParams().set('month', month).set('isIncome', String(isIncome));
-    return firstValueFrom(this.httpClient.get<ForecastOccurrenceRow[]>(`${this.apiBaseUrl}/forecasts/occurrences`, { params }));
+  getForecastExpenseRows(startDate: string, endDate: string): Promise<ForecastExpenseRow[]> {
+    const params = new HttpParams().set('startDate', startDate).set('endDate', endDate);
+    return firstValueFrom(this.httpClient.get<ForecastExpenseRow[]>(`${this.apiBaseUrl}/forecast-expenses`, { params }));
   }
 
-  discardForecastOccurrence(id: string): Promise<void> {
-    return firstValueFrom(this.httpClient.delete<void>(`${this.apiBaseUrl}/forecasts/occurrences/${id}`));
+  getForecastIncomeOccurrences(month: string): Promise<ForecastOccurrenceRow[]> {
+    const params = new HttpParams().set('month', month);
+    return firstValueFrom(this.httpClient.get<ForecastOccurrenceRow[]>(`${this.apiBaseUrl}/forecast-incomes/occurrences`, { params }));
+  }
+
+  getForecastExpenseOccurrences(month: string): Promise<ForecastOccurrenceRow[]> {
+    const params = new HttpParams().set('month', month);
+    return firstValueFrom(this.httpClient.get<ForecastOccurrenceRow[]>(`${this.apiBaseUrl}/forecast-expenses/occurrences`, { params }));
+  }
+
+  discardForecastIncomeOccurrence(id: string): Promise<void> {
+    return firstValueFrom(this.httpClient.delete<void>(`${this.apiBaseUrl}/forecast-incomes/occurrences/${id}`));
+  }
+
+  discardForecastExpenseOccurrence(id: string): Promise<void> {
+    return firstValueFrom(this.httpClient.delete<void>(`${this.apiBaseUrl}/forecast-expenses/occurrences/${id}`));
   }
 
   getForecastRecurrenceRuleTypes(): Promise<ForecastRecurrenceRuleTypeOption[]> {
@@ -159,43 +176,77 @@ export class MoneyTrackerApiService {
     );
   }
 
-  getForecastDefinitions(): Promise<ForecastDefinition[]> {
+  getForecastIncomeDefinitions(): Promise<ForecastIncomeDefinition[]> {
     return firstValueFrom(
-      this.httpClient.get<ForecastDefinition[]>(`${this.apiBaseUrl}/forecasts/definitions`)
+      this.httpClient.get<ForecastIncomeDefinition[]>(`${this.apiBaseUrl}/forecast-incomes/definitions`)
     );
   }
 
-  createForecastDefinition(model: ForecastFormModel): Promise<string> {
+  getForecastExpenseDefinitions(): Promise<ForecastExpenseDefinition[]> {
     return firstValueFrom(
-      this.httpClient.post<string>(`${this.apiBaseUrl}/forecasts/definitions`, {
+      this.httpClient.get<ForecastExpenseDefinition[]>(`${this.apiBaseUrl}/forecast-expenses/definitions`)
+    );
+  }
+
+  createForecastIncomeDefinition(model: ForecastIncomeFormModel): Promise<string> {
+    return firstValueFrom(
+      this.httpClient.post<string>(`${this.apiBaseUrl}/forecast-incomes/definitions`, {
         forecastRecurrenceRuleTypeId: model.forecastRecurrenceRuleTypeId,
         description: model.description,
         amount: model.amount,
         recurrenceStart: model.recurrenceStart,
         recurrenceEnd: model.recurrenceEnd || null,
         interval: model.interval,
-        isIncome: model.isIncome,
-        paymentCategoryId: model.paymentCategoryId || null,
       })
     );
   }
 
-  updateForecastDefinition(id: string, model: ForecastFormModel): Promise<void> {
+  createForecastExpenseDefinition(model: ForecastExpenseFormModel): Promise<string> {
     return firstValueFrom(
-      this.httpClient.put<void>(`${this.apiBaseUrl}/forecasts/definitions/${id}`, {
+      this.httpClient.post<string>(`${this.apiBaseUrl}/forecast-expenses/definitions`, {
         forecastRecurrenceRuleTypeId: model.forecastRecurrenceRuleTypeId,
         description: model.description,
         amount: model.amount,
         recurrenceStart: model.recurrenceStart,
         recurrenceEnd: model.recurrenceEnd || null,
         interval: model.interval,
-        isIncome: model.isIncome,
         paymentCategoryId: model.paymentCategoryId || null,
       })
     );
   }
 
-  deleteForecastDefinition(id: string): Promise<void> {
-    return firstValueFrom(this.httpClient.delete<void>(`${this.apiBaseUrl}/forecasts/definitions/${id}`));
+  updateForecastIncomeDefinition(id: string, model: ForecastIncomeFormModel): Promise<void> {
+    return firstValueFrom(
+      this.httpClient.put<void>(`${this.apiBaseUrl}/forecast-incomes/definitions/${id}`, {
+        forecastRecurrenceRuleTypeId: model.forecastRecurrenceRuleTypeId,
+        description: model.description,
+        amount: model.amount,
+        recurrenceStart: model.recurrenceStart,
+        recurrenceEnd: model.recurrenceEnd || null,
+        interval: model.interval,
+      })
+    );
+  }
+
+  updateForecastExpenseDefinition(id: string, model: ForecastExpenseFormModel): Promise<void> {
+    return firstValueFrom(
+      this.httpClient.put<void>(`${this.apiBaseUrl}/forecast-expenses/definitions/${id}`, {
+        forecastRecurrenceRuleTypeId: model.forecastRecurrenceRuleTypeId,
+        description: model.description,
+        amount: model.amount,
+        recurrenceStart: model.recurrenceStart,
+        recurrenceEnd: model.recurrenceEnd || null,
+        interval: model.interval,
+        paymentCategoryId: model.paymentCategoryId || null,
+      })
+    );
+  }
+
+  deleteForecastIncomeDefinition(id: string): Promise<void> {
+    return firstValueFrom(this.httpClient.delete<void>(`${this.apiBaseUrl}/forecast-incomes/definitions/${id}`));
+  }
+
+  deleteForecastExpenseDefinition(id: string): Promise<void> {
+    return firstValueFrom(this.httpClient.delete<void>(`${this.apiBaseUrl}/forecast-expenses/definitions/${id}`));
   }
 }

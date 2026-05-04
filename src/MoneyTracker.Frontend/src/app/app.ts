@@ -5,11 +5,14 @@ import { AuthService } from './auth/auth.service';
 import { MoneyTrackerApiService } from './money-tracker-api.service';
 import { ConfirmationDialogService } from './services/confirmation-dialog.service';
 import {
-  ForecastDefinition,
-  ForecastFormModel,
+  ForecastExpenseDefinition,
+  ForecastExpenseFormModel,
+  ForecastExpenseRow,
+  ForecastIncomeDefinition,
+  ForecastIncomeFormModel,
+  ForecastIncomeRow,
   ForecastOccurrenceRow,
   ForecastRecurrenceRuleTypeOption,
-  ForecastRow,
   IncomeFormModel,
   IncomeQuery,
   IncomeRow,
@@ -33,7 +36,8 @@ export class App implements OnInit {
   public isLoginRoute = false;
   public isSavingPayment = false;
   public isSavingIncome = false;
-  public isSavingForecast = false;
+  public isSavingForecastIncome = false;
+  public isSavingForecastExpense = false;
   public isSavingCategory = false;
   public successMessage = '';
   public errorMessage = '';
@@ -45,18 +49,22 @@ export class App implements OnInit {
   public paymentOccurrences: ForecastOccurrenceRow[] = [];
   public incomeOccurrences: ForecastOccurrenceRow[] = [];
   public forecastRecurrenceRuleTypes: ForecastRecurrenceRuleTypeOption[] = [];
-  public forecastDefinitions: ForecastDefinition[] = [];
-  public forecastRows: ForecastRow[] = [];
+  public forecastIncomeDefinitions: ForecastIncomeDefinition[] = [];
+  public forecastExpenseDefinitions: ForecastExpenseDefinition[] = [];
+  public forecastIncomeRows: ForecastIncomeRow[] = [];
+  public forecastExpenseRows: ForecastExpenseRow[] = [];
 
   public editingPaymentId: string | null = null;
   public editingIncomeId: string | null = null;
-  public editingForecastId: string | null = null;
   public editingCategoryId: string | null = null;
+  public editingForecastIncomeId: string | null = null;
+  public editingForecastExpenseId: string | null = null;
 
   public paymentForm = this.createEmptyPaymentForm();
   public incomeForm = this.createEmptyIncomeForm();
-  public forecastForm = this.createEmptyForecastForm();
   public categoryForm = this.createEmptyCategoryForm();
+  public forecastIncomeForm = this.createEmptyForecastIncomeForm();
+  public forecastExpenseForm = this.createEmptyForecastExpenseForm();
 
   private readonly paymentQuery: PaymentQuery = {
     month: this.toMonthInput(new Date()),
@@ -271,15 +279,15 @@ export class App implements OnInit {
     this.clearMessages();
 
     try {
-      await this.moneyTrackerApiService.discardForecastOccurrence(occurrence.id);
-
       if (isIncome) {
+        await this.moneyTrackerApiService.discardForecastIncomeOccurrence(occurrence.id);
         await Promise.all([this.loadIncomeOccurrences(), this.loadIncomes(), this.loadForecastRows()]);
 
         if (this.incomeForm.forecastOccurrenceId === occurrence.id) {
           this.incomeForm.forecastOccurrenceId = null;
         }
       } else {
+        await this.moneyTrackerApiService.discardForecastExpenseOccurrence(occurrence.id);
         await Promise.all([this.loadPaymentOccurrences(), this.loadPayments(), this.loadForecastRows()]);
 
         if (this.paymentForm.forecastOccurrenceId === occurrence.id) {
@@ -331,53 +339,93 @@ export class App implements OnInit {
     }
   }
 
-  public async submitForecast(): Promise<void> {
-    const selectedRecurrenceTypeId = this.forecastForm.forecastRecurrenceRuleTypeId.trim();
+  public async submitForecastIncome(): Promise<void> {
+    const selectedRecurrenceTypeId = this.forecastIncomeForm.forecastRecurrenceRuleTypeId.trim();
     const isOneTime = this.isOneTimeRecurrenceTypeId(selectedRecurrenceTypeId);
 
-    if (!selectedRecurrenceTypeId || !this.forecastForm.description.trim() || !this.forecastForm.amount || !this.forecastForm.recurrenceStart || (!isOneTime && this.forecastForm.interval < 1)) {
-      this.errorMessage = 'Complete all required forecast fields before saving.';
+    if (!selectedRecurrenceTypeId || !this.forecastIncomeForm.description.trim() || !this.forecastIncomeForm.amount || !this.forecastIncomeForm.recurrenceStart || (!isOneTime && this.forecastIncomeForm.interval < 1)) {
+      this.errorMessage = 'Complete all required forecast income fields before saving.';
       this.successMessage = '';
       return;
     }
 
-    if (!this.forecastForm.isIncome && !this.forecastForm.paymentCategoryId) {
-      this.errorMessage = 'Expense forecasts require a payment category.';
-      this.successMessage = '';
-      return;
-    }
-
-    this.isSavingForecast = true;
+    this.isSavingForecastIncome = true;
     this.clearMessages();
 
-    const model: ForecastFormModel = {
-      ...this.forecastForm,
+    const model: ForecastIncomeFormModel = {
+      ...this.forecastIncomeForm,
       forecastRecurrenceRuleTypeId: selectedRecurrenceTypeId,
-      interval: isOneTime ? 1 : this.forecastForm.interval,
-      description: this.forecastForm.description.trim(),
-      paymentCategoryId: this.forecastForm.isIncome ? '' : this.forecastForm.paymentCategoryId,
+      interval: isOneTime ? 1 : this.forecastIncomeForm.interval,
+      description: this.forecastIncomeForm.description.trim(),
     };
 
     try {
-      if (this.editingForecastId) {
-        await this.moneyTrackerApiService.updateForecastDefinition(this.editingForecastId, model);
-        this.successMessage = 'Forecast updated successfully.';
+      if (this.editingForecastIncomeId) {
+        await this.moneyTrackerApiService.updateForecastIncomeDefinition(this.editingForecastIncomeId, model);
+        this.successMessage = 'Forecast income updated successfully.';
       } else {
-        await this.moneyTrackerApiService.createForecastDefinition(model);
-        this.successMessage = 'Forecast created successfully.';
+        await this.moneyTrackerApiService.createForecastIncomeDefinition(model);
+        this.successMessage = 'Forecast income created successfully.';
+      }
+
+      await Promise.all([
+        this.loadForecastDefinitions(),
+        this.loadForecastRows(),
+        this.loadIncomeOccurrences(),
+      ]);
+      this.resetForecastIncomeForm();
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error, 'Unable to save the forecast income.');
+    } finally {
+      this.isSavingForecastIncome = false;
+    }
+  }
+
+  public async submitForecastExpense(): Promise<void> {
+    const selectedRecurrenceTypeId = this.forecastExpenseForm.forecastRecurrenceRuleTypeId.trim();
+    const isOneTime = this.isOneTimeRecurrenceTypeId(selectedRecurrenceTypeId);
+
+    if (!selectedRecurrenceTypeId || !this.forecastExpenseForm.description.trim() || !this.forecastExpenseForm.amount || !this.forecastExpenseForm.recurrenceStart || (!isOneTime && this.forecastExpenseForm.interval < 1)) {
+      this.errorMessage = 'Complete all required forecast expense fields before saving.';
+      this.successMessage = '';
+      return;
+    }
+
+    if (!this.forecastExpenseForm.paymentCategoryId) {
+      this.errorMessage = 'Forecast expenses require a payment category.';
+      this.successMessage = '';
+      return;
+    }
+
+    this.isSavingForecastExpense = true;
+    this.clearMessages();
+
+    const model: ForecastExpenseFormModel = {
+      ...this.forecastExpenseForm,
+      forecastRecurrenceRuleTypeId: selectedRecurrenceTypeId,
+      interval: isOneTime ? 1 : this.forecastExpenseForm.interval,
+      description: this.forecastExpenseForm.description.trim(),
+    };
+
+    try {
+      if (this.editingForecastExpenseId) {
+        await this.moneyTrackerApiService.updateForecastExpenseDefinition(this.editingForecastExpenseId, model);
+        this.successMessage = 'Forecast expense updated successfully.';
+      } else {
+        await this.moneyTrackerApiService.createForecastExpenseDefinition(model);
+        this.successMessage = 'Forecast expense created successfully.';
       }
 
       await Promise.all([
         this.loadForecastDefinitions(),
         this.loadForecastRows(),
         this.loadPaymentOccurrences(),
-        this.loadIncomeOccurrences(),
       ]);
-      this.resetForecastForm();
+      this.resetForecastExpenseForm();
     } catch (error) {
-      this.errorMessage = this.getErrorMessage(error, 'Unable to save the forecast.');
+      this.errorMessage = this.getErrorMessage(error, 'Unable to save the forecast expense.');
     } finally {
-      this.isSavingForecast = false;
+      this.isSavingForecastExpense = false;
     }
   }
 
@@ -452,36 +500,34 @@ export class App implements OnInit {
         this.paymentForm.paymentCategoryId = '';
       }
 
-      if (this.forecastForm.paymentCategoryId === category.id) {
-        this.forecastForm.paymentCategoryId = '';
+      if (this.forecastExpenseForm.paymentCategoryId === category.id) {
+        this.forecastExpenseForm.paymentCategoryId = '';
       }
     } catch (error) {
       this.errorMessage = this.getErrorMessage(error, 'Unable to delete the category.');
     }
   }
 
-  public startForecastEdit(definition: ForecastDefinition): void {
-    this.editingForecastId = definition.id;
-    this.forecastForm = {
+  public startForecastEdit(definition: ForecastIncomeDefinition): void {
+    this.editingForecastIncomeId = definition.id;
+    this.forecastIncomeForm = {
       forecastRecurrenceRuleTypeId: definition.forecastRecurrenceRuleTypeId,
       description: definition.description,
       amount: definition.amount,
       recurrenceStart: this.toInputDate(definition.recurrenceStart),
       recurrenceEnd: definition.recurrenceEnd ? this.toInputDate(definition.recurrenceEnd) : '',
       interval: definition.interval,
-      isIncome: definition.isIncome,
-      paymentCategoryId: definition.paymentCategoryId ?? '',
     };
     this.successMessage = '';
     this.errorMessage = '';
   }
 
   public cancelForecastEdit(): void {
-    this.resetForecastForm();
+    this.resetForecastIncomeForm();
     this.clearMessages();
   }
 
-  public async deleteForecast(definition: ForecastDefinition): Promise<void> {
+  public async deleteForecast(definition: ForecastIncomeDefinition): Promise<void> {
     if (!confirm(`Delete forecast "${definition.description}"?`)) {
       return;
     }
@@ -489,7 +535,7 @@ export class App implements OnInit {
     this.clearMessages();
 
     try {
-      await this.moneyTrackerApiService.deleteForecastDefinition(definition.id);
+      await this.moneyTrackerApiService.deleteForecastIncomeDefinition(definition.id);
       await Promise.all([
         this.loadForecastDefinitions(),
         this.loadForecastRows(),
@@ -498,8 +544,8 @@ export class App implements OnInit {
       ]);
       this.successMessage = 'Forecast deleted successfully.';
 
-      if (this.editingForecastId === definition.id) {
-        this.resetForecastForm();
+      if (this.editingForecastIncomeId === definition.id) {
+        this.resetForecastIncomeForm();
       }
     } catch (error) {
       this.errorMessage = this.getErrorMessage(error, 'Unable to delete the forecast.');
@@ -510,43 +556,6 @@ export class App implements OnInit {
     const type = this.forecastRecurrenceRuleTypes.find((x) => x.id === forecastRecurrenceRuleTypeId);
     return type ? `${type.name} (${type.code})` : forecastRecurrenceRuleTypeId;
   }
-
-  public isOneTimeRecurrenceTypeSelected(): boolean {
-    return this.isOneTimeRecurrenceTypeId(this.forecastForm.forecastRecurrenceRuleTypeId);
-  }
-
-  public onForecastRecurrenceTypeChanged(): void {
-    if (this.isOneTimeRecurrenceTypeSelected()) {
-      this.forecastForm.interval = 1;
-    }
-
-    if (this.forecastForm.isIncome) {
-      this.forecastForm.paymentCategoryId = '';
-    }
-  }
-
-  public getRecurrenceSummary(definition: ForecastDefinition): string {
-    const type = this.forecastRecurrenceRuleTypes.find((x) => x.id === definition.forecastRecurrenceRuleTypeId);
-    if (!type) {
-      return definition.interval === 1 ? 'Every 1 occurrence' : `Every ${definition.interval} occurrences`;
-    }
-
-    switch (type.code) {
-      case 'O':
-        return 'One time';
-      case 'D':
-        return `Every ${definition.interval} day${definition.interval > 1 ? 's' : ''}`;
-      case 'W':
-        return `Every ${definition.interval} week${definition.interval > 1 ? 's' : ''}`;
-      case 'M':
-        return `Every ${definition.interval} month${definition.interval > 1 ? 's' : ''}`;
-      case 'Y':
-        return `Every ${definition.interval} year${definition.interval > 1 ? 's' : ''}`;
-      default:
-        return `Every ${definition.interval}`;
-    }
-  }
-
   public async submitIncome(): Promise<void> {
     if (!this.incomeForm.description.trim() || !this.incomeForm.amount || !this.incomeForm.date) {
       this.errorMessage = 'Complete all required income fields before saving.';
@@ -651,15 +660,11 @@ export class App implements OnInit {
   }
 
   public get forecastIncomeTotal(): number {
-    return this.forecastRows
-      .filter((row) => row.isIncome)
-      .reduce((total, row) => total + Number(row.amount ?? 0), 0);
+    return this.forecastIncomeRows.reduce((total, row) => total + Number(row.amount ?? 0), 0);
   }
 
   public get forecastExpenseTotal(): number {
-    return this.forecastRows
-      .filter((row) => !row.isIncome)
-      .reduce((total, row) => total + Number(row.amount ?? 0), 0);
+    return this.forecastExpenseRows.reduce((total, row) => total + Number(row.amount ?? 0), 0);
   }
 
   public get forecastBalance(): number {
@@ -670,12 +675,9 @@ export class App implements OnInit {
     return this.payments[this.payments.length - 1];
   }
 
-  public get nextForecast(): ForecastRow | undefined {
-    return this.forecastRows[0];
-  }
 
-  public get upcomingForecasts(): ForecastRow[] {
-    return this.forecastRows.slice(0, 5);
+  public get nextForecast(): ForecastExpenseRow | undefined {
+    return this.forecastExpenseRows[0];
   }
 
   public get hasCategories(): boolean {
@@ -696,14 +698,19 @@ export class App implements OnInit {
     this.incomeForm = this.createEmptyIncomeForm();
   }
 
-  public resetForecastForm(): void {
-    this.editingForecastId = null;
-    this.forecastForm = this.createEmptyForecastForm();
-  }
-
   public resetCategoryForm(): void {
     this.editingCategoryId = null;
     this.categoryForm = this.createEmptyCategoryForm();
+  }
+
+  public resetForecastIncomeForm(): void {
+    this.editingForecastIncomeId = null;
+    this.forecastIncomeForm = this.createEmptyForecastIncomeForm();
+  }
+
+  public resetForecastExpenseForm(): void {
+    this.editingForecastExpenseId = null;
+    this.forecastExpenseForm = this.createEmptyForecastExpenseForm();
   }
 
   public onPaymentMonthChanged(month: string): void {
@@ -782,8 +789,8 @@ export class App implements OnInit {
         this.paymentForm.paymentCategoryId = '';
       }
 
-      if (this.forecastForm.paymentCategoryId && !this.categories.some((x) => x.id === this.forecastForm.paymentCategoryId)) {
-        this.forecastForm.paymentCategoryId = '';
+      if (this.forecastExpenseForm.paymentCategoryId && !this.categories.some((x) => x.id === this.forecastExpenseForm.paymentCategoryId)) {
+        this.forecastExpenseForm.paymentCategoryId = '';
       }
     });
   }
@@ -833,14 +840,14 @@ export class App implements OnInit {
   }
 
   private async loadPaymentOccurrences(): Promise<void> {
-    const occurrences = await this.moneyTrackerApiService.getForecastOccurrences(this.paymentQuery.month, false);
+    const occurrences = await this.moneyTrackerApiService.getForecastExpenseOccurrences(this.paymentQuery.month);
     this.ngZone.run(() => {
       this.paymentOccurrences = [...occurrences].sort((left, right) => left.expectedDate.localeCompare(right.expectedDate));
     });
   }
 
   private async loadIncomeOccurrences(): Promise<void> {
-    const occurrences = await this.moneyTrackerApiService.getForecastOccurrences(this.incomeQuery.month, true);
+    const occurrences = await this.moneyTrackerApiService.getForecastIncomeOccurrences(this.incomeQuery.month);
     this.ngZone.run(() => {
       this.incomeOccurrences = [...occurrences].sort((left, right) => left.expectedDate.localeCompare(right.expectedDate));
     });
@@ -852,18 +859,34 @@ export class App implements OnInit {
     this.ngZone.run(() => {
       this.forecastRecurrenceRuleTypes = [...types].sort((left, right) => left.name.localeCompare(right.name));
 
-      if (!this.forecastForm.forecastRecurrenceRuleTypeId) {
-        const oneTimeType = this.forecastRecurrenceRuleTypes.find((x) => x.code === 'O');
-        this.forecastForm.forecastRecurrenceRuleTypeId = oneTimeType?.id ?? this.forecastRecurrenceRuleTypes[0]?.id ?? '';
-        this.onForecastRecurrenceTypeChanged();
+      const oneTimeType = this.forecastRecurrenceRuleTypes.find((x) => x.code === 'O');
+      const defaultTypeId = oneTimeType?.id ?? this.forecastRecurrenceRuleTypes[0]?.id ?? '';
+
+      if (!this.forecastIncomeForm.forecastRecurrenceRuleTypeId) {
+        this.forecastIncomeForm.forecastRecurrenceRuleTypeId = defaultTypeId;
+        this.onForecastIncomeRecurrenceTypeChanged();
+      }
+
+      if (!this.forecastExpenseForm.forecastRecurrenceRuleTypeId) {
+        this.forecastExpenseForm.forecastRecurrenceRuleTypeId = defaultTypeId;
+        this.onForecastExpenseRecurrenceTypeChanged();
       }
     });
   }
 
   private async loadForecastDefinitions(): Promise<void> {
-    const definitions = await this.moneyTrackerApiService.getForecastDefinitions();
+    const [incomeDefinitions, expenseDefinitions] = await Promise.all([
+      this.moneyTrackerApiService.getForecastIncomeDefinitions(),
+      this.moneyTrackerApiService.getForecastExpenseDefinitions(),
+    ]);
+
     this.ngZone.run(() => {
-      this.forecastDefinitions = [...definitions].sort((left, right) => {
+      this.forecastIncomeDefinitions = [...incomeDefinitions].sort((left, right) => {
+        const dateComparison = left.recurrenceStart.localeCompare(right.recurrenceStart);
+        return dateComparison !== 0 ? dateComparison : left.description.localeCompare(right.description);
+      });
+
+      this.forecastExpenseDefinitions = [...expenseDefinitions].sort((left, right) => {
         const dateComparison = left.recurrenceStart.localeCompare(right.recurrenceStart);
         return dateComparison !== 0 ? dateComparison : left.description.localeCompare(right.description);
       });
@@ -871,13 +894,14 @@ export class App implements OnInit {
   }
 
   private async loadForecastRows(): Promise<void> {
-    const rows = await this.moneyTrackerApiService.getForecastRows(
-      this.forecastRange.startDate,
-      this.forecastRange.endDate
-    );
+    const [incomeRows, expenseRows] = await Promise.all([
+      this.moneyTrackerApiService.getForecastIncomeRows(this.forecastRange.startDate, this.forecastRange.endDate),
+      this.moneyTrackerApiService.getForecastExpenseRows(this.forecastRange.startDate, this.forecastRange.endDate),
+    ]);
 
     this.ngZone.run(() => {
-      this.forecastRows = [...rows].sort((left, right) => left.date.localeCompare(right.date));
+      this.forecastIncomeRows = [...incomeRows].sort((left, right) => left.date.localeCompare(right.date));
+      this.forecastExpenseRows = [...expenseRows].sort((left, right) => left.date.localeCompare(right.date));
     });
   }
 
@@ -906,7 +930,14 @@ export class App implements OnInit {
     };
   }
 
-  private createEmptyForecastForm(): ForecastFormModel {
+  private createEmptyCategoryForm(): PaymentCategoryFormModel {
+    return {
+      name: '',
+      code: '',
+    };
+  }
+
+  private createEmptyForecastIncomeForm(): ForecastIncomeFormModel {
     return {
       forecastRecurrenceRuleTypeId: '',
       description: '',
@@ -914,15 +945,18 @@ export class App implements OnInit {
       recurrenceStart: this.toInputDate(new Date()),
       recurrenceEnd: '',
       interval: 1,
-      isIncome: false,
-      paymentCategoryId: '',
     };
   }
 
-  private createEmptyCategoryForm(): PaymentCategoryFormModel {
+  private createEmptyForecastExpenseForm(): ForecastExpenseFormModel {
     return {
-      name: '',
-      code: '',
+      forecastRecurrenceRuleTypeId: '',
+      description: '',
+      amount: null,
+      recurrenceStart: this.toInputDate(new Date()),
+      recurrenceEnd: '',
+      interval: 1,
+      paymentCategoryId: '',
     };
   }
 
@@ -1028,5 +1062,150 @@ export class App implements OnInit {
 
   public onDialogCancelled(): void {
     this.confirmationDialogService.cancel();
+  }
+
+  public startForecastIncomeEdit(definition: ForecastIncomeDefinition): void {
+    this.editingForecastIncomeId = definition.id;
+    this.forecastIncomeForm = {
+      forecastRecurrenceRuleTypeId: definition.forecastRecurrenceRuleTypeId,
+      description: definition.description,
+      amount: definition.amount,
+      recurrenceStart: this.toInputDate(definition.recurrenceStart),
+      recurrenceEnd: definition.recurrenceEnd ? this.toInputDate(definition.recurrenceEnd) : '',
+      interval: definition.interval,
+    };
+    this.successMessage = '';
+    this.errorMessage = '';
+  }
+
+  public startForecastExpenseEdit(definition: ForecastExpenseDefinition): void {
+    this.editingForecastExpenseId = definition.id;
+    this.forecastExpenseForm = {
+      forecastRecurrenceRuleTypeId: definition.forecastRecurrenceRuleTypeId,
+      description: definition.description,
+      amount: definition.amount,
+      recurrenceStart: this.toInputDate(definition.recurrenceStart),
+      recurrenceEnd: definition.recurrenceEnd ? this.toInputDate(definition.recurrenceEnd) : '',
+      interval: definition.interval,
+      paymentCategoryId: definition.paymentCategoryId ?? '',
+    };
+    this.successMessage = '';
+    this.errorMessage = '';
+  }
+
+  public cancelForecastIncomeEdit(): void {
+    this.resetForecastIncomeForm();
+    this.clearMessages();
+  }
+
+  public cancelForecastExpenseEdit(): void {
+    this.resetForecastExpenseForm();
+    this.clearMessages();
+  }
+
+  public async deleteForecastIncome(definition: ForecastIncomeDefinition): Promise<void> {
+    if (!confirm(`Delete forecast income "${definition.description}"?`)) {
+      return;
+    }
+
+    this.clearMessages();
+
+    try {
+      await this.moneyTrackerApiService.deleteForecastIncomeDefinition(definition.id);
+      await Promise.all([
+        this.loadForecastDefinitions(),
+        this.loadForecastRows(),
+        this.loadIncomeOccurrences(),
+      ]);
+      this.successMessage = 'Forecast income deleted successfully.';
+
+      if (this.editingForecastIncomeId === definition.id) {
+        this.resetForecastIncomeForm();
+      }
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error, 'Unable to delete the forecast income.');
+    }
+  }
+
+  public async deleteForecastExpense(definition: ForecastExpenseDefinition): Promise<void> {
+    if (!confirm(`Delete forecast expense "${definition.description}"?`)) {
+      return;
+    }
+
+    this.clearMessages();
+
+    try {
+      await this.moneyTrackerApiService.deleteForecastExpenseDefinition(definition.id);
+      await Promise.all([
+        this.loadForecastDefinitions(),
+        this.loadForecastRows(),
+        this.loadPaymentOccurrences(),
+      ]);
+      this.successMessage = 'Forecast expense deleted successfully.';
+
+      if (this.editingForecastExpenseId === definition.id) {
+        this.resetForecastExpenseForm();
+      }
+    } catch (error) {
+      this.errorMessage = this.getErrorMessage(error, 'Unable to delete the forecast expense.');
+    }
+  }
+
+  public isOneTimeForecastIncomeRecurrenceTypeSelected(): boolean {
+    return this.isOneTimeRecurrenceTypeId(this.forecastIncomeForm.forecastRecurrenceRuleTypeId);
+  }
+
+  public isOneTimeForecastExpenseRecurrenceTypeSelected(): boolean {
+    return this.isOneTimeRecurrenceTypeId(this.forecastExpenseForm.forecastRecurrenceRuleTypeId);
+  }
+
+  public onForecastIncomeRecurrenceTypeChanged(): void {
+    if (this.isOneTimeForecastIncomeRecurrenceTypeSelected()) {
+      this.forecastIncomeForm.interval = 1;
+    }
+  }
+
+  public onForecastExpenseRecurrenceTypeChanged(): void {
+    if (this.isOneTimeForecastExpenseRecurrenceTypeSelected()) {
+      this.forecastExpenseForm.interval = 1;
+    }
+  }
+
+  public getForecastIncomeRecurrenceSummary(definition: ForecastIncomeDefinition): string {
+    return this.getRecurrenceSummaryByType(definition.forecastRecurrenceRuleTypeId, definition.interval);
+  }
+
+  public getForecastExpenseRecurrenceSummary(definition: ForecastExpenseDefinition): string {
+    return this.getRecurrenceSummaryByType(definition.forecastRecurrenceRuleTypeId, definition.interval);
+  }
+
+  public get upcomingForecastIncomes(): ForecastIncomeRow[] {
+    return this.forecastIncomeRows.slice(0, 5);
+  }
+
+  public get upcomingForecastExpenses(): ForecastExpenseRow[] {
+    return this.forecastExpenseRows.slice(0, 5);
+  }
+
+  private getRecurrenceSummaryByType(forecastRecurrenceRuleTypeId: string, interval: number): string {
+    const type = this.forecastRecurrenceRuleTypes.find((x) => x.id === forecastRecurrenceRuleTypeId);
+    if (!type) {
+      return interval === 1 ? 'Every 1 occurrence' : `Every ${interval} occurrences`;
+    }
+
+    switch (type.code) {
+      case 'O':
+        return 'One time';
+      case 'D':
+        return `Every ${interval} day${interval > 1 ? 's' : ''}`;
+      case 'W':
+        return `Every ${interval} week${interval > 1 ? 's' : ''}`;
+      case 'M':
+        return `Every ${interval} month${interval > 1 ? 's' : ''}`;
+      case 'Y':
+        return `Every ${interval} year${interval > 1 ? 's' : ''}`;
+      default:
+        return `Every ${interval}`;
+    }
   }
 }

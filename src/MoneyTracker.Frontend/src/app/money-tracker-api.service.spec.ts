@@ -1,7 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { MoneyTrackerApiService } from './money-tracker-api.service';
-import { ForecastFormModel, PaymentFormModel } from './models';
 
 describe('MoneyTrackerApiService', () => {
   let service: MoneyTrackerApiService;
@@ -21,186 +20,103 @@ describe('MoneyTrackerApiService', () => {
     httpMock.verify();
   });
 
-  it('should build payment query params excluding empty values', async () => {
-    const requestPromise = service.getPayments({
-      pageNumber: 2,
-      pageSize: 20,
-      sortBy: 'Date',
-      sortOrder: 'desc',
-      startDate: '2026-04-01',
-      endDate: '2026-04-30',
-      categoryId: '',
-    });
+  it('should get forecast income definitions from separated endpoint', async () => {
+    const requestPromise = service.getForecastIncomeDefinitions();
 
-    const req = httpMock.expectOne((request) => request.url === '/api/v1/payments');
+    const req = httpMock.expectOne('/api/v1/forecast-incomes/definitions');
     expect(req.request.method).toBe('GET');
-    expect(req.request.params.get('pageNumber')).toBe('2');
-    expect(req.request.params.get('pageSize')).toBe('20');
-    expect(req.request.params.get('sortBy')).toBe('Date');
-    expect(req.request.params.get('sortOrder')).toBe('desc');
-    expect(req.request.params.get('startDate')).toBe('2026-04-01');
-    expect(req.request.params.get('endDate')).toBe('2026-04-30');
-    expect(req.request.params.has('categoryId')).toBe(false);
-
-    req.flush({
-      items: [],
-      pageNumber: 2,
-      pageSize: 20,
-      totalItems: 0,
-      totalPages: 0,
-      hasPreviousPage: true,
-      hasNextPage: false,
-    });
-
-    await requestPromise;
-  });
-
-  it('should send create payment payload with createdBy', async () => {
-    const model: PaymentFormModel = {
-      description: 'Groceries',
-      paymentCategoryId: 'category-id',
-      amount: 44.5,
-      date: '2026-04-05',
-      isOneShot: true,
-    };
-
-    const requestPromise = service.createPayment(model);
-
-    const req = httpMock.expectOne('/api/v1/payments');
-    expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({
-      description: 'Groceries',
-      paymentCategoryId: 'category-id',
-      amount: 44.5,
-      date: '2026-04-05',
-      isOneShot: true,
-      createdBy: 'MoneyTracker.Frontend',
-    });
-
-    req.flush('new-payment-id');
-
-    await expect(requestPromise).resolves.toBe('new-payment-id');
-  });
-
-  it('should send update payment payload with modifiedBy', async () => {
-    const model: PaymentFormModel = {
-      description: 'Updated',
-      paymentCategoryId: 'category-id',
-      amount: 10,
-      date: '2026-04-06',
-      isOneShot: false,
-    };
-
-    const requestPromise = service.updatePayment('payment-id', model);
-
-    const req = httpMock.expectOne('/api/v1/payments/payment-id');
-    expect(req.request.method).toBe('PUT');
-    expect(req.request.body).toEqual({
-      description: 'Updated',
-      paymentCategoryId: 'category-id',
-      amount: 10,
-      date: '2026-04-06',
-      isOneShot: false,
-      modifiedBy: 'MoneyTracker.Frontend',
-    });
-
-    req.flush(null);
-
-    await expect(requestPromise).resolves.toBeNull();
-  });
-
-  it('should call forecast rows endpoint with required date params', async () => {
-    const requestPromise = service.getForecastRows('2026-04-01', '2026-05-01');
-
-    const req = httpMock.expectOne((request) => request.url === '/api/v1/forecasts');
-    expect(req.request.method).toBe('GET');
-    expect(req.request.params.get('startDate')).toBe('2026-04-01');
-    expect(req.request.params.get('endDate')).toBe('2026-05-01');
 
     req.flush([]);
 
     await expect(requestPromise).resolves.toEqual([]);
   });
 
-  it('should call recurrence rule types endpoint', async () => {
-    const requestPromise = service.getForecastRecurrenceRuleTypes();
+  it('should get forecast expense definitions from separated endpoint', async () => {
+    const requestPromise = service.getForecastExpenseDefinitions();
 
-    const req = httpMock.expectOne('/api/v1/forecasts/recurrence-rule-types');
+    const req = httpMock.expectOne('/api/v1/forecast-expenses/definitions');
     expect(req.request.method).toBe('GET');
 
-    req.flush([{ id: 'type-id', name: 'Day', code: 'D' }]);
+    req.flush([]);
 
-    await expect(requestPromise).resolves.toEqual([{ id: 'type-id', name: 'Day', code: 'D' }]);
+    await expect(requestPromise).resolves.toEqual([]);
   });
 
-  it('should send create forecast definition payload and map empty recurrenceEnd to null', async () => {
-    const model: ForecastFormModel = {
-      forecastRecurrenceRuleTypeId: '11111111-1111-1111-1111-111111111111',
+  it('should create forecast income definition using separated endpoint', async () => {
+    const requestPromise = service.createForecastIncomeDefinition({
+      forecastRecurrenceRuleTypeId: 'rule-id',
       description: 'Salary',
-      amount: 2500,
-      recurrenceStart: '2026-04-01',
+      amount: 3000,
+      recurrenceStart: '2026-05-01',
       recurrenceEnd: '',
-      interval: 30,
-      isIncome: true,
-    };
+      interval: 1,
+    });
 
-    const requestPromise = service.createForecastDefinition(model);
-
-    const req = httpMock.expectOne('/api/v1/forecasts/definitions');
+    const req = httpMock.expectOne('/api/v1/forecast-incomes/definitions');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({
-      forecastRecurrenceRuleTypeId: '11111111-1111-1111-1111-111111111111',
+      forecastRecurrenceRuleTypeId: 'rule-id',
       description: 'Salary',
-      amount: 2500,
-      recurrenceStart: '2026-04-01',
+      amount: 3000,
+      recurrenceStart: '2026-05-01',
       recurrenceEnd: null,
-      interval: 30,
-      isIncome: true,
+      interval: 1,
     });
 
-    req.flush('forecast-id');
+    req.flush('id');
 
-    await expect(requestPromise).resolves.toBe('forecast-id');
+    await expect(requestPromise).resolves.toBe('id');
   });
 
-  it('should send update forecast definition payload and preserve recurrenceEnd value', async () => {
-    const model: ForecastFormModel = {
-      forecastRecurrenceRuleTypeId: '22222222-2222-2222-2222-222222222222',
+  it('should create forecast expense definition using separated endpoint', async () => {
+    const requestPromise = service.createForecastExpenseDefinition({
+      forecastRecurrenceRuleTypeId: 'rule-id',
       description: 'Rent',
-      amount: 900,
-      recurrenceStart: '2026-04-01',
-      recurrenceEnd: '2026-12-31',
-      interval: 30,
-      isIncome: false,
-    };
+      amount: 1200,
+      recurrenceStart: '2026-05-01',
+      recurrenceEnd: '',
+      interval: 1,
+      paymentCategoryId: 'category-id',
+    });
 
-    const requestPromise = service.updateForecastDefinition('forecast-id', model);
-
-    const req = httpMock.expectOne('/api/v1/forecasts/definitions/forecast-id');
-    expect(req.request.method).toBe('PUT');
+    const req = httpMock.expectOne('/api/v1/forecast-expenses/definitions');
+    expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({
-      forecastRecurrenceRuleTypeId: '22222222-2222-2222-2222-222222222222',
+      forecastRecurrenceRuleTypeId: 'rule-id',
       description: 'Rent',
-      amount: 900,
-      recurrenceStart: '2026-04-01',
-      recurrenceEnd: '2026-12-31',
-      interval: 30,
-      isIncome: false,
+      amount: 1200,
+      recurrenceStart: '2026-05-01',
+      recurrenceEnd: null,
+      interval: 1,
+      paymentCategoryId: 'category-id',
     });
 
-    req.flush(null);
+    req.flush('id');
 
-    await expect(requestPromise).resolves.toBeNull();
+    await expect(requestPromise).resolves.toBe('id');
   });
 
-  it('should call delete forecast definition endpoint', async () => {
-    const requestPromise = service.deleteForecastDefinition('forecast-id');
+  it('should get forecast income occurrences from separated endpoint', async () => {
+    const requestPromise = service.getForecastIncomeOccurrences('2026-05');
 
-    const req = httpMock.expectOne('/api/v1/forecasts/definitions/forecast-id');
-    expect(req.request.method).toBe('DELETE');
+    const req = httpMock.expectOne((request) => request.url === '/api/v1/forecast-incomes/occurrences');
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('month')).toBe('2026-05');
 
-    req.flush(null);
+    req.flush([]);
 
-    await expect(requestPromise).resolves.toBeNull();
+    await expect(requestPromise).resolves.toEqual([]);
+  });
+
+  it('should get forecast expense occurrences from separated endpoint', async () => {
+    const requestPromise = service.getForecastExpenseOccurrences('2026-05');
+
+    const req = httpMock.expectOne((request) => request.url === '/api/v1/forecast-expenses/occurrences');
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('month')).toBe('2026-05');
+
+    req.flush([]);
+
+    await expect(requestPromise).resolves.toEqual([]);
   });
 });

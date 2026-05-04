@@ -3,16 +3,22 @@ using Microsoft.Extensions.DependencyInjection;
 using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.BusinessLogic.Features.Auth.Login;
 using MoneyTracker.BusinessLogic.Features.Auth.Register;
-using MoneyTracker.BusinessLogic.Features.Forecasts.CreateForecastDefinition;
-using MoneyTracker.BusinessLogic.Features.Forecasts.DeleteForecastDefinition;
-using MoneyTracker.BusinessLogic.Features.Forecasts.DiscardPendingForecastOccurrence;
-using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastDefinitionById;
-using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastDefinitions;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.CreateForecastExpenseDefinition;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.DeleteForecastExpenseDefinition;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.DiscardForecastExpenseOccurrence;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.GetForecastExpenseDefinitions;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.GetForecastExpenseRows;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.GetPendingForecastExpenseOccurrences;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.UpdateForecastExpenseDefinition;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.CreateForecastIncomeDefinition;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.DeleteForecastIncomeDefinition;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.DiscardForecastIncomeOccurrence;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetForecastIncomeDefinitions;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetForecastIncomeRows;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetPendingForecastIncomeOccurrences;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.UpdateForecastIncomeDefinition;
 using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRecurrenceRuleTypes;
-using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastRows;
-using MoneyTracker.BusinessLogic.Features.Forecasts.GetPendingForecastOccurrences;
 using MoneyTracker.BusinessLogic.Features.Forecasts.SynchronizeForecastOccurrences;
-using MoneyTracker.BusinessLogic.Features.Forecasts.UpdateForecastDefinition;
 using MoneyTracker.BusinessLogic.Features.Incomes.CreateIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.DeleteIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.GetIncome;
@@ -29,7 +35,6 @@ using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPaymentById;
 using MoneyTracker.BusinessLogic.Features.Payments.UpdatePayment;
 using MoneyTracker.BusinessLogic.Common.Models;
-using MoneyTracker.BusinessLogic.Features.Forecasts.GetForecastDefinitionById;
 
 namespace MoneyTracker.BusinessLogic.Common.Extensions;
 
@@ -60,17 +65,27 @@ public static class BusinessLogicServiceCollectionExtensions
         services.AddHandlerWithLogging<GetIncomeQueryHandler, GetIncomeQuery, PaginatedResponse<IncomeRow>>();
         services.AddHandlerWithLogging<GetIncomeByIdQueryHandler, GetIncomeByIdQuery, IncomeRow>();
 
-        // Forecasts
-        services.AddHandlerWithLogging<GetForecastRowsQueryHandler, GetForecastRowsQuery, List<ForecastRow>>();
-        services.AddHandlerWithLogging<GetPendingForecastOccurrencesQueryHandler, GetPendingForecastOccurrencesQuery, List<ForecastOccurrenceRow>>();
+        // Forecasts (shared)
         services.AddHandlerWithLogging<GetForecastRecurrenceRuleTypesQueryHandler, GetForecastRecurrenceRuleTypesQuery, List<ForecastRecurrenceRuleTypeDto>>();
-        services.AddHandlerWithLogging<GetForecastDefinitionsQueryHandler, GetForecastDefinitionsQuery, List<ForecastDefinitionRow>>();
-        services.AddHandlerWithLogging<GetForecastDefinitionByIdQueryHandler, GetForecastDefinitionByIdQuery, ForecastDefinitionDto>();
         services.AddVoidHandlerWithLogging<SynchronizeForecastOccurrencesCommandHandler, SynchronizeForecastOccurrencesCommand>();
-        services.AddVoidHandlerWithLogging<DiscardPendingForecastOccurrenceCommandHandler, DiscardPendingForecastOccurrenceCommand>();
-        services.AddHandlerWithLogging<CreateForecastDefinitionCommandHandler, CreateForecastDefinitionCommand, Guid>();
-        services.AddVoidHandlerWithLogging<UpdateForecastDefinitionCommandHandler, UpdateForecastDefinitionCommand>();
-        services.AddVoidHandlerWithLogging<DeleteForecastDefinitionCommandHandler, DeleteForecastDefinitionCommand>();
+
+        // Forecast Incomes
+        services.AddHandlerWithLogging<CreateForecastIncomeDefinitionCommandHandler, CreateForecastIncomeDefinitionCommand, Guid>();
+        services.AddVoidHandlerWithLogging<UpdateForecastIncomeDefinitionCommandHandler, UpdateForecastIncomeDefinitionCommand>();
+        services.AddVoidHandlerWithLogging<DeleteForecastIncomeDefinitionCommandHandler, DeleteForecastIncomeDefinitionCommand>();
+        services.AddHandlerWithLogging<GetForecastIncomeDefinitionsQueryHandler, GetForecastIncomeDefinitionsQuery, List<ForecastIncomeDefinitionRow>>();
+        services.AddHandlerWithLogging<GetForecastIncomeRowsQueryHandler, GetForecastIncomeRowsQuery, List<ForecastIncomeRow>>();
+        services.AddHandlerWithLogging<GetPendingForecastIncomeOccurrencesQueryHandler, GetPendingForecastIncomeOccurrencesQuery, List<ForecastIncomeOccurrenceRow>>();
+        services.AddVoidHandlerWithLogging<DiscardForecastIncomeOccurrenceCommandHandler, DiscardForecastIncomeOccurrenceCommand>();
+
+        // Forecast Expenses
+        services.AddHandlerWithLogging<CreateForecastExpenseDefinitionCommandHandler, CreateForecastExpenseDefinitionCommand, Guid>();
+        services.AddVoidHandlerWithLogging<UpdateForecastExpenseDefinitionCommandHandler, UpdateForecastExpenseDefinitionCommand>();
+        services.AddVoidHandlerWithLogging<DeleteForecastExpenseDefinitionCommandHandler, DeleteForecastExpenseDefinitionCommand>();
+        services.AddHandlerWithLogging<GetForecastExpenseDefinitionsQueryHandler, GetForecastExpenseDefinitionsQuery, List<ForecastExpenseDefinitionRow>>();
+        services.AddHandlerWithLogging<GetForecastExpenseRowsQueryHandler, GetForecastExpenseRowsQuery, List<ForecastExpenseRow>>();
+        services.AddHandlerWithLogging<GetPendingForecastExpenseOccurrencesQueryHandler, GetPendingForecastExpenseOccurrencesQuery, List<ForecastExpenseOccurrenceRow>>();
+        services.AddVoidHandlerWithLogging<DiscardForecastExpenseOccurrenceCommandHandler, DiscardForecastExpenseOccurrenceCommand>();
 
         // Payment Categories
         services.AddHandlerWithLogging<CreateCategoryCommandHandler, CreateCategoryCommand, Guid>();
@@ -88,8 +103,10 @@ public static class BusinessLogicServiceCollectionExtensions
         services.AddScoped<IValidator<UpdateCategoryCommand>, UpdateCategoryCommandValidator>();
         services.AddScoped<IValidator<LoginCommand>, LoginCommandValidator>();
         services.AddScoped<IValidator<RegisterCommand>, RegisterCommandValidator>();
-        services.AddScoped<IValidator<CreateForecastDefinitionCommand>, CreateForecastDefinitionCommandValidator>();
-        services.AddScoped<IValidator<UpdateForecastDefinitionCommand>, UpdateForecastDefinitionCommandValidator>();
+        services.AddScoped<IValidator<CreateForecastIncomeDefinitionCommand>, CreateForecastIncomeDefinitionCommandValidator>();
+        services.AddScoped<IValidator<UpdateForecastIncomeDefinitionCommand>, UpdateForecastIncomeDefinitionCommandValidator>();
+        services.AddScoped<IValidator<CreateForecastExpenseDefinitionCommand>, CreateForecastExpenseDefinitionCommandValidator>();
+        services.AddScoped<IValidator<UpdateForecastExpenseDefinitionCommand>, UpdateForecastExpenseDefinitionCommandValidator>();
 
         return services;
     }

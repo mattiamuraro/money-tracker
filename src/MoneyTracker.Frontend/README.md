@@ -38,11 +38,27 @@ This will compile your project and store the build artifacts in the `dist/` dire
 
 ## Running unit tests
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+This project uses Angular's unit-test builder with Vitest.
+
+- Local single run:
 
 ```bash
-ng test
+npm run test
 ```
+
+- Watch mode (local development):
+
+```bash
+npm run test:watch
+```
+
+- CI mode (non-watch):
+
+```bash
+npm run test:ci
+```
+
+> Note: do not pass `--browsers` to `ng test` in this setup. That option requires extra browser-provider packages and is not needed for this project.
 
 ## Running end-to-end tests
 

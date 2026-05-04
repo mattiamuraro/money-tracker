@@ -1,43 +1,64 @@
 <main class="content-stack">
-  <section class="management-panel" id="forecasts">
+  <div class="page-tabs" role="tablist" aria-label="Forecasts page tabs">
+    <button
+      class="page-tab"
+      type="button"
+      role="tab"
+      [class.page-tab-active]="activeTab === 'expenses'"
+      [attr.aria-selected]="activeTab === 'expenses'"
+      (click)="setActiveTab('expenses')">
+      Forecast Expenses
+    </button>
+    <button
+      class="page-tab"
+      type="button"
+      role="tab"
+      [class.page-tab-active]="activeTab === 'incomes'"
+      [attr.aria-selected]="activeTab === 'incomes'"
+      (click)="setActiveTab('incomes')">
+      Forecast Incomes
+    </button>
+  </div>
+
+  <section *ngIf="activeTab === 'expenses'" class="management-panel" id="forecast-expenses" role="tabpanel" aria-label="Forecast Expenses">
     <div class="panel-heading">
       <div>
         <p class="eyebrow">Entity</p>
-        <h2>Forecasts</h2>
-        <p>Manage recurring income and expenses, then preview the next items in the schedule.</p>
+        <h2>Forecast Expenses</h2>
+        <p>Manage recurring expenses and review upcoming pending expense occurrences.</p>
       </div>
-      <span class="pill">{{ app.forecastDefinitions.length }} definitions</span>
+      <span class="pill">{{ app.forecastExpenseDefinitions.length }} definitions</span>
     </div>
 
     <div class="panel-grid">
-      <form class="editor-card" (ngSubmit)="app.submitForecast()">
+      <form class="editor-card" (ngSubmit)="app.submitForecastExpense()">
         <div class="card-heading">
-          <h3>{{ app.editingForecastId ? 'Edit forecast' : 'Create forecast' }}</h3>
-          <button *ngIf="app.editingForecastId" class="text-button" type="button" (click)="app.cancelForecastEdit()">
+          <h3>{{ app.editingForecastExpenseId ? 'Edit forecast expense' : 'Create forecast expense' }}</h3>
+          <button *ngIf="app.editingForecastExpenseId" class="text-button" type="button" (click)="app.cancelForecastExpenseEdit()">
             Cancel edit
           </button>
         </div>
 
-        <label class="field-label" for="forecast-description">Description</label>
+        <label class="field-label" for="forecast-expense-description">Description</label>
         <input
-          id="forecast-description"
+          id="forecast-expense-description"
           class="field-input"
           type="text"
-          name="forecastDescription"
-          [(ngModel)]="app.forecastForm.description"
+          name="forecastExpenseDescription"
+          [(ngModel)]="app.forecastExpenseForm.description"
           maxlength="100"
-          placeholder="Salary, rent, subscriptions..."
+          placeholder="Rent, subscriptions, utilities..."
           required />
 
         <div class="field-row">
           <div>
-            <label class="field-label" for="forecast-amount">Amount</label>
+            <label class="field-label" for="forecast-expense-amount">Amount</label>
             <input
-              id="forecast-amount"
+              id="forecast-expense-amount"
               class="field-input"
               type="number"
-              name="forecastAmount"
-              [(ngModel)]="app.forecastForm.amount"
+              name="forecastExpenseAmount"
+              [(ngModel)]="app.forecastExpenseForm.amount"
               min="0.01"
               step="0.01"
               placeholder="0.00"
@@ -45,13 +66,13 @@
           </div>
 
           <div>
-            <label class="field-label" for="forecast-recurrence-rule-type-id">Recurrence type</label>
+            <label class="field-label" for="forecast-expense-recurrence-rule-type-id">Recurrence type</label>
             <select
-              id="forecast-recurrence-rule-type-id"
+              id="forecast-expense-recurrence-rule-type-id"
               class="field-input"
-              name="forecastRecurrenceRuleTypeId"
-              [(ngModel)]="app.forecastForm.forecastRecurrenceRuleTypeId"
-              (ngModelChange)="app.onForecastRecurrenceTypeChanged()"
+              name="forecastExpenseRecurrenceRuleTypeId"
+              [(ngModel)]="app.forecastExpenseForm.forecastRecurrenceRuleTypeId"
+              (ngModelChange)="app.onForecastExpenseRecurrenceTypeChanged()"
               required>
               <option value="" disabled>Select recurrence type</option>
               <option *ngFor="let type of app.forecastRecurrenceRuleTypes; trackBy: app.trackById" [value]="type.id">
@@ -60,14 +81,14 @@
             </select>
           </div>
 
-          <div *ngIf="!app.isOneTimeRecurrenceTypeSelected()">
-            <label class="field-label" for="forecast-interval">Every</label>
+          <div *ngIf="!app.isOneTimeForecastExpenseRecurrenceTypeSelected()">
+            <label class="field-label" for="forecast-expense-interval">Every</label>
             <input
-              id="forecast-interval"
+              id="forecast-expense-interval"
               class="field-input"
               type="number"
-              name="forecastInterval"
-              [(ngModel)]="app.forecastForm.interval"
+              name="forecastExpenseInterval"
+              [(ngModel)]="app.forecastExpenseForm.interval"
               min="1"
               max="365"
               required />
@@ -76,69 +97,60 @@
 
         <div class="field-row">
           <div>
-            <label class="field-label" for="forecast-start">Start</label>
+            <label class="field-label" for="forecast-expense-start">Start</label>
             <input
-              id="forecast-start"
+              id="forecast-expense-start"
               class="field-input"
               type="date"
-              name="forecastStart"
-              [(ngModel)]="app.forecastForm.recurrenceStart"
+              name="forecastExpenseStart"
+              [(ngModel)]="app.forecastExpenseForm.recurrenceStart"
               required />
           </div>
 
           <div>
-            <label class="field-label" for="forecast-end">End</label>
+            <label class="field-label" for="forecast-expense-end">End</label>
             <input
-              id="forecast-end"
+              id="forecast-expense-end"
               class="field-input"
               type="date"
-              name="forecastEnd"
-              [(ngModel)]="app.forecastForm.recurrenceEnd" />
+              name="forecastExpenseEnd"
+              [(ngModel)]="app.forecastExpenseForm.recurrenceEnd" />
           </div>
         </div>
 
-        <label class="field-label" for="forecast-type">Type</label>
-        <select id="forecast-type" class="field-input" name="forecastType" [(ngModel)]="app.forecastForm.isIncome" (ngModelChange)="app.onForecastRecurrenceTypeChanged()" [disabled]="app.editingForecastId !== null">
-          <option [ngValue]="false">Expense</option>
-          <option [ngValue]="true">Income</option>
+        <label class="field-label" for="forecast-expense-category">Category</label>
+        <select
+          id="forecast-expense-category"
+          class="field-input"
+          name="forecastExpenseCategory"
+          [(ngModel)]="app.forecastExpenseForm.paymentCategoryId"
+          [disabled]="!app.hasCategories"
+          required>
+          <option value="">{{ app.hasCategories ? 'Select a category' : 'No categories available' }}</option>
+          <option *ngFor="let category of app.categories; trackBy: app.trackById" [value]="category.id">
+            {{ category.name }} · {{ category.code }}
+          </option>
         </select>
 
-        <div *ngIf="!app.forecastForm.isIncome">
-          <label class="field-label" for="forecast-category">Category</label>
-          <select
-            id="forecast-category"
-            class="field-input"
-            name="forecastCategory"
-            [(ngModel)]="app.forecastForm.paymentCategoryId"
-            [disabled]="!app.hasCategories"
-            required>
-            <option value="">{{ app.hasCategories ? 'Select a category' : 'No categories available' }}</option>
-            <option *ngFor="let category of app.categories; trackBy: app.trackById" [value]="category.id">
-              {{ category.name }} · {{ category.code }}
-            </option>
-          </select>
-        </div>
-
         <div class="form-actions">
-          <button class="primary-button" type="submit" [disabled]="app.isSavingForecast">
-            {{ app.isSavingForecast ? 'Saving...' : (app.editingForecastId ? 'Update forecast' : 'Create forecast') }}
+          <button class="primary-button" type="submit" [disabled]="app.isSavingForecastExpense || !app.hasCategories">
+            {{ app.isSavingForecastExpense ? 'Saving...' : (app.editingForecastExpenseId ? 'Update forecast expense' : 'Create forecast expense') }}
           </button>
-          <button class="secondary-button" type="button" (click)="app.resetForecastForm()">Reset</button>
+          <button class="secondary-button" type="button" (click)="app.resetForecastExpenseForm()">Reset</button>
         </div>
       </form>
 
       <article class="list-card">
         <div class="card-heading">
-          <h3>Forecast schedule</h3>
+          <h3>Forecast expense schedule</h3>
           <span class="muted-copy">Definitions and next occurrences</span>
         </div>
 
-        <div *ngIf="app.forecastDefinitions.length; else forecastsEmpty" class="table-shell">
+        <div *ngIf="app.forecastExpenseDefinitions.length; else forecastExpensesEmpty" class="table-shell">
           <table>
             <thead>
               <tr>
                 <th>Description</th>
-                <th>Type</th>
                 <th>Category</th>
                 <th>Recurrence type</th>
                 <th>Starts</th>
@@ -148,42 +160,37 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let definition of app.forecastDefinitions; trackBy: app.trackById">
+              <tr *ngFor="let definition of app.forecastExpenseDefinitions; trackBy: app.trackById">
                 <td><strong>{{ definition.description }}</strong></td>
-                <td>
-                  <span class="tag" [class.income-tag]="definition.isIncome" [class.expense-tag]="!definition.isIncome">
-                    {{ definition.isIncome ? 'Income' : 'Expense' }}
-                  </span>
-                </td>
                 <td>{{ definition.category || '—' }}</td>
                 <td>{{ app.getForecastRecurrenceRuleTypeLabel(definition.forecastRecurrenceRuleTypeId) }}</td>
                 <td>{{ definition.recurrenceStart | date:'dd MMM yyyy' }}</td>
-                <td>{{ app.getRecurrenceSummary(definition) }}</td>
+                <td>{{ app.getForecastExpenseRecurrenceSummary(definition) }}</td>
                 <td class="align-right">{{ definition.amount | currency:'EUR':'symbol':'1.2-2' }}</td>
                 <td class="align-right action-group">
-                  <button class="icon-button" type="button" (click)="app.startForecastEdit(definition)">Edit</button>
-                  <button class="icon-button danger" type="button" (click)="app.deleteForecast(definition)">Delete</button>
+                  <button class="icon-button" type="button" (click)="app.startForecastExpenseEdit(definition)">Edit</button>
+                  <button class="icon-button danger" type="button" (click)="app.deleteForecastExpense(definition)">Delete</button>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <ng-template #forecastsEmpty>
+        <ng-template #forecastExpensesEmpty>
           <div class="empty-state">
-            <h4>No forecasts yet</h4>
-            <p>Create a recurring item to generate the next outlook.</p>
+            <h4>No forecast expenses yet</h4>
+            <p>Create a recurring expense to generate the next outlook.</p>
           </div>
         </ng-template>
 
         <div class="subsection">
           <div class="card-heading compact-heading">
-            <h4>Upcoming forecast items</h4>
+            <h4>Upcoming forecast expense items</h4>
             <span class="muted-copy">{{ app.forecastRange.startDate | date:'dd MMM' }} - {{ app.forecastRange.endDate | date:'dd MMM' }}</span>
           </div>
 
-          <div *ngIf="app.upcomingForecasts.length; else upcomingEmpty" class="forecast-list">
-            <article class="forecast-item" *ngFor="let row of app.upcomingForecasts; trackBy: app.trackById">
+          <div *ngIf="app.upcomingForecastExpenses.length; else upcomingForecastExpensesEmpty" class="forecast-list">
+            <article class="forecast-item" *ngFor="let row of app.upcomingForecastExpenses; trackBy: app.trackById">
               <div>
                 <strong>{{ row.description }}</strong>
                 <p>
@@ -191,15 +198,190 @@
                   <span *ngIf="row.category"> · {{ row.category }}</span>
                 </p>
               </div>
-              <div class="forecast-item-value" [class.is-income]="row.isIncome" [class.is-expense]="!row.isIncome">
-                {{ row.isIncome ? '+' : '-' }}{{ row.amount | currency:'EUR':'symbol':'1.2-2' }}
+              <div class="forecast-item-value is-expense">
+                -{{ row.amount | currency:'EUR':'symbol':'1.2-2' }}
               </div>
             </article>
           </div>
 
-          <ng-template #upcomingEmpty>
+          <ng-template #upcomingForecastExpensesEmpty>
             <div class="empty-state compact-empty-state">
-              <p>No occurrences in the selected preview window.</p>
+              <p>No expense occurrences in the selected preview window.</p>
+            </div>
+          </ng-template>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section *ngIf="activeTab === 'incomes'" class="management-panel" id="forecast-incomes" role="tabpanel" aria-label="Forecast Incomes">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Entity</p>
+        <h2>Forecast Incomes</h2>
+        <p>Manage recurring incomes and review upcoming pending income occurrences.</p>
+      </div>
+      <span class="pill">{{ app.forecastIncomeDefinitions.length }} definitions</span>
+    </div>
+
+    <div class="panel-grid">
+      <form class="editor-card" (ngSubmit)="app.submitForecastIncome()">
+        <div class="card-heading">
+          <h3>{{ app.editingForecastIncomeId ? 'Edit forecast income' : 'Create forecast income' }}</h3>
+          <button *ngIf="app.editingForecastIncomeId" class="text-button" type="button" (click)="app.cancelForecastIncomeEdit()">
+            Cancel edit
+          </button>
+        </div>
+
+        <label class="field-label" for="forecast-income-description">Description</label>
+        <input
+          id="forecast-income-description"
+          class="field-input"
+          type="text"
+          name="forecastIncomeDescription"
+          [(ngModel)]="app.forecastIncomeForm.description"
+          maxlength="100"
+          placeholder="Salary, freelance, refunds..."
+          required />
+
+        <div class="field-row">
+          <div>
+            <label class="field-label" for="forecast-income-amount">Amount</label>
+            <input
+              id="forecast-income-amount"
+              class="field-input"
+              type="number"
+              name="forecastIncomeAmount"
+              [(ngModel)]="app.forecastIncomeForm.amount"
+              min="0.01"
+              step="0.01"
+              placeholder="0.00"
+              required />
+          </div>
+
+          <div>
+            <label class="field-label" for="forecast-income-recurrence-rule-type-id">Recurrence type</label>
+            <select
+              id="forecast-income-recurrence-rule-type-id"
+              class="field-input"
+              name="forecastIncomeRecurrenceRuleTypeId"
+              [(ngModel)]="app.forecastIncomeForm.forecastRecurrenceRuleTypeId"
+              (ngModelChange)="app.onForecastIncomeRecurrenceTypeChanged()"
+              required>
+              <option value="" disabled>Select recurrence type</option>
+              <option *ngFor="let type of app.forecastRecurrenceRuleTypes; trackBy: app.trackById" [value]="type.id">
+                {{ type.name }} ({{ type.code }})
+              </option>
+            </select>
+          </div>
+
+          <div *ngIf="!app.isOneTimeForecastIncomeRecurrenceTypeSelected()">
+            <label class="field-label" for="forecast-income-interval">Every</label>
+            <input
+              id="forecast-income-interval"
+              class="field-input"
+              type="number"
+              name="forecastIncomeInterval"
+              [(ngModel)]="app.forecastIncomeForm.interval"
+              min="1"
+              max="365"
+              required />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div>
+            <label class="field-label" for="forecast-income-start">Start</label>
+            <input
+              id="forecast-income-start"
+              class="field-input"
+              type="date"
+              name="forecastIncomeStart"
+              [(ngModel)]="app.forecastIncomeForm.recurrenceStart"
+              required />
+          </div>
+
+          <div>
+            <label class="field-label" for="forecast-income-end">End</label>
+            <input
+              id="forecast-income-end"
+              class="field-input"
+              type="date"
+              name="forecastIncomeEnd"
+              [(ngModel)]="app.forecastIncomeForm.recurrenceEnd" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="primary-button" type="submit" [disabled]="app.isSavingForecastIncome">
+            {{ app.isSavingForecastIncome ? 'Saving...' : (app.editingForecastIncomeId ? 'Update forecast income' : 'Create forecast income') }}
+          </button>
+          <button class="secondary-button" type="button" (click)="app.resetForecastIncomeForm()">Reset</button>
+        </div>
+      </form>
+
+      <article class="list-card">
+        <div class="card-heading">
+          <h3>Forecast income schedule</h3>
+          <span class="muted-copy">Definitions and next occurrences</span>
+        </div>
+
+        <div *ngIf="app.forecastIncomeDefinitions.length; else forecastIncomesEmpty" class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Recurrence type</th>
+                <th>Starts</th>
+                <th>Recurrence</th>
+                <th class="align-right">Amount</th>
+                <th class="align-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let definition of app.forecastIncomeDefinitions; trackBy: app.trackById">
+                <td><strong>{{ definition.description }}</strong></td>
+                <td>{{ app.getForecastRecurrenceRuleTypeLabel(definition.forecastRecurrenceRuleTypeId) }}</td>
+                <td>{{ definition.recurrenceStart | date:'dd MMM yyyy' }}</td>
+                <td>{{ app.getForecastIncomeRecurrenceSummary(definition) }}</td>
+                <td class="align-right">{{ definition.amount | currency:'EUR':'symbol':'1.2-2' }}</td>
+                <td class="align-right action-group">
+                  <button class="icon-button" type="button" (click)="app.startForecastIncomeEdit(definition)">Edit</button>
+                  <button class="icon-button danger" type="button" (click)="app.deleteForecastIncome(definition)">Delete</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ng-template #forecastIncomesEmpty>
+          <div class="empty-state">
+            <h4>No forecast incomes yet</h4>
+            <p>Create a recurring income to generate the next outlook.</p>
+          </div>
+        </ng-template>
+
+        <div class="subsection">
+          <div class="card-heading compact-heading">
+            <h4>Upcoming forecast income items</h4>
+            <span class="muted-copy">{{ app.forecastRange.startDate | date:'dd MMM' }} - {{ app.forecastRange.endDate | date:'dd MMM' }}</span>
+          </div>
+
+          <div *ngIf="app.upcomingForecastIncomes.length; else upcomingForecastIncomesEmpty" class="forecast-list">
+            <article class="forecast-item" *ngFor="let row of app.upcomingForecastIncomes; trackBy: app.trackById">
+              <div>
+                <strong>{{ row.description }}</strong>
+                <p>{{ row.date | date:'dd MMM yyyy' }}</p>
+              </div>
+              <div class="forecast-item-value is-income">
+                +{{ row.amount | currency:'EUR':'symbol':'1.2-2' }}
+              </div>
+            </article>
+          </div>
+
+          <ng-template #upcomingForecastIncomesEmpty>
+            <div class="empty-state compact-empty-state">
+              <p>No income occurrences in the selected preview window.</p>
             </div>
           </ng-template>
         </div>
