@@ -55,7 +55,7 @@ namespace MoneyTracker.Api.Endpoints.Incomes.ExtensionMethods
 
             return new GetIncomeQuery(
                     entity.DescriptionFilter,
-                    entity  .MinAmount,
+                    entity.MinAmount,
                     entity.MaxAmount,
                     year,
                     month,
@@ -65,7 +65,7 @@ namespace MoneyTracker.Api.Endpoints.Incomes.ExtensionMethods
                     entity.SortOrder);
         }
 
-        public static PaginatedResponse<IncomeRowResponse> ToPaginatedResponse(this PaginatedResponse<IncomeRow> entity)
+        public static PaginatedResponse<IncomeRowResponse> ToPaginatedResponse(this PaginatedResponse<IncomeDto> entity)
         {
             return new PaginatedResponse<IncomeRowResponse>
             {
@@ -76,7 +76,7 @@ namespace MoneyTracker.Api.Endpoints.Incomes.ExtensionMethods
             };
         }
 
-        public static IncomeRowResponse ToIncomeRowResponse(this IncomeRow entity)
+        public static IncomeRowResponse ToIncomeRowResponse(this IncomeDto entity)
         {
             return new IncomeRowResponse
             {

@@ -2,7 +2,7 @@ using MoneyTracker.BusinessLogic.Common.Exceptions;
 
 namespace MoneyTracker.Api.Endpoints.ForecastExpenses.Contracts;
 
-public class ForecastIncomeOccurencesQuery
+public class ForecastExpenseOccurrencesQuery
 {
     public string Month { get; set; } = string.Empty;
 

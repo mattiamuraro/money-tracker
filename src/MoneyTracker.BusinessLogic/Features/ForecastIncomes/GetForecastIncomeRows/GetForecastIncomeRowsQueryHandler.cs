@@ -7,9 +7,9 @@ using MoneyTracker.Data.EntityFramework;
 namespace MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetForecastIncomeRows;
 
 public class GetForecastIncomeRowsQueryHandler(MoneyTrackerDbContext dbContext)
-    : IHandler<GetForecastIncomeRowsQuery, List<ForecastIncomeRow>>
+    : IHandler<GetForecastIncomeRowsQuery, List<ForecastIncomeDto>>
 {
-    public async Task<List<ForecastIncomeRow>> Handle(GetForecastIncomeRowsQuery query, CancellationToken cancellationToken)
+    public async Task<List<ForecastIncomeDto>> Handle(GetForecastIncomeRowsQuery query, CancellationToken cancellationToken)
     {
         if (query.EndDate < query.StartDate)
             throw new BadRequestException("End date must be greater than or equal to start date.");
@@ -25,7 +25,7 @@ public class GetForecastIncomeRowsQueryHandler(MoneyTrackerDbContext dbContext)
                 && x.ExpectedDate <= query.EndDate)
             .OrderBy(x => x.ExpectedDate)
             .ThenBy(x => x.Description)
-            .Select(x => new ForecastIncomeRow
+            .Select(x => new ForecastIncomeDto
             {
                 Id = x.Id,
                 ForecastDefinitionId = x.ForecastDefinitionId,

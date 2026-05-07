@@ -26,9 +26,9 @@ internal static class ForecastExpensesFeatureRegistration
         services.AddHandlerWithLogging<CreateForecastExpenseDefinitionAndSynchronizeCommandHandler, CreateForecastExpenseDefinitionAndSynchronizeCommand, Guid>();
         services.AddVoidHandlerWithLogging<UpdateForecastExpenseDefinitionAndSynchronizeCommandHandler, UpdateForecastExpenseDefinitionAndSynchronizeCommand>();
         services.AddVoidHandlerWithLogging<DeleteForecastExpenseDefinitionAndSynchronizeCommandHandler, DeleteForecastExpenseDefinitionAndSynchronizeCommand>();
-        services.AddHandlerWithLogging<GetForecastExpenseDefinitionsQueryHandler, GetForecastExpenseDefinitionsQuery, List<ForecastExpenseDefinitionRow>>();
-        services.AddHandlerWithLogging<GetForecastExpenseRowsQueryHandler, GetForecastExpenseRowsQuery, List<ForecastExpenseRow>>();
-        services.AddHandlerWithLogging<GetPendingForecastExpenseOccurrencesQueryHandler, GetPendingForecastExpenseOccurrencesQuery, List<ForecastExpenseOccurrenceRow>>();
+        services.AddHandlerWithLogging<GetForecastExpenseDefinitionsQueryHandler, GetForecastExpenseDefinitionsQuery, List<ForecastExpenseDefinitionDto>>();
+        services.AddHandlerWithLogging<GetForecastExpenseRowsQueryHandler, GetForecastExpenseRowsQuery, List<ForecastExpenseDto>>();
+        services.AddHandlerWithLogging<GetPendingForecastExpenseOccurrencesQueryHandler, GetPendingForecastExpenseOccurrencesQuery, List<ForecastExpenseOccurrenceDto>>();
         services.AddVoidHandlerWithLogging<DiscardForecastExpenseOccurrenceCommandHandler, DiscardForecastExpenseOccurrenceCommand>();
         services.AddScoped<IValidator<CreateForecastExpenseDefinitionCommand>, CreateForecastExpenseDefinitionCommandValidator>();
         services.AddScoped<IValidator<UpdateForecastExpenseDefinitionCommand>, UpdateForecastExpenseDefinitionCommandValidator>();

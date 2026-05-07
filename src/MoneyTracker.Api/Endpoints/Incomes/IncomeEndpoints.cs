@@ -20,7 +20,7 @@ public static class IncomeEndpoints
             .WithTags("Incomes")
             .RequireAuthorization();
 
-        group.MapGet("/", static async ([FromServices] IHandler<GetIncomeQuery, PaginatedResponse<IncomeRow>> handler, [AsParameters] IncomeFilterQuery incomeFilterQuery, CancellationToken cancellationToken) =>
+        group.MapGet("/", static async ([FromServices] IHandler<GetIncomeQuery, PaginatedResponse<IncomeDto>> handler, [AsParameters] IncomeFilterQuery incomeFilterQuery, CancellationToken cancellationToken) =>
             {
                 var query = incomeFilterQuery.ToGetIncomeQuery();
                 var result = await handler.Handle(query, cancellationToken);
@@ -34,7 +34,7 @@ public static class IncomeEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
-        group.MapGet("/{id:guid}", static async ([FromServices] IHandler<GetIncomeByIdQuery, IncomeRow> handler, Guid id, CancellationToken cancellationToken) =>
+        group.MapGet("/{id:guid}", static async ([FromServices] IHandler<GetIncomeByIdQuery, IncomeDto> handler, Guid id, CancellationToken cancellationToken) =>
             {
                 var query = id.ToGetIncomeByIdQuery();
                 var income = await handler.Handle(query, cancellationToken);
@@ -95,3 +95,4 @@ public static class IncomeEndpoints
         return app;
     }
 }
+

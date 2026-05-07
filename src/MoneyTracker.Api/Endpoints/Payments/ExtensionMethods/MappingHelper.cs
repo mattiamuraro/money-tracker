@@ -50,7 +50,7 @@ namespace MoneyTracker.Api.Endpoints.Payments.ExtensionMethods
             };
         }
 
-        public static PaginatedResponse<PaymentRowResponse> ToPaginatedResponse(this PaginatedResponse<PaymentRow> entity)
+        public static PaginatedResponse<PaymentRowResponse> ToPaginatedResponse(this PaginatedResponse<PaymentDto> entity)
         {
             return new PaginatedResponse<PaymentRowResponse>
             {
@@ -61,7 +61,7 @@ namespace MoneyTracker.Api.Endpoints.Payments.ExtensionMethods
             };
         }
 
-        public static PaymentRowResponse ToPaymentRowResponse(this PaymentRow entity)
+        public static PaymentRowResponse ToPaymentRowResponse(this PaymentDto entity)
         {
             return new PaymentRowResponse
             {

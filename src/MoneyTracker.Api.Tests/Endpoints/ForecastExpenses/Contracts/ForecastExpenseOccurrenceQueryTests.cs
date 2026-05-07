@@ -5,15 +5,15 @@ using Xunit;
 namespace MoneyTracker.Api.Tests.Endpoints.ForecastExpenses.Contracts;
 
 /// <summary>
-/// Unit tests for ForecastExpenseOccurencesQuery
+/// Unit tests for ForecastExpenseOccurrencesQuery
 /// </summary>
-public class ForecastExpenseOccurencesQueryTests
+public class ForecastExpenseOccurrencesQueryTests
 {
     [Fact]
     public void GetRequiredYearMonth_Should_Return_Valid_YearMonth_For_Valid_Format()
     {
         // Arrange
-        var query = new ForecastExpenseOccurencesQuery { Month = "2024-01" };
+        var query = new ForecastExpenseOccurrencesQuery { Month = "2024-01" };
 
         // Act
         var result = query.GetRequiredYearMonth();
@@ -27,7 +27,7 @@ public class ForecastExpenseOccurencesQueryTests
     public void GetRequiredYearMonth_Should_Return_Valid_YearMonth_For_December()
     {
         // Arrange
-        var query = new ForecastExpenseOccurencesQuery { Month = "2023-12" };
+        var query = new ForecastExpenseOccurrencesQuery { Month = "2023-12" };
 
         // Act
         var result = query.GetRequiredYearMonth();
@@ -41,7 +41,7 @@ public class ForecastExpenseOccurencesQueryTests
     public void GetRequiredYearMonth_Should_Throw_When_Month_Is_Null()
     {
         // Arrange
-        var query = new ForecastExpenseOccurencesQuery { Month = null! };
+        var query = new ForecastExpenseOccurrencesQuery { Month = null! };
 
         // Act & Assert
         var exception = Assert.Throws<BadRequestException>((Action)(() => query.GetRequiredYearMonth()));
@@ -52,7 +52,7 @@ public class ForecastExpenseOccurencesQueryTests
     public void GetRequiredYearMonth_Should_Throw_When_Month_Is_Empty()
     {
         // Arrange
-        var query = new ForecastExpenseOccurencesQuery { Month = "" };
+        var query = new ForecastExpenseOccurrencesQuery { Month = "" };
 
         // Act & Assert
         var exception = Assert.Throws<BadRequestException>((Action)(() => query.GetRequiredYearMonth()));
@@ -63,7 +63,7 @@ public class ForecastExpenseOccurencesQueryTests
     public void GetRequiredYearMonth_Should_Throw_When_Month_Is_Whitespace()
     {
         // Arrange
-        var query = new ForecastExpenseOccurencesQuery { Month = "   " };
+        var query = new ForecastExpenseOccurrencesQuery { Month = "   " };
 
         // Act & Assert
         var exception = Assert.Throws<BadRequestException>((Action)(() => query.GetRequiredYearMonth()));
@@ -74,7 +74,7 @@ public class ForecastExpenseOccurencesQueryTests
     public void GetRequiredYearMonth_Should_Throw_When_Month_Has_No_Dash()
     {
         // Arrange
-        var query = new ForecastExpenseOccurencesQuery { Month = "202401" };
+        var query = new ForecastExpenseOccurrencesQuery { Month = "202401" };
 
         // Act & Assert
         var exception = Assert.Throws<BadRequestException>((Action)(() => query.GetRequiredYearMonth()));
@@ -85,7 +85,7 @@ public class ForecastExpenseOccurencesQueryTests
     public void GetRequiredYearMonth_Should_Throw_When_Month_Has_Too_Many_Parts()
     {
         // Arrange
-        var query = new ForecastExpenseOccurencesQuery { Month = "2024-01-15" };
+        var query = new ForecastExpenseOccurrencesQuery { Month = "2024-01-15" };
 
         // Act & Assert
         var exception = Assert.Throws<BadRequestException>((Action)(() => query.GetRequiredYearMonth()));
@@ -96,7 +96,7 @@ public class ForecastExpenseOccurencesQueryTests
     public void GetRequiredYearMonth_Should_Throw_When_Year_Is_Not_Numeric()
     {
         // Arrange
-        var query = new ForecastExpenseOccurencesQuery { Month = "abcd-01" };
+        var query = new ForecastExpenseOccurrencesQuery { Month = "abcd-01" };
 
         // Act & Assert
         var exception = Assert.Throws<BadRequestException>((Action)(() => query.GetRequiredYearMonth()));
@@ -107,7 +107,7 @@ public class ForecastExpenseOccurencesQueryTests
     public void GetRequiredYearMonth_Should_Throw_When_Month_Is_Not_Numeric()
     {
         // Arrange
-        var query = new ForecastExpenseOccurencesQuery { Month = "2024-ab" };
+        var query = new ForecastExpenseOccurrencesQuery { Month = "2024-ab" };
 
         // Act & Assert
         var exception = Assert.Throws<BadRequestException>((Action)(() => query.GetRequiredYearMonth()));
@@ -118,7 +118,7 @@ public class ForecastExpenseOccurencesQueryTests
     public void GetRequiredYearMonth_Should_Throw_When_Month_Is_Zero()
     {
         // Arrange
-        var query = new ForecastExpenseOccurencesQuery { Month = "2024-00" };
+        var query = new ForecastExpenseOccurrencesQuery { Month = "2024-00" };
 
         // Act & Assert
         var exception = Assert.Throws<BadRequestException>((Action)(() => query.GetRequiredYearMonth()));
@@ -129,7 +129,7 @@ public class ForecastExpenseOccurencesQueryTests
     public void GetRequiredYearMonth_Should_Throw_When_Month_Is_Thirteen()
     {
         // Arrange
-        var query = new ForecastExpenseOccurencesQuery { Month = "2024-13" };
+        var query = new ForecastExpenseOccurrencesQuery { Month = "2024-13" };
 
         // Act & Assert
         var exception = Assert.Throws<BadRequestException>((Action)(() => query.GetRequiredYearMonth()));
@@ -140,7 +140,7 @@ public class ForecastExpenseOccurencesQueryTests
     public void GetRequiredYearMonth_Should_Handle_Single_Digit_Month_Without_Leading_Zero()
     {
         // Arrange
-        var query = new ForecastExpenseOccurencesQuery { Month = "2024-5" };
+        var query = new ForecastExpenseOccurrencesQuery { Month = "2024-5" };
 
         // Act
         var result = query.GetRequiredYearMonth();
@@ -154,7 +154,7 @@ public class ForecastExpenseOccurencesQueryTests
     public void GetRequiredYearMonth_Should_Handle_Whitespace_Around_Parts()
     {
         // Arrange
-        var query = new ForecastExpenseOccurencesQuery { Month = " 2024 - 03 " };
+        var query = new ForecastExpenseOccurrencesQuery { Month = " 2024 - 03 " };
 
         // Act
         var result = query.GetRequiredYearMonth();
@@ -168,7 +168,7 @@ public class ForecastExpenseOccurencesQueryTests
     public void GetRequiredYearMonth_Should_Throw_When_Only_Year_Is_Provided()
     {
         // Arrange
-        var query = new ForecastExpenseOccurencesQuery { Month = "2024" };
+        var query = new ForecastExpenseOccurrencesQuery { Month = "2024" };
 
         // Act & Assert
         var exception = Assert.Throws<BadRequestException>((Action)(() => query.GetRequiredYearMonth()));
@@ -179,7 +179,7 @@ public class ForecastExpenseOccurencesQueryTests
     public void GetRequiredYearMonth_Should_Throw_When_Only_Dash_Is_Provided()
     {
         // Arrange
-        var query = new ForecastExpenseOccurencesQuery { Month = "-" };
+        var query = new ForecastExpenseOccurrencesQuery { Month = "-" };
 
         // Act & Assert
         var exception = Assert.Throws<BadRequestException>((Action)(() => query.GetRequiredYearMonth()));

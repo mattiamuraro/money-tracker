@@ -15,7 +15,7 @@ namespace MoneyTracker.Api.Endpoints.Auth.ExtensionMethods
             };
         }
 
-        public static AuthTokenResponse ToLoginAuthTokenResponse(this LoginAuthToken entity)
+        public static AuthTokenResponse ToLoginAuthTokenResponse(this LoginAuthTokenDto entity)
         {
             return new AuthTokenResponse
             {
@@ -23,7 +23,7 @@ namespace MoneyTracker.Api.Endpoints.Auth.ExtensionMethods
             };
         }
 
-        public static AuthTokenResponse ToRegisterAuthTokenResponse(this RegisterAuthToken entity)
+        public static AuthTokenResponse ToRegisterAuthTokenResponse(this RegisterAuthTokenDto entity)
         {
             return new AuthTokenResponse
             {

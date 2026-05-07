@@ -6,9 +6,9 @@ using MoneyTracker.Data.EntityFramework;
 namespace MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetPendingForecastIncomeOccurrences;
 
 public class GetPendingForecastIncomeOccurrencesQueryHandler(MoneyTrackerDbContext dbContext)
-    : IHandler<GetPendingForecastIncomeOccurrencesQuery, List<ForecastIncomeOccurrenceRow>>
+    : IHandler<GetPendingForecastIncomeOccurrencesQuery, List<ForecastIncomeOccurrenceDto>>
 {
-    public async Task<List<ForecastIncomeOccurrenceRow>> Handle(GetPendingForecastIncomeOccurrencesQuery request, CancellationToken cancellationToken)
+    public async Task<List<ForecastIncomeOccurrenceDto>> Handle(GetPendingForecastIncomeOccurrencesQuery request, CancellationToken cancellationToken)
     {
         return await dbContext.ForecastOccurrences
             .AsNoTracking()
@@ -18,7 +18,7 @@ public class GetPendingForecastIncomeOccurrencesQueryHandler(MoneyTrackerDbConte
                 && x.ExpectedDate.Month == request.Month)
             .OrderBy(x => x.ExpectedDate)
             .ThenBy(x => x.Description)
-            .Select(x => new ForecastIncomeOccurrenceRow
+            .Select(x => new ForecastIncomeOccurrenceDto
             {
                 Id = x.Id,
                 ForecastDefinitionId = x.ForecastDefinitionId,

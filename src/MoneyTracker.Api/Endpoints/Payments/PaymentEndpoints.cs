@@ -21,7 +21,7 @@ namespace MoneyTracker.Api.Endpoints.Payments
                         .RequireAuthorization();
 
             // GET all payments with pagination and filtering
-            group.MapGet("/", static async ([FromServices] IHandler<GetPaymentQuery, PaginatedResponse<PaymentRow>> handler, [AsParameters] PaymentFilterQuery paymentFilterQuery, CancellationToken cancellationToken) =>
+            group.MapGet("/", static async ([FromServices] IHandler<GetPaymentQuery, PaginatedResponse<PaymentDto>> handler, [AsParameters] PaymentFilterQuery paymentFilterQuery, CancellationToken cancellationToken) =>
                 {
                     var query = paymentFilterQuery.ToGetPaymentQuery();
                     var result = await handler.Handle(query, cancellationToken);
@@ -36,7 +36,7 @@ namespace MoneyTracker.Api.Endpoints.Payments
                 .ProducesProblem(StatusCodes.Status500InternalServerError);
 
             // GET payment by ID
-            group.MapGet("/{id:guid}", static async ([FromServices] IHandler<GetPaymentByIdQuery, PaymentRow> handler, Guid id, CancellationToken cancellationToken) =>
+            group.MapGet("/{id:guid}", static async ([FromServices] IHandler<GetPaymentByIdQuery, PaymentDto> handler, Guid id, CancellationToken cancellationToken) =>
                 {
                     var query = id.ToGetPaymentByIdQuery();
                     var payment = await handler.Handle(query, cancellationToken);

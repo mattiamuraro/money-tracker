@@ -18,7 +18,7 @@ internal static class PaymentCategoriesFeatureRegistration
         services.AddHandlerWithLogging<CreateCategoryCommandHandler, CreateCategoryCommand, Guid>();
         services.AddVoidHandlerWithLogging<UpdateCategoryCommandHandler, UpdateCategoryCommand>();
         services.AddVoidHandlerWithLogging<DeleteCategoryCommandHandler, DeleteCategoryCommand>();
-        services.AddHandlerWithLogging<GetAllCategoriesQueryHandler, GetAllCategoriesQuery, IEnumerable<PaymentCategoryRow>>();
+        services.AddHandlerWithLogging<GetAllCategoriesQueryHandler, GetAllCategoriesQuery, IEnumerable<PaymentCategoryDto>>();
         services.AddHandlerWithLogging<GetCategoryByIdQueryHandler, GetCategoryByIdQuery, PaymentCategoryDto>();
         services.AddScoped<IValidator<CreateCategoryCommand>, CreateCategoryCommandValidator>();
         services.AddScoped<IValidator<UpdateCategoryCommand>, UpdateCategoryCommandValidator>();

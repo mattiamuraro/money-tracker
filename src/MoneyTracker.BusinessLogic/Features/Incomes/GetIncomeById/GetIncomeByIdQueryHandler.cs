@@ -7,14 +7,14 @@ using MoneyTracker.Data.EntityFramework;
 namespace MoneyTracker.BusinessLogic.Features.Incomes.GetIncomeById;
 
 public class GetIncomeByIdQueryHandler(MoneyTrackerDbContext dbContext)
-    : IHandler<GetIncomeByIdQuery, IncomeRow>
+    : IHandler<GetIncomeByIdQuery, IncomeDto>
 {
-    public async Task<IncomeRow> Handle(GetIncomeByIdQuery request, CancellationToken cancellationToken)
+    public async Task<IncomeDto> Handle(GetIncomeByIdQuery request, CancellationToken cancellationToken)
     {
         var result = await dbContext.Incomes
             .AsNoTracking()
             .Where(p => p.Id == request.Id)
-            .Select(p => new IncomeRow
+            .Select(p => new IncomeDto
             {
                 Id = p.Id,
                 Description = p.Description,

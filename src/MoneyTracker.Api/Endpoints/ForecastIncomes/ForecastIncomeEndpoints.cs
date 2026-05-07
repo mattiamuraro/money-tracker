@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using MoneyTracker.Api.Endpoints.ForecastExpenses.Contracts;
 using MoneyTracker.Api.Endpoints.ForecastIncomes.Contracts;
 using MoneyTracker.Api.Endpoints.ForecastIncomes.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Common.Handlers;
@@ -22,7 +21,7 @@ public static class ForecastIncomeEndpoints
             .RequireAuthorization();
 
         group.MapGet("/", static async (
-                [FromServices] IHandler<GetForecastIncomeRowsQuery, List<ForecastIncomeRow>> getForecastRowsHandler,
+                [FromServices] IHandler<GetForecastIncomeRowsQuery, List<ForecastIncomeDto>> getForecastRowsHandler,
                 [FromQuery] DateOnly? startDate,
                 [FromQuery] DateOnly? endDate,
                 CancellationToken cancellationToken) =>
@@ -40,7 +39,7 @@ public static class ForecastIncomeEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapGet("/definitions", static async (
-                [FromServices] IHandler<GetForecastIncomeDefinitionsQuery, List<ForecastIncomeDefinitionRow>> handler,
+                [FromServices] IHandler<GetForecastIncomeDefinitionsQuery, List<ForecastIncomeDefinitionDto>> handler,
                 CancellationToken cancellationToken) =>
             {
                 var definitions = await handler.Handle(new GetForecastIncomeDefinitionsQuery(), cancellationToken);
@@ -110,8 +109,8 @@ public static class ForecastIncomeEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapGet("/occurrences", static async (
-                [FromServices] IHandler<GetPendingForecastIncomeOccurrencesQuery, List<ForecastIncomeOccurrenceRow>> handler,
-                [AsParameters] ForecastIncomeOccurencesQuery request,
+                [FromServices] IHandler<GetPendingForecastIncomeOccurrencesQuery, List<ForecastIncomeOccurrenceDto>> handler,
+                [AsParameters] ForecastIncomeOccurrencesQuery request,
                 CancellationToken cancellationToken) =>
             {
                 var query = request.ToGetPendingForecastIncomeOccurrencesQuery();

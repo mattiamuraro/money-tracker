@@ -1,6 +1,6 @@
 namespace MoneyTracker.BusinessLogic.Features.ForecastExpenses.GetForecastExpenseRows;
 
-public class ForecastExpenseRow
+public class ForecastExpenseDto
 {
     public Guid Id { get; set; }
     public Guid ForecastDefinitionId { get; set; }

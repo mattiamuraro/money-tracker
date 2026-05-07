@@ -1,6 +1,6 @@
 ﻿namespace MoneyTracker.BusinessLogic.Features.Auth.Login
 {
-    public class LoginAuthToken
+    public class LoginAuthTokenDto
     {
         public required string Token { get; set; }
     }

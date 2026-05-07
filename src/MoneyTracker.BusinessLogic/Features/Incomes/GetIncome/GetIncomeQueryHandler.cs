@@ -7,9 +7,9 @@ using MoneyTracker.Data.EntityFramework;
 namespace MoneyTracker.BusinessLogic.Features.Incomes.GetIncome;
 
 public class GetIncomeQueryHandler(MoneyTrackerDbContext dbContext)
-    : IHandler<GetIncomeQuery, PaginatedResponse<IncomeRow>>
+    : IHandler<GetIncomeQuery, PaginatedResponse<IncomeDto>>
 {
-    public async Task<PaginatedResponse<IncomeRow>> Handle(GetIncomeQuery request, CancellationToken cancellationToken)
+    public async Task<PaginatedResponse<IncomeDto>> Handle(GetIncomeQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.Incomes
             .AsNoTracking()
@@ -32,7 +32,7 @@ public class GetIncomeQueryHandler(MoneyTrackerDbContext dbContext)
         var items = await query
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(x => new IncomeRow
+            .Select(x => new IncomeDto
             {
                 Id = x.Id,
                 Description = x.Description,
@@ -43,7 +43,7 @@ public class GetIncomeQueryHandler(MoneyTrackerDbContext dbContext)
             })
             .ToListAsync(cancellationToken);
 
-        return new PaginatedResponse<IncomeRow>
+        return new PaginatedResponse<IncomeDto>
         {
             Items = items,
             PageNumber = request.PageNumber,

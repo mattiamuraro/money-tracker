@@ -1,6 +1,6 @@
 namespace MoneyTracker.BusinessLogic.Features.ForecastExpenses.GetPendingForecastExpenseOccurrences;
 
-public class ForecastExpenseOccurrenceRow
+public class ForecastExpenseOccurrenceDto
 {
     public Guid Id { get; set; }
     public Guid ForecastDefinitionId { get; set; }

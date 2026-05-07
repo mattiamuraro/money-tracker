@@ -38,7 +38,7 @@ internal static class MappingHelper
         };
     }
 
-    public static ForecastExpenseDefinitionResponse ToForecastExpenseDefinitionResponse(this ForecastExpenseDefinitionRow entity)
+    public static ForecastExpenseDefinitionResponse ToForecastExpenseDefinitionResponse(this ForecastExpenseDefinitionDto entity)
     {
         return new ForecastExpenseDefinitionResponse
         {
@@ -54,7 +54,7 @@ internal static class MappingHelper
         };
     }
 
-    public static ForecastExpenseRowResponse ToForecastExpenseRowResponse(this ForecastExpenseRow entity)
+    public static ForecastExpenseRowResponse ToForecastExpenseRowResponse(this ForecastExpenseDto entity)
     {
         return new ForecastExpenseRowResponse
         {
@@ -68,7 +68,7 @@ internal static class MappingHelper
         };
     }
 
-    public static ForecastExpenseOccurrenceResponse ToForecastExpenseOccurrenceResponse(this ForecastExpenseOccurrenceRow entity)
+    public static ForecastExpenseOccurrenceResponse ToForecastExpenseOccurrenceResponse(this ForecastExpenseOccurrenceDto entity)
     {
         return new ForecastExpenseOccurrenceResponse
         {
@@ -82,7 +82,7 @@ internal static class MappingHelper
         };
     }
 
-    public static GetPendingForecastExpenseOccurrencesQuery ToGetPendingForecastExpenseOccurrencesQuery(this ForecastExpenseOccurencesQuery entity)
+    public static GetPendingForecastExpenseOccurrencesQuery ToGetPendingForecastExpenseOccurrencesQuery(this ForecastExpenseOccurrencesQuery entity)
     {
         var (year, month) = entity.GetRequiredYearMonth();
         return new GetPendingForecastExpenseOccurrencesQuery(year, month);

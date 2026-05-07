@@ -19,7 +19,7 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                         .WithTags("Payment Categories")
                         .RequireAuthorization();
 
-            group.MapGet("/", static async ([FromServices] IHandler<GetAllCategoriesQuery, IEnumerable<PaymentCategoryRow>> handler, CancellationToken cancellationToken) =>
+            group.MapGet("/", static async ([FromServices] IHandler<GetAllCategoriesQuery, IEnumerable<PaymentCategoryDto>> handler, CancellationToken cancellationToken) =>
                 {
                     var result = await handler.Handle(new GetAllCategoriesQuery(), cancellationToken);
                     var response = result.ToPaymentCategoryResponses();
@@ -92,3 +92,4 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
         }
     }
 }
+

@@ -19,19 +19,9 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories.ExtensionMethods
             return new DeleteCategoryCommand(id);
         }
 
-        public static IEnumerable<PaymentCategoryResponse>? ToPaymentCategoryResponses(this IEnumerable<PaymentCategoryRow>? entities)
+        public static IEnumerable<PaymentCategoryResponse>? ToPaymentCategoryResponses(this IEnumerable<PaymentCategoryDto>? entities)
         {
             return entities?.Select(c => c.ToPaymentCategoryResponse());
-        }
-
-        public static PaymentCategoryResponse ToPaymentCategoryResponse(this PaymentCategoryRow entity)
-        {
-            return new PaymentCategoryResponse
-            {
-                Id = entity.Id,
-                Name = entity.Name,
-                Code = entity.Code
-            };
         }
 
         public static PaymentCategoryResponse ToPaymentCategoryResponse(this PaymentCategoryDto entity)

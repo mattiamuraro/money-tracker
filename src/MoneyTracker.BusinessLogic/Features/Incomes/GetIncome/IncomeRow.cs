@@ -1,6 +1,6 @@
 namespace MoneyTracker.BusinessLogic.Features.Incomes.GetIncome;
 
-public class IncomeRow
+public class IncomeDto
 {
     public Guid Id { get; set; }
     public required string Description { get; set; }

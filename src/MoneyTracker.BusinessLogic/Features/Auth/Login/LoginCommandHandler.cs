@@ -15,11 +15,11 @@ public class LoginCommandHandler(
     IOptions<JwtOptions> jwtOptions,
     IPasswordHasher<User> passwordHasher,
     MoneyTrackerDbContext dbContext)
-    : IHandler<LoginCommand, LoginAuthToken>
+    : IHandler<LoginCommand, LoginAuthTokenDto>
 {
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
-    public async Task<LoginAuthToken> Handle(LoginCommand command, CancellationToken cancellationToken)
+    public async Task<LoginAuthTokenDto> Handle(LoginCommand command, CancellationToken cancellationToken)
     {
         var validationResult = await validator.ValidateAsync(command, cancellationToken);
         if (!validationResult.IsValid)
@@ -36,6 +36,6 @@ public class LoginCommandHandler(
 
         var token = user.BuildToken(_jwtOptions);
 
-        return new LoginAuthToken { Token = token };
+        return new LoginAuthTokenDto { Token = token };
     }
 }

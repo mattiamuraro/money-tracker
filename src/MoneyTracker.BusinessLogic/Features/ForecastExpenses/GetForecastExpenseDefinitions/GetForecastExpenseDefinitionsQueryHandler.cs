@@ -5,9 +5,9 @@ using MoneyTracker.Data.EntityFramework;
 namespace MoneyTracker.BusinessLogic.Features.ForecastExpenses.GetForecastExpenseDefinitions;
 
 public class GetForecastExpenseDefinitionsQueryHandler(MoneyTrackerDbContext dbContext)
-    : IHandler<GetForecastExpenseDefinitionsQuery, List<ForecastExpenseDefinitionRow>>
+    : IHandler<GetForecastExpenseDefinitionsQuery, List<ForecastExpenseDefinitionDto>>
 {
-    public async Task<List<ForecastExpenseDefinitionRow>> Handle(GetForecastExpenseDefinitionsQuery request, CancellationToken cancellationToken)
+    public async Task<List<ForecastExpenseDefinitionDto>> Handle(GetForecastExpenseDefinitionsQuery request, CancellationToken cancellationToken)
     {
         return await dbContext.ForecastExpenses
             .AsNoTracking()
@@ -15,7 +15,7 @@ public class GetForecastExpenseDefinitionsQueryHandler(MoneyTrackerDbContext dbC
             .Where(x => x.IsActive)
             .OrderBy(x => x.RecurrenceStart)
             .ThenBy(x => x.Description)
-            .Select(x => new ForecastExpenseDefinitionRow
+            .Select(x => new ForecastExpenseDefinitionDto
             {
                 Id = x.Id,
                 ForecastRecurrenceRuleTypeId = x.ForecastRecurrenceRuleTypeId,

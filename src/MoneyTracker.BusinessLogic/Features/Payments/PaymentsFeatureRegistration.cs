@@ -19,8 +19,8 @@ internal static class PaymentsFeatureRegistration
         services.AddHandlerWithLogging<CreatePaymentCommandHandler, CreatePaymentCommand, Guid>();
         services.AddVoidHandlerWithLogging<UpdatePaymentCommandHandler, UpdatePaymentCommand>();
         services.AddVoidHandlerWithLogging<DeletePaymentCommandHandler, DeletePaymentCommand>();
-        services.AddHandlerWithLogging<GetPaymentQueryHandler, GetPaymentQuery, PaginatedResponse<PaymentRow>>();
-        services.AddHandlerWithLogging<GetPaymentByIdQueryHandler, GetPaymentByIdQuery, PaymentRow>();
+        services.AddHandlerWithLogging<GetPaymentQueryHandler, GetPaymentQuery, PaginatedResponse<PaymentDto>>();
+        services.AddHandlerWithLogging<GetPaymentByIdQueryHandler, GetPaymentByIdQuery, PaymentDto>();
         services.AddScoped<IValidator<CreatePaymentCommand>, CreatePaymentCommandValidator>();
         services.AddScoped<IValidator<UpdatePaymentCommand>, UpdatePaymentCommandValidator>();
 

@@ -7,9 +7,9 @@ using MoneyTracker.Data.EntityFramework;
 namespace MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
 
 public class GetPaymentQueryHandler(MoneyTrackerDbContext dbContext)
-    : IHandler<GetPaymentQuery, PaginatedResponse<PaymentRow>>
+    : IHandler<GetPaymentQuery, PaginatedResponse<PaymentDto>>
 {
-    public async Task<PaginatedResponse<PaymentRow>> Handle(GetPaymentQuery request, CancellationToken cancellationToken)
+    public async Task<PaginatedResponse<PaymentDto>> Handle(GetPaymentQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.Payments
             .AsNoTracking()
@@ -36,7 +36,7 @@ public class GetPaymentQueryHandler(MoneyTrackerDbContext dbContext)
         var payments = await query
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(p => new PaymentRow
+            .Select(p => new PaymentDto
             {
                 Id = p.Id,
                 Description = p.Description,
@@ -50,7 +50,7 @@ public class GetPaymentQueryHandler(MoneyTrackerDbContext dbContext)
             })
             .ToListAsync(cancellationToken);
 
-        return new PaginatedResponse<PaymentRow>
+        return new PaginatedResponse<PaymentDto>
         {
             Items = payments,
             PageNumber = request.PageNumber,

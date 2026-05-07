@@ -4,7 +4,6 @@ using MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetForecastIncomeDefin
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetForecastIncomeRows;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetPendingForecastIncomeOccurrences;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.UpdateForecastIncomeDefinition;
-using MoneyTracker.Api.Endpoints.ForecastExpenses.Contracts;
 
 namespace MoneyTracker.Api.Endpoints.ForecastIncomes.ExtensionMethods;
 
@@ -37,7 +36,7 @@ internal static class MappingHelper
         };
     }
 
-    public static ForecastIncomeDefinitionResponse ToForecastIncomeDefinitionResponse(this ForecastIncomeDefinitionRow entity)
+    public static ForecastIncomeDefinitionResponse ToForecastIncomeDefinitionResponse(this ForecastIncomeDefinitionDto entity)
     {
         return new ForecastIncomeDefinitionResponse
         {
@@ -51,7 +50,7 @@ internal static class MappingHelper
         };
     }
 
-    public static ForecastIncomeRowResponse ToForecastIncomeRowResponse(this ForecastIncomeRow entity)
+    public static ForecastIncomeRowResponse ToForecastIncomeRowResponse(this ForecastIncomeDto entity)
     {
         return new ForecastIncomeRowResponse
         {
@@ -63,7 +62,7 @@ internal static class MappingHelper
         };
     }
 
-    public static ForecastIncomeOccurrenceResponse ToForecastIncomeOccurrenceResponse(this ForecastIncomeOccurrenceRow entity)
+    public static ForecastIncomeOccurrenceResponse ToForecastIncomeOccurrenceResponse(this ForecastIncomeOccurrenceDto entity)
     {
         return new ForecastIncomeOccurrenceResponse
         {
@@ -75,7 +74,7 @@ internal static class MappingHelper
         };
     }
 
-    public static GetPendingForecastIncomeOccurrencesQuery ToGetPendingForecastIncomeOccurrencesQuery(this ForecastIncomeOccurencesQuery entity)
+    public static GetPendingForecastIncomeOccurrencesQuery ToGetPendingForecastIncomeOccurrencesQuery(this ForecastIncomeOccurrencesQuery entity)
     {
         var (year, month) = entity.GetRequiredYearMonth();
         return new GetPendingForecastIncomeOccurrencesQuery(year, month);

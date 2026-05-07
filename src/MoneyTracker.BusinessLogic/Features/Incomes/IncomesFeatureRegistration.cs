@@ -19,8 +19,8 @@ internal static class IncomesFeatureRegistration
         services.AddHandlerWithLogging<CreateIncomeCommandHandler, CreateIncomeCommand, Guid>();
         services.AddVoidHandlerWithLogging<UpdateIncomeCommandHandler, UpdateIncomeCommand>();
         services.AddVoidHandlerWithLogging<DeleteIncomeCommandHandler, DeleteIncomeCommand>();
-        services.AddHandlerWithLogging<GetIncomeQueryHandler, GetIncomeQuery, PaginatedResponse<IncomeRow>>();
-        services.AddHandlerWithLogging<GetIncomeByIdQueryHandler, GetIncomeByIdQuery, IncomeRow>();
+        services.AddHandlerWithLogging<GetIncomeQueryHandler, GetIncomeQuery, PaginatedResponse<IncomeDto>>();
+        services.AddHandlerWithLogging<GetIncomeByIdQueryHandler, GetIncomeByIdQuery, IncomeDto>();
         services.AddScoped<IValidator<CreateIncomeCommand>, CreateIncomeCommandValidator>();
         services.AddScoped<IValidator<UpdateIncomeCommand>, UpdateIncomeCommandValidator>();
 

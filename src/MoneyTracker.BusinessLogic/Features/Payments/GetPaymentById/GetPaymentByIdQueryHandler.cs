@@ -7,14 +7,14 @@ using MoneyTracker.Data.EntityFramework;
 namespace MoneyTracker.BusinessLogic.Features.Payments.GetPaymentById;
 
 public class GetPaymentByIdQueryHandler(MoneyTrackerDbContext dbContext)
-    : IHandler<GetPaymentByIdQuery, PaymentRow>
+    : IHandler<GetPaymentByIdQuery, PaymentDto>
 {
-    public async Task<PaymentRow> Handle(GetPaymentByIdQuery request, CancellationToken cancellationToken)
+    public async Task<PaymentDto> Handle(GetPaymentByIdQuery request, CancellationToken cancellationToken)
     {
         var result = await dbContext.Payments
             .AsNoTracking()
             .Where(p => p.Id == request.Id)
-            .Select(p => new PaymentRow
+            .Select(p => new PaymentDto
             {
                 Id = p.Id,
                 Description = p.Description,

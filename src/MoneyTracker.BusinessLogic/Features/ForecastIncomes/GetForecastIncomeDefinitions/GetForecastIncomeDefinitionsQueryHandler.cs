@@ -5,16 +5,16 @@ using MoneyTracker.Data.EntityFramework;
 namespace MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetForecastIncomeDefinitions;
 
 public class GetForecastIncomeDefinitionsQueryHandler(MoneyTrackerDbContext dbContext)
-    : IHandler<GetForecastIncomeDefinitionsQuery, List<ForecastIncomeDefinitionRow>>
+    : IHandler<GetForecastIncomeDefinitionsQuery, List<ForecastIncomeDefinitionDto>>
 {
-    public async Task<List<ForecastIncomeDefinitionRow>> Handle(GetForecastIncomeDefinitionsQuery request, CancellationToken cancellationToken)
+    public async Task<List<ForecastIncomeDefinitionDto>> Handle(GetForecastIncomeDefinitionsQuery request, CancellationToken cancellationToken)
     {
         return await dbContext.ForecastIncomes
             .AsNoTracking()
             .Where(x => x.IsActive)
             .OrderBy(x => x.RecurrenceStart)
             .ThenBy(x => x.Description)
-            .Select(x => new ForecastIncomeDefinitionRow
+            .Select(x => new ForecastIncomeDefinitionDto
             {
                 Id = x.Id,
                 ForecastRecurrenceRuleTypeId = x.ForecastRecurrenceRuleTypeId,

@@ -26,9 +26,9 @@ internal static class ForecastIncomesFeatureRegistration
         services.AddHandlerWithLogging<CreateForecastIncomeDefinitionAndSynchronizeCommandHandler, CreateForecastIncomeDefinitionAndSynchronizeCommand, Guid>();
         services.AddVoidHandlerWithLogging<UpdateForecastIncomeDefinitionAndSynchronizeCommandHandler, UpdateForecastIncomeDefinitionAndSynchronizeCommand>();
         services.AddVoidHandlerWithLogging<DeleteForecastIncomeDefinitionAndSynchronizeCommandHandler, DeleteForecastIncomeDefinitionAndSynchronizeCommand>();
-        services.AddHandlerWithLogging<GetForecastIncomeDefinitionsQueryHandler, GetForecastIncomeDefinitionsQuery, List<ForecastIncomeDefinitionRow>>();
-        services.AddHandlerWithLogging<GetForecastIncomeRowsQueryHandler, GetForecastIncomeRowsQuery, List<ForecastIncomeRow>>();
-        services.AddHandlerWithLogging<GetPendingForecastIncomeOccurrencesQueryHandler, GetPendingForecastIncomeOccurrencesQuery, List<ForecastIncomeOccurrenceRow>>();
+        services.AddHandlerWithLogging<GetForecastIncomeDefinitionsQueryHandler, GetForecastIncomeDefinitionsQuery, List<ForecastIncomeDefinitionDto>>();
+        services.AddHandlerWithLogging<GetForecastIncomeRowsQueryHandler, GetForecastIncomeRowsQuery, List<ForecastIncomeDto>>();
+        services.AddHandlerWithLogging<GetPendingForecastIncomeOccurrencesQueryHandler, GetPendingForecastIncomeOccurrencesQuery, List<ForecastIncomeOccurrenceDto>>();
         services.AddVoidHandlerWithLogging<DiscardForecastIncomeOccurrenceCommandHandler, DiscardForecastIncomeOccurrenceCommand>();
         services.AddScoped<IValidator<CreateForecastIncomeDefinitionCommand>, CreateForecastIncomeDefinitionCommandValidator>();
         services.AddScoped<IValidator<UpdateForecastIncomeDefinitionCommand>, UpdateForecastIncomeDefinitionCommandValidator>();

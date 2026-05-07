@@ -1,6 +1,6 @@
 namespace MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
 
-public class PaymentRow
+public class PaymentDto
 {
     public Guid Id { get; set; }
     public required string Description { get; set; }

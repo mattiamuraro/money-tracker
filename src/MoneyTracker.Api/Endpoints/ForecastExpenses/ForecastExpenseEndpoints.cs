@@ -21,7 +21,7 @@ public static class ForecastExpenseEndpoints
             .RequireAuthorization();
 
         group.MapGet("/", static async (
-                [FromServices] IHandler<GetForecastExpenseRowsQuery, List<ForecastExpenseRow>> getForecastRowsHandler,
+                [FromServices] IHandler<GetForecastExpenseRowsQuery, List<ForecastExpenseDto>> getForecastRowsHandler,
                 [FromQuery] DateOnly? startDate,
                 [FromQuery] DateOnly? endDate,
                 CancellationToken cancellationToken) =>
@@ -39,7 +39,7 @@ public static class ForecastExpenseEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapGet("/definitions", static async (
-                [FromServices] IHandler<GetForecastExpenseDefinitionsQuery, List<ForecastExpenseDefinitionRow>> handler,
+                [FromServices] IHandler<GetForecastExpenseDefinitionsQuery, List<ForecastExpenseDefinitionDto>> handler,
                 CancellationToken cancellationToken) =>
             {
                 var definitions = await handler.Handle(new GetForecastExpenseDefinitionsQuery(), cancellationToken);
@@ -109,8 +109,8 @@ public static class ForecastExpenseEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapGet("/occurrences", static async (
-                [FromServices] IHandler<GetPendingForecastExpenseOccurrencesQuery, List<ForecastExpenseOccurrenceRow>> handler,
-                [AsParameters] ForecastExpenseOccurencesQuery request,
+                [FromServices] IHandler<GetPendingForecastExpenseOccurrencesQuery, List<ForecastExpenseOccurrenceDto>> handler,
+                [AsParameters] ForecastExpenseOccurrencesQuery request,
                 CancellationToken cancellationToken) =>
             {
                 var query = request.ToGetPendingForecastExpenseOccurrencesQuery();

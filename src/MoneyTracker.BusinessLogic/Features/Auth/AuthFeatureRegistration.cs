@@ -12,8 +12,8 @@ internal static class AuthFeatureRegistration
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddHandlerWithLogging<LoginCommandHandler, LoginCommand, LoginAuthToken>();
-        services.AddHandlerWithLogging<RegisterCommandHandler, RegisterCommand, RegisterAuthToken>();
+        services.AddHandlerWithLogging<LoginCommandHandler, LoginCommand, LoginAuthTokenDto>();
+        services.AddHandlerWithLogging<RegisterCommandHandler, RegisterCommand, RegisterAuthTokenDto>();
         services.AddScoped<IValidator<LoginCommand>, LoginCommandValidator>();
         services.AddScoped<IValidator<RegisterCommand>, RegisterCommandValidator>();
 

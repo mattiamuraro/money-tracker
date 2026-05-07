@@ -16,12 +16,12 @@ public class RegisterCommandHandler(
     IOptions<JwtOptions> jwtOptions,
     IPasswordHasher<User> passwordHasher,
     MoneyTrackerDbContext dbContext)
-    : IHandler<RegisterCommand, RegisterAuthToken>
+    : IHandler<RegisterCommand, RegisterAuthTokenDto>
 {
     private readonly AuthOptions _authOptions = authOptions.Value;
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
-    public async Task<RegisterAuthToken> Handle(RegisterCommand command, CancellationToken cancellationToken)
+    public async Task<RegisterAuthTokenDto> Handle(RegisterCommand command, CancellationToken cancellationToken)
     {
         if (!_authOptions.AllowRegistration)
             throw new UnauthorizedAccessException("Registration is currently disabled.");
@@ -46,6 +46,6 @@ public class RegisterCommandHandler(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var token = user.BuildToken(_jwtOptions);
-        return new RegisterAuthToken { Token = token };
+        return new RegisterAuthTokenDto { Token = token };
     }
 }
