@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.PaymentCategories.Contracts;
 using MoneyTracker.Api.Endpoints.PaymentCategories.ExtensionMethods;
+using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.CreateCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.DeleteCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.GetAllCategories;
@@ -18,8 +19,7 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                         .WithTags("Payment Categories")
                         .RequireAuthorization();
 
-            // GET all categories
-            group.MapGet("/", static async ([FromServices] GetAllCategoriesQueryHandler handler, CancellationToken cancellationToken) =>
+            group.MapGet("/", static async ([FromServices] IHandler<GetAllCategoriesQuery, IEnumerable<PaymentCategoryRow>> handler, CancellationToken cancellationToken) =>
                 {
                     var result = await handler.Handle(new GetAllCategoriesQuery(), cancellationToken);
                     var response = result.ToPaymentCategoryResponses();
@@ -31,8 +31,7 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                 .Produces<IEnumerable<PaymentCategoryResponse>>(StatusCodes.Status200OK)
                 .ProducesProblem(StatusCodes.Status500InternalServerError);
 
-            // GET category by ID
-            group.MapGet("/{id:guid}", async ([FromServices] GetCategoryByIdQueryHandler handler, Guid id, CancellationToken cancellationToken) =>
+            group.MapGet("/{id:guid}", static async ([FromServices] IHandler<GetCategoryByIdQuery, PaymentCategoryDto> handler, Guid id, CancellationToken cancellationToken) =>
                 {
                     var query = id.ToGetCategoryByIdQuery();
                     var result = await handler.Handle(query, cancellationToken);
@@ -46,8 +45,7 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                 .ProducesProblem(StatusCodes.Status404NotFound)
                 .ProducesProblem(StatusCodes.Status500InternalServerError);
 
-            // POST create category
-            group.MapPost("/", async ([FromServices] CreateCategoryCommandHandler handler, CreatePaymentCategoryRequest request, CancellationToken cancellationToken) =>
+            group.MapPost("/", static async ([FromServices] IHandler<CreateCategoryCommand, Guid> handler, CreatePaymentCategoryRequest request, CancellationToken cancellationToken) =>
                 {
                     var command = request.ToCreateCategoryCommand();
                     var categoryId = await handler.Handle(command, cancellationToken);
@@ -61,8 +59,7 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                 .ProducesProblem(StatusCodes.Status400BadRequest)
                 .ProducesProblem(StatusCodes.Status500InternalServerError);
 
-            // PUT update category
-            group.MapPut("/{id:guid}", async ([FromServices] UpdateCategoryCommandHandler handler, Guid id, UpdatePaymentCategoryRequest request, CancellationToken cancellationToken) =>
+            group.MapPut("/{id:guid}", static async ([FromServices] IHandler<UpdateCategoryCommand> handler, Guid id, UpdatePaymentCategoryRequest request, CancellationToken cancellationToken) =>
                 {
                     var command = request.ToUpdateCategoryCommand(id);
                     await handler.Handle(command, cancellationToken);
@@ -77,8 +74,7 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                 .ProducesProblem(StatusCodes.Status404NotFound)
                 .ProducesProblem(StatusCodes.Status500InternalServerError);
 
-            // DELETE category
-            group.MapDelete("/{id:guid}", async ([FromServices] DeleteCategoryCommandHandler handler, Guid id, CancellationToken cancellationToken) =>
+            group.MapDelete("/{id:guid}", static async ([FromServices] IHandler<DeleteCategoryCommand> handler, Guid id, CancellationToken cancellationToken) =>
                 {
                     var command = id.ToDeleteCategoryCommand();
                     await handler.Handle(command, cancellationToken);

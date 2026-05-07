@@ -12,6 +12,7 @@ public class GetIncomeByIdQueryHandler(MoneyTrackerDbContext dbContext)
     public async Task<IncomeRow> Handle(GetIncomeByIdQuery request, CancellationToken cancellationToken)
     {
         var result = await dbContext.Incomes
+            .AsNoTracking()
             .Where(p => p.Id == request.Id)
             .Select(p => new IncomeRow
             {

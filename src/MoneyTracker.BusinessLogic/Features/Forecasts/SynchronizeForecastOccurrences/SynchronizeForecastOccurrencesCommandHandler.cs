@@ -23,9 +23,16 @@ public class SynchronizeForecastOccurrencesCommandHandler(MoneyTrackerDbContext 
             .ToListAsync(cancellationToken);
 
         foreach (var forecast in forecastExpenses)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
             foreach (var recurrence in forecast.GetRecurrences(startDate, endDate))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
                 expectedOccurrences[new OccurrenceKey(forecast.Id, false, recurrence)] = new OccurrenceSeed(
                     forecast.Id, false, forecast.Description, forecast.Amount, recurrence, forecast.PaymentCategoryId);
+            }
+        }
 
         var forecastIncomes = await dbContext.ForecastIncomes
             .AsNoTracking()
@@ -34,25 +41,37 @@ public class SynchronizeForecastOccurrencesCommandHandler(MoneyTrackerDbContext 
             .ToListAsync(cancellationToken);
 
         foreach (var forecast in forecastIncomes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
             foreach (var recurrence in forecast.GetRecurrences(startDate, endDate))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
                 expectedOccurrences[new OccurrenceKey(forecast.Id, true, recurrence)] = new OccurrenceSeed(
                     forecast.Id, true, forecast.Description, forecast.Amount, recurrence, null);
+            }
+        }
 
         var existingOccurrences = await dbContext.ForecastOccurrences
             .Where(x => x.ExpectedDate >= startDate && x.ExpectedDate <= endDate)
             .ToListAsync(cancellationToken);
 
-        await SynchronizeAsync(expectedOccurrences, existingOccurrences);
+        await SynchronizeAsync(expectedOccurrences, existingOccurrences, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task SynchronizeAsync(Dictionary<OccurrenceKey, OccurrenceSeed> expectedOccurrences, List<ForecastOccurrence> existingOccurrences)
+    private async Task SynchronizeAsync(
+        Dictionary<OccurrenceKey, OccurrenceSeed> expectedOccurrences,
+        List<ForecastOccurrence> existingOccurrences,
+        CancellationToken cancellationToken)
     {
         var existingLookup = existingOccurrences.ToDictionary(
             x => new OccurrenceKey(x.ForecastDefinitionId, x.IsIncome, x.ExpectedDate), x => x);
 
         foreach (var existingOccurrence in existingOccurrences)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var key = new OccurrenceKey(existingOccurrence.ForecastDefinitionId, existingOccurrence.IsIncome, existingOccurrence.ExpectedDate);
             if (!expectedOccurrences.TryGetValue(key, out var seed))
             {
@@ -77,8 +96,11 @@ public class SynchronizeForecastOccurrencesCommandHandler(MoneyTrackerDbContext 
 
         foreach (var (key, seed) in expectedOccurrences)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (existingLookup.ContainsKey(key))
                 continue;
+
             dbContext.ForecastOccurrences.Add(new ForecastOccurrence
             {
                 Id = Guid.NewGuid(),
@@ -91,5 +113,7 @@ public class SynchronizeForecastOccurrencesCommandHandler(MoneyTrackerDbContext 
                 ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId
             });
         }
+
+        await Task.CompletedTask;
     }
 }

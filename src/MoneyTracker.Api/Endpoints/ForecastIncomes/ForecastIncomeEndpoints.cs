@@ -1,15 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
+using MoneyTracker.Api.Endpoints.ForecastExpenses.Contracts;
 using MoneyTracker.Api.Endpoints.ForecastIncomes.Contracts;
 using MoneyTracker.Api.Endpoints.ForecastIncomes.ExtensionMethods;
-using MoneyTracker.BusinessLogic.Features.ForecastIncomes.CreateForecastIncomeDefinition;
-using MoneyTracker.BusinessLogic.Features.ForecastIncomes.DeleteForecastIncomeDefinition;
+using MoneyTracker.BusinessLogic.Common.Handlers;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.CreateForecastIncomeDefinitionAndSynchronize;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.DeleteForecastIncomeDefinitionAndSynchronize;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.DiscardForecastIncomeOccurrence;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetForecastIncomeDefinitions;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetForecastIncomeRows;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetPendingForecastIncomeOccurrences;
-using MoneyTracker.BusinessLogic.Features.ForecastIncomes.UpdateForecastIncomeDefinition;
-using MoneyTracker.BusinessLogic.Features.Forecasts.SynchronizeForecastOccurrences;
-using MoneyTracker.Api.Endpoints.ForecastExpenses.Contracts;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.UpdateForecastIncomeDefinitionAndSynchronize;
 
 namespace MoneyTracker.Api.Endpoints.ForecastIncomes;
 
@@ -22,14 +22,11 @@ public static class ForecastIncomeEndpoints
             .RequireAuthorization();
 
         group.MapGet("/", static async (
-                [FromServices] GetForecastIncomeRowsQueryHandler getForecastRowsHandler,
-                [FromServices] SynchronizeForecastOccurrencesCommandHandler synchronizeHandler,
+                [FromServices] IHandler<GetForecastIncomeRowsQuery, List<ForecastIncomeRow>> getForecastRowsHandler,
                 [FromQuery] DateOnly? startDate,
                 [FromQuery] DateOnly? endDate,
                 CancellationToken cancellationToken) =>
             {
-                await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
-
                 var query = CreateGetForecastIncomeRowsQuery(startDate, endDate);
                 var forecasts = await getForecastRowsHandler.Handle(query, cancellationToken);
                 var response = forecasts.Select(f => f.ToForecastIncomeRowResponse());
@@ -43,7 +40,7 @@ public static class ForecastIncomeEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapGet("/definitions", static async (
-                [FromServices] GetForecastIncomeDefinitionsQueryHandler handler,
+                [FromServices] IHandler<GetForecastIncomeDefinitionsQuery, List<ForecastIncomeDefinitionRow>> handler,
                 CancellationToken cancellationToken) =>
             {
                 var definitions = await handler.Handle(new GetForecastIncomeDefinitionsQuery(), cancellationToken);
@@ -57,15 +54,16 @@ public static class ForecastIncomeEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapPost("/definitions", static async (
-                [FromServices] CreateForecastIncomeDefinitionCommandHandler createHandler,
-                [FromServices] SynchronizeForecastOccurrencesCommandHandler synchronizeHandler,
+                [FromServices] IHandler<CreateForecastIncomeDefinitionAndSynchronizeCommand, Guid> handler,
                 CreateForecastIncomeRequest request,
                 CancellationToken cancellationToken) =>
             {
-                var command = request.ToCreateForecastIncomeDefinitionCommand();
-                var id = await createHandler.Handle(command, cancellationToken);
-                await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
+                var command = new CreateForecastIncomeDefinitionAndSynchronizeCommand
+                {
+                    CreateCommand = request.ToCreateForecastIncomeDefinitionCommand()
+                };
 
+                var id = await handler.Handle(command, cancellationToken);
                 return Results.Created($"/api/v1/forecast-incomes/definitions/{id}", id);
             })
             .WithName("CreateForecastIncomeDefinition")
@@ -76,16 +74,17 @@ public static class ForecastIncomeEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapPut("/definitions/{id:guid}", static async (
-                [FromServices] UpdateForecastIncomeDefinitionCommandHandler updateHandler,
-                [FromServices] SynchronizeForecastOccurrencesCommandHandler synchronizeHandler,
+                [FromServices] IHandler<UpdateForecastIncomeDefinitionAndSynchronizeCommand> handler,
                 Guid id,
                 UpdateForecastIncomeRequest request,
                 CancellationToken cancellationToken) =>
             {
-                var command = request.ToUpdateForecastIncomeDefinitionCommand(id);
-                await updateHandler.Handle(command, cancellationToken);
-                await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
+                var command = new UpdateForecastIncomeDefinitionAndSynchronizeCommand
+                {
+                    UpdateCommand = request.ToUpdateForecastIncomeDefinitionCommand(id)
+                };
 
+                await handler.Handle(command, cancellationToken);
                 return Results.NoContent();
             })
             .WithName("UpdateForecastIncomeDefinition")
@@ -97,14 +96,11 @@ public static class ForecastIncomeEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapDelete("/definitions/{id:guid}", static async (
-                [FromServices] DeleteForecastIncomeDefinitionCommandHandler deleteHandler,
-                [FromServices] SynchronizeForecastOccurrencesCommandHandler synchronizeHandler,
+                [FromServices] IHandler<DeleteForecastIncomeDefinitionAndSynchronizeCommand> handler,
                 Guid id,
                 CancellationToken cancellationToken) =>
             {
-                await deleteHandler.Handle(new DeleteForecastIncomeDefinitionCommand(id), cancellationToken);
-                await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
-
+                await handler.Handle(new DeleteForecastIncomeDefinitionAndSynchronizeCommand { Id = id }, cancellationToken);
                 return Results.NoContent();
             })
             .WithName("DeleteForecastIncomeDefinition")
@@ -114,13 +110,10 @@ public static class ForecastIncomeEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapGet("/occurrences", static async (
-                [FromServices] GetPendingForecastIncomeOccurrencesQueryHandler handler,
-                [FromServices] SynchronizeForecastOccurrencesCommandHandler synchronizeHandler,
+                [FromServices] IHandler<GetPendingForecastIncomeOccurrencesQuery, List<ForecastIncomeOccurrenceRow>> handler,
                 [AsParameters] ForecastIncomeOccurencesQuery request,
                 CancellationToken cancellationToken) =>
             {
-                await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
-
                 var query = request.ToGetPendingForecastIncomeOccurrencesQuery();
                 var items = await handler.Handle(query, cancellationToken);
                 var response = items.Select(o => o.ToForecastIncomeOccurrenceResponse());
@@ -134,7 +127,7 @@ public static class ForecastIncomeEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapDelete("/occurrences/{id:guid}", static async (
-                [FromServices] DiscardForecastIncomeOccurrenceCommandHandler handler,
+                [FromServices] IHandler<DiscardForecastIncomeOccurrenceCommand> handler,
                 Guid id,
                 CancellationToken cancellationToken) =>
             {

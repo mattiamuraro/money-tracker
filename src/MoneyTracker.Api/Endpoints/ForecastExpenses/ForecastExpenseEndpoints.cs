@@ -1,14 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.ForecastExpenses.Contracts;
 using MoneyTracker.Api.Endpoints.ForecastExpenses.ExtensionMethods;
-using MoneyTracker.BusinessLogic.Features.ForecastExpenses.CreateForecastExpenseDefinition;
-using MoneyTracker.BusinessLogic.Features.ForecastExpenses.DeleteForecastExpenseDefinition;
+using MoneyTracker.BusinessLogic.Common.Handlers;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.CreateForecastExpenseDefinitionAndSynchronize;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.DeleteForecastExpenseDefinitionAndSynchronize;
 using MoneyTracker.BusinessLogic.Features.ForecastExpenses.DiscardForecastExpenseOccurrence;
 using MoneyTracker.BusinessLogic.Features.ForecastExpenses.GetForecastExpenseDefinitions;
 using MoneyTracker.BusinessLogic.Features.ForecastExpenses.GetForecastExpenseRows;
 using MoneyTracker.BusinessLogic.Features.ForecastExpenses.GetPendingForecastExpenseOccurrences;
-using MoneyTracker.BusinessLogic.Features.ForecastExpenses.UpdateForecastExpenseDefinition;
-using MoneyTracker.BusinessLogic.Features.Forecasts.SynchronizeForecastOccurrences;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.UpdateForecastExpenseDefinitionAndSynchronize;
 
 namespace MoneyTracker.Api.Endpoints.ForecastExpenses;
 
@@ -21,14 +21,11 @@ public static class ForecastExpenseEndpoints
             .RequireAuthorization();
 
         group.MapGet("/", static async (
-                [FromServices] GetForecastExpenseRowsQueryHandler getForecastRowsHandler,
-                [FromServices] SynchronizeForecastOccurrencesCommandHandler synchronizeHandler,
+                [FromServices] IHandler<GetForecastExpenseRowsQuery, List<ForecastExpenseRow>> getForecastRowsHandler,
                 [FromQuery] DateOnly? startDate,
                 [FromQuery] DateOnly? endDate,
                 CancellationToken cancellationToken) =>
             {
-                await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
-
                 var query = CreateGetForecastExpenseRowsQuery(startDate, endDate);
                 var forecasts = await getForecastRowsHandler.Handle(query, cancellationToken);
                 var response = forecasts.Select(f => f.ToForecastExpenseRowResponse());
@@ -42,7 +39,7 @@ public static class ForecastExpenseEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapGet("/definitions", static async (
-                [FromServices] GetForecastExpenseDefinitionsQueryHandler handler,
+                [FromServices] IHandler<GetForecastExpenseDefinitionsQuery, List<ForecastExpenseDefinitionRow>> handler,
                 CancellationToken cancellationToken) =>
             {
                 var definitions = await handler.Handle(new GetForecastExpenseDefinitionsQuery(), cancellationToken);
@@ -56,15 +53,16 @@ public static class ForecastExpenseEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapPost("/definitions", static async (
-                [FromServices] CreateForecastExpenseDefinitionCommandHandler createHandler,
-                [FromServices] SynchronizeForecastOccurrencesCommandHandler synchronizeHandler,
+                [FromServices] IHandler<CreateForecastExpenseDefinitionAndSynchronizeCommand, Guid> handler,
                 CreateForecastExpenseRequest request,
                 CancellationToken cancellationToken) =>
             {
-                var command = request.ToCreateForecastExpenseDefinitionCommand();
-                var id = await createHandler.Handle(command, cancellationToken);
-                await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
+                var command = new CreateForecastExpenseDefinitionAndSynchronizeCommand
+                {
+                    CreateCommand = request.ToCreateForecastExpenseDefinitionCommand()
+                };
 
+                var id = await handler.Handle(command, cancellationToken);
                 return Results.Created($"/api/v1/forecast-expenses/definitions/{id}", id);
             })
             .WithName("CreateForecastExpenseDefinition")
@@ -75,16 +73,17 @@ public static class ForecastExpenseEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapPut("/definitions/{id:guid}", static async (
-                [FromServices] UpdateForecastExpenseDefinitionCommandHandler updateHandler,
-                [FromServices] SynchronizeForecastOccurrencesCommandHandler synchronizeHandler,
+                [FromServices] IHandler<UpdateForecastExpenseDefinitionAndSynchronizeCommand> handler,
                 Guid id,
                 UpdateForecastExpenseRequest request,
                 CancellationToken cancellationToken) =>
             {
-                var command = request.ToUpdateForecastExpenseDefinitionCommand(id);
-                await updateHandler.Handle(command, cancellationToken);
-                await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
+                var command = new UpdateForecastExpenseDefinitionAndSynchronizeCommand
+                {
+                    UpdateCommand = request.ToUpdateForecastExpenseDefinitionCommand(id)
+                };
 
+                await handler.Handle(command, cancellationToken);
                 return Results.NoContent();
             })
             .WithName("UpdateForecastExpenseDefinition")
@@ -96,14 +95,11 @@ public static class ForecastExpenseEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapDelete("/definitions/{id:guid}", static async (
-                [FromServices] DeleteForecastExpenseDefinitionCommandHandler deleteHandler,
-                [FromServices] SynchronizeForecastOccurrencesCommandHandler synchronizeHandler,
+                [FromServices] IHandler<DeleteForecastExpenseDefinitionAndSynchronizeCommand> handler,
                 Guid id,
                 CancellationToken cancellationToken) =>
             {
-                await deleteHandler.Handle(new DeleteForecastExpenseDefinitionCommand(id), cancellationToken);
-                await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
-
+                await handler.Handle(new DeleteForecastExpenseDefinitionAndSynchronizeCommand { Id = id }, cancellationToken);
                 return Results.NoContent();
             })
             .WithName("DeleteForecastExpenseDefinition")
@@ -113,13 +109,10 @@ public static class ForecastExpenseEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapGet("/occurrences", static async (
-                [FromServices] GetPendingForecastExpenseOccurrencesQueryHandler handler,
-                [FromServices] SynchronizeForecastOccurrencesCommandHandler synchronizeHandler,
+                [FromServices] IHandler<GetPendingForecastExpenseOccurrencesQuery, List<ForecastExpenseOccurrenceRow>> handler,
                 [AsParameters] ForecastExpenseOccurencesQuery request,
                 CancellationToken cancellationToken) =>
             {
-                await synchronizeHandler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
-
                 var query = request.ToGetPendingForecastExpenseOccurrencesQuery();
                 var items = await handler.Handle(query, cancellationToken);
                 var response = items.Select(o => o.ToForecastExpenseOccurrenceResponse());
@@ -133,7 +126,7 @@ public static class ForecastExpenseEndpoints
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
         group.MapDelete("/occurrences/{id:guid}", static async (
-                [FromServices] DiscardForecastExpenseOccurrenceCommandHandler handler,
+                [FromServices] IHandler<DiscardForecastExpenseOccurrenceCommand> handler,
                 Guid id,
                 CancellationToken cancellationToken) =>
             {

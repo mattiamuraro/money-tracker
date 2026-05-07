@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
 using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.GetAllCategories;
@@ -13,17 +14,20 @@ public class GetCategoryByIdQueryHandler(MoneyTrackerDbContext dbContext)
 {
     public async Task<PaymentCategoryDto> Handle(GetCategoryByIdQuery request, CancellationToken cancellationToken)
     {
-        var category = await dbContext.PaymentCategories.FindAsync(
-            new object[] { request.Id }, cancellationToken: cancellationToken);
+        var category = await dbContext.PaymentCategories
+            .AsNoTracking()
+            .Where(x => x.Id == request.Id)
+            .Select(x => new PaymentCategoryDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                Code = x.Code
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (category == null)
             throw new EntityNotFoundException($"Payment category with id {request.Id} not found");
 
-        return new PaymentCategoryDto
-        {
-            Id = category.Id,
-            Name = category.Name,
-            Code = category.Code
-        };
+        return category;
     }
 }

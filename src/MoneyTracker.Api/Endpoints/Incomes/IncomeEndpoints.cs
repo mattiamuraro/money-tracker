@@ -2,13 +2,13 @@ using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.Incomes.Contracts;
 using MoneyTracker.Api.Endpoints.Incomes.ExtensionMethods;
+using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.BusinessLogic.Common.Models;
 using MoneyTracker.BusinessLogic.Features.Incomes.CreateIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.DeleteIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.GetIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.GetIncomeById;
 using MoneyTracker.BusinessLogic.Features.Incomes.UpdateIncome;
-using MoneyTracker.Data;
 
 namespace MoneyTracker.Api.Endpoints.Incomes;
 
@@ -20,7 +20,7 @@ public static class IncomeEndpoints
             .WithTags("Incomes")
             .RequireAuthorization();
 
-        group.MapGet("/", static async ([FromServices] GetIncomeQueryHandler handler, [AsParameters] IncomeFilterQuery incomeFilterQuery, CancellationToken cancellationToken) =>
+        group.MapGet("/", static async ([FromServices] IHandler<GetIncomeQuery, PaginatedResponse<IncomeRow>> handler, [AsParameters] IncomeFilterQuery incomeFilterQuery, CancellationToken cancellationToken) =>
             {
                 var query = incomeFilterQuery.ToGetIncomeQuery();
                 var result = await handler.Handle(query, cancellationToken);
@@ -34,7 +34,7 @@ public static class IncomeEndpoints
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
-        group.MapGet("/{id:guid}", static async ([FromServices] GetIncomeByIdQueryHandler handler, Guid id, CancellationToken cancellationToken) =>
+        group.MapGet("/{id:guid}", static async ([FromServices] IHandler<GetIncomeByIdQuery, IncomeRow> handler, Guid id, CancellationToken cancellationToken) =>
             {
                 var query = id.ToGetIncomeByIdQuery();
                 var income = await handler.Handle(query, cancellationToken);
@@ -48,7 +48,7 @@ public static class IncomeEndpoints
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
-        group.MapPost("/", static async (HttpContext httpContext, [FromServices] CreateIncomeCommandHandler handler, CreateIncomeRequest request, CancellationToken cancellationToken) =>
+        group.MapPost("/", static async (HttpContext httpContext, [FromServices] IHandler<CreateIncomeCommand, Guid> handler, CreateIncomeRequest request, CancellationToken cancellationToken) =>
             {
                 var command = request.ToCreateIncomeCommand(httpContext);
                 var id = await handler.Handle(command, cancellationToken);
@@ -63,7 +63,7 @@ public static class IncomeEndpoints
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
-        group.MapPut("/{id:guid}", static async (HttpContext httpContext, [FromServices] UpdateIncomeCommandHandler handler, Guid id, UpdateIncomeRequest request, CancellationToken cancellationToken) =>
+        group.MapPut("/{id:guid}", static async ([FromServices] IHandler<UpdateIncomeCommand> handler, Guid id, UpdateIncomeRequest request, CancellationToken cancellationToken) =>
             {
                 var command = request.ToUpdateIncomeCommand(id);
                 await handler.Handle(command, cancellationToken);
@@ -78,7 +78,7 @@ public static class IncomeEndpoints
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status500InternalServerError);
 
-        group.MapDelete("/{id:guid}", static async (HttpContext httpContext, [FromServices] DeleteIncomeCommandHandler handler, Guid id, [FromQuery] string? occurrenceAction, CancellationToken cancellationToken) =>
+        group.MapDelete("/{id:guid}", static async ([FromServices] IHandler<DeleteIncomeCommand> handler, Guid id, [FromQuery] string? occurrenceAction, CancellationToken cancellationToken) =>
             {
                 var command = id.ToDeleteIncomeCommand(occurrenceAction);
                 await handler.Handle(command, cancellationToken);

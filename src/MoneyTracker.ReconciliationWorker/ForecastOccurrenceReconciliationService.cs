@@ -1,4 +1,5 @@
-﻿using MoneyTracker.BusinessLogic.Features.Forecasts.SynchronizeForecastOccurrences;
+﻿using MoneyTracker.BusinessLogic.Common.Handlers;
+using MoneyTracker.BusinessLogic.Features.Forecasts.SynchronizeForecastOccurrences;
 
 namespace MoneyTracker.ReconciliationWorker;
 
@@ -57,7 +58,7 @@ public class ForecastOccurrenceReconciliationService : BackgroundService
         try
         {
             using var scope = _serviceProvider.CreateScope();
-            var handler = scope.ServiceProvider.GetRequiredService<SynchronizeForecastOccurrencesCommandHandler>();
+            var handler = scope.ServiceProvider.GetRequiredService<IHandler<SynchronizeForecastOccurrencesCommand>>();
             await handler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
             return true;
         }
@@ -83,3 +84,4 @@ public class ForecastOccurrenceReconciliationService : BackgroundService
         return cappedDelay + jitter;
     }
 }
+

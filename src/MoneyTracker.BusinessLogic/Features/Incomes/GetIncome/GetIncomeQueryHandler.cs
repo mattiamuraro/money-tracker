@@ -11,7 +11,9 @@ public class GetIncomeQueryHandler(MoneyTrackerDbContext dbContext)
 {
     public async Task<PaginatedResponse<IncomeRow>> Handle(GetIncomeQuery request, CancellationToken cancellationToken)
     {
-        var query = dbContext.Incomes.AsQueryable();
+        var query = dbContext.Incomes
+            .AsNoTracking()
+            .AsQueryable();
 
         if (request.Id.HasValue)
             query = query.Where(x => x.Id == request.Id.Value);
@@ -52,8 +54,8 @@ public class GetIncomeQueryHandler(MoneyTrackerDbContext dbContext)
 
     private static IQueryable<Income> ApplySorting(IQueryable<Income> query, string? sortBy, string? sortOrder)
     {
-        var isDescending = sortOrder?.ToLowerInvariant() == "desc";
-        return (sortBy?.ToLowerInvariant()) switch
+        var isDescending = string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+        return sortBy?.ToLowerInvariant() switch
         {
             "amount" => isDescending ? query.OrderByDescending(x => x.Amount) : query.OrderBy(x => x.Amount),
             "description" => isDescending ? query.OrderByDescending(x => x.Description) : query.OrderBy(x => x.Description),

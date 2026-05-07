@@ -10,6 +10,7 @@ internal static class ErrorMessageResources
         typeof(ErrorMessageResources).Assembly);
 
     public static string ValidationError => Get(nameof(ValidationError), "One or more validation errors occurred.");
+    public static string Unauthorized => Get(nameof(Unauthorized), "Authentication failed.");
     public static string Forbidden => Get(nameof(Forbidden), "Access is forbidden.");
     public static string Conflict => Get(nameof(Conflict), "The request conflicts with the current state.");
     public static string BadRequest => Get(nameof(BadRequest), "The request is invalid.");

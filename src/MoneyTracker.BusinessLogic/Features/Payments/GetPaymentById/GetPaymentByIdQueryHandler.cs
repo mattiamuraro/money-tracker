@@ -12,7 +12,7 @@ public class GetPaymentByIdQueryHandler(MoneyTrackerDbContext dbContext)
     public async Task<PaymentRow> Handle(GetPaymentByIdQuery request, CancellationToken cancellationToken)
     {
         var result = await dbContext.Payments
-            .Include(p => p.PaymentCategory)
+            .AsNoTracking()
             .Where(p => p.Id == request.Id)
             .Select(p => new PaymentRow
             {

@@ -136,7 +136,7 @@ public class GlobalExceptionHandlingMiddlewareTests
 
     [Theory]
     [InlineData(typeof(BadRequestException), StatusCodes.Status400BadRequest, "BAD_REQUEST")]
-    [InlineData(typeof(UnauthorizedAccessException), StatusCodes.Status403Forbidden, "FORBIDDEN")]
+    [InlineData(typeof(UnauthorizedAccessException), StatusCodes.Status401Unauthorized, "UNAUTHORIZED")]
     [InlineData(typeof(EntityNotFoundException), StatusCodes.Status404NotFound, "NOT_FOUND")]
     [InlineData(typeof(ConflictException), StatusCodes.Status409Conflict, "CONFLICT")]
     public async Task InvokeAsync_Should_Map_Known_Exceptions_To_Expected_Status_And_Code(Type exceptionType, int expectedStatus, string expectedCode)
@@ -144,7 +144,7 @@ public class GlobalExceptionHandlingMiddlewareTests
         Exception exception = exceptionType == typeof(BadRequestException)
             ? new BadRequestException("bad")
             : exceptionType == typeof(UnauthorizedAccessException)
-                ? new UnauthorizedAccessException("forbidden")
+                ? new UnauthorizedAccessException("unauthorized")
                 : exceptionType == typeof(EntityNotFoundException)
                     ? new EntityNotFoundException("missing")
                     : new ConflictException("conflict");

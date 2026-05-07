@@ -102,7 +102,7 @@ public partial class GlobalExceptionHandlingMiddleware
         var (statusCode, code, title, detail) = exception switch
         {
             UnauthorizedAccessException unauthorizedEx =>
-                (StatusCodes.Status403Forbidden, ErrorCodes.Forbidden, ErrorMessageResources.Forbidden, GetDevelopmentDetail(unauthorizedEx.Message)),
+                (StatusCodes.Status401Unauthorized, ErrorCodes.Unauthorized, ErrorMessageResources.Unauthorized, GetDevelopmentDetail(unauthorizedEx.Message)),
             ConflictException conflictEx =>
                 (StatusCodes.Status409Conflict, ErrorCodes.Conflict, ErrorMessageResources.Conflict, GetDevelopmentDetail(conflictEx.Message)),
             BadRequestException badRequestEx =>
