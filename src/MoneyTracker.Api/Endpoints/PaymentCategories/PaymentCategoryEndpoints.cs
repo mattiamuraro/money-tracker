@@ -1,7 +1,5 @@
-using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.PaymentCategories.Contracts;
-using MoneyTracker.Api.Endpoints.PaymentCategories.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.CreateCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.DeleteCategory;
@@ -22,7 +20,12 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
             group.MapGet("/", static async ([FromServices] IHandler<GetAllCategoriesQuery, IEnumerable<PaymentCategoryDto>> handler, CancellationToken cancellationToken) =>
                 {
                     var result = await handler.Handle(new GetAllCategoriesQuery(), cancellationToken);
-                    var response = result.ToPaymentCategoryResponses();
+                    var response = result.Select(static category => new PaymentCategoryResponse
+                    {
+                        Id = category.Id,
+                        Name = category.Name,
+                        Code = category.Code
+                    });
 
                     return Results.Ok(response);
                 })
@@ -33,9 +36,13 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
 
             group.MapGet("/{id:guid}", static async ([FromServices] IHandler<GetCategoryByIdQuery, PaymentCategoryDto> handler, Guid id, CancellationToken cancellationToken) =>
                 {
-                    var query = id.ToGetCategoryByIdQuery();
-                    var result = await handler.Handle(query, cancellationToken);
-                    var response = result.ToPaymentCategoryResponse();
+                    var result = await handler.Handle(new GetCategoryByIdQuery(id), cancellationToken);
+                    var response = new PaymentCategoryResponse
+                    {
+                        Id = result.Id,
+                        Name = result.Name,
+                        Code = result.Code
+                    };
 
                     return Results.Ok(response);
                 })
@@ -47,9 +54,13 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
 
             group.MapPost("/", static async ([FromServices] IHandler<CreateCategoryCommand, Guid> handler, CreatePaymentCategoryRequest request, CancellationToken cancellationToken) =>
                 {
-                    var command = request.ToCreateCategoryCommand();
-                    var categoryId = await handler.Handle(command, cancellationToken);
+                    var command = new CreateCategoryCommand
+                    {
+                        Name = request.Name,
+                        Code = request.Code
+                    };
 
+                    var categoryId = await handler.Handle(command, cancellationToken);
                     return Results.Created($"/api/v1/categories/{categoryId}", categoryId);
                 })
                 .WithName("CreateCategory")
@@ -61,9 +72,14 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
 
             group.MapPut("/{id:guid}", static async ([FromServices] IHandler<UpdateCategoryCommand> handler, Guid id, UpdatePaymentCategoryRequest request, CancellationToken cancellationToken) =>
                 {
-                    var command = request.ToUpdateCategoryCommand(id);
-                    await handler.Handle(command, cancellationToken);
+                    var command = new UpdateCategoryCommand
+                    {
+                        Id = id,
+                        Name = request.Name,
+                        Code = request.Code
+                    };
 
+                    await handler.Handle(command, cancellationToken);
                     return Results.NoContent();
                 })
                 .WithName("UpdateCategory")
@@ -76,9 +92,7 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
 
             group.MapDelete("/{id:guid}", static async ([FromServices] IHandler<DeleteCategoryCommand> handler, Guid id, CancellationToken cancellationToken) =>
                 {
-                    var command = id.ToDeleteCategoryCommand();
-                    await handler.Handle(command, cancellationToken);
-
+                    await handler.Handle(new DeleteCategoryCommand(id), cancellationToken);
                     return Results.NoContent();
                 })
                 .WithName("DeleteCategory")

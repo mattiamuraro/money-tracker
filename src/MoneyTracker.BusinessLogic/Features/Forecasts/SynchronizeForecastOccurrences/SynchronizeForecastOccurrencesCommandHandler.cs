@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using MoneyTracker.BusinessLogic.Common.Extensions;
 using MoneyTracker.BusinessLogic.Common.Handlers;
-using MoneyTracker.BusinessLogic.Common.Models;
+using MoneyTracker.BusinessLogic.Features.Forecasts.Shared;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 
@@ -12,7 +11,7 @@ public class SynchronizeForecastOccurrencesCommandHandler(MoneyTrackerDbContext 
 {
     public async Task Handle(SynchronizeForecastOccurrencesCommand request, CancellationToken cancellationToken)
     {
-        var (startDate, endDate) = ForecastOccurrencesHelper.GetSynchronizationWindow();
+        var (startDate, endDate) = ForecastSynchronizationWindow.GetWindow();
         var expectedOccurrences = new Dictionary<OccurrenceKey, OccurrenceSeed>();
 
         var forecastExpenses = await dbContext.ForecastExpenses

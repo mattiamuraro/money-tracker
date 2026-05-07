@@ -28,6 +28,7 @@ public static class BusinessLogicServiceCollectionExtensions
         return typeof(BusinessLogicServiceCollectionExtensions).Assembly
             .GetTypes()
             .Where(type => type.Namespace?.Contains(".Features.", StringComparison.Ordinal) == true)
+            .Where(type => !type.Name.EndsWith("FeatureRegistration", StringComparison.Ordinal))
             .Select(type => type.GetMethod(
                 RegistrationMethodName,
                 BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,

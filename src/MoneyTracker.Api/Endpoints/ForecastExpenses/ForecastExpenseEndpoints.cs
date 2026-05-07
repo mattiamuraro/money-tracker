@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.ForecastExpenses.Contracts;
-using MoneyTracker.Api.Endpoints.ForecastExpenses.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Common.Handlers;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.CreateForecastExpenseDefinition;
 using MoneyTracker.BusinessLogic.Features.ForecastExpenses.CreateForecastExpenseDefinitionAndSynchronize;
 using MoneyTracker.BusinessLogic.Features.ForecastExpenses.DeleteForecastExpenseDefinitionAndSynchronize;
 using MoneyTracker.BusinessLogic.Features.ForecastExpenses.DiscardForecastExpenseOccurrence;
 using MoneyTracker.BusinessLogic.Features.ForecastExpenses.GetForecastExpenseDefinitions;
 using MoneyTracker.BusinessLogic.Features.ForecastExpenses.GetForecastExpenseRows;
 using MoneyTracker.BusinessLogic.Features.ForecastExpenses.GetPendingForecastExpenseOccurrences;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses.UpdateForecastExpenseDefinition;
 using MoneyTracker.BusinessLogic.Features.ForecastExpenses.UpdateForecastExpenseDefinitionAndSynchronize;
 
 namespace MoneyTracker.Api.Endpoints.ForecastExpenses;
@@ -28,7 +29,16 @@ public static class ForecastExpenseEndpoints
             {
                 var query = CreateGetForecastExpenseRowsQuery(startDate, endDate);
                 var forecasts = await getForecastRowsHandler.Handle(query, cancellationToken);
-                var response = forecasts.Select(f => f.ToForecastExpenseRowResponse());
+                var response = forecasts.Select(static forecast => new ForecastExpenseRowResponse
+                {
+                    Id = forecast.Id,
+                    ForecastDefinitionId = forecast.ForecastDefinitionId,
+                    Description = forecast.Description,
+                    Amount = forecast.Amount,
+                    Date = forecast.Date,
+                    PaymentCategoryId = forecast.PaymentCategoryId,
+                    Category = forecast.Category
+                });
 
                 return Results.Ok(response);
             })
@@ -43,7 +53,18 @@ public static class ForecastExpenseEndpoints
                 CancellationToken cancellationToken) =>
             {
                 var definitions = await handler.Handle(new GetForecastExpenseDefinitionsQuery(), cancellationToken);
-                var response = definitions.Select(d => d.ToForecastExpenseDefinitionResponse());
+                var response = definitions.Select(static definition => new ForecastExpenseDefinitionResponse
+                {
+                    Id = definition.Id,
+                    ForecastRecurrenceRuleTypeId = definition.ForecastRecurrenceRuleTypeId,
+                    Description = definition.Description,
+                    Amount = definition.Amount,
+                    RecurrenceStart = definition.RecurrenceStart,
+                    RecurrenceEnd = definition.RecurrenceEnd,
+                    Interval = definition.Interval,
+                    PaymentCategoryId = definition.PaymentCategoryId,
+                    Category = definition.Category
+                });
 
                 return Results.Ok(response);
             })
@@ -59,7 +80,16 @@ public static class ForecastExpenseEndpoints
             {
                 var command = new CreateForecastExpenseDefinitionAndSynchronizeCommand
                 {
-                    CreateCommand = request.ToCreateForecastExpenseDefinitionCommand()
+                    CreateCommand = new CreateForecastExpenseDefinitionCommand
+                    {
+                        ForecastRecurrenceRuleTypeId = request.ForecastRecurrenceRuleTypeId,
+                        Description = request.Description,
+                        Amount = request.Amount,
+                        RecurrenceStart = request.RecurrenceStart,
+                        RecurrenceEnd = request.RecurrenceEnd,
+                        Interval = request.Interval,
+                        PaymentCategoryId = request.PaymentCategoryId ?? Guid.Empty
+                    }
                 };
 
                 var id = await handler.Handle(command, cancellationToken);
@@ -80,7 +110,17 @@ public static class ForecastExpenseEndpoints
             {
                 var command = new UpdateForecastExpenseDefinitionAndSynchronizeCommand
                 {
-                    UpdateCommand = request.ToUpdateForecastExpenseDefinitionCommand(id)
+                    UpdateCommand = new UpdateForecastExpenseDefinitionCommand
+                    {
+                        Id = id,
+                        ForecastRecurrenceRuleTypeId = request.ForecastRecurrenceRuleTypeId,
+                        Description = request.Description,
+                        Amount = request.Amount,
+                        RecurrenceStart = request.RecurrenceStart,
+                        RecurrenceEnd = request.RecurrenceEnd,
+                        Interval = request.Interval,
+                        PaymentCategoryId = request.PaymentCategoryId ?? Guid.Empty
+                    }
                 };
 
                 await handler.Handle(command, cancellationToken);
@@ -113,9 +153,18 @@ public static class ForecastExpenseEndpoints
                 [AsParameters] ForecastExpenseOccurrencesQuery request,
                 CancellationToken cancellationToken) =>
             {
-                var query = request.ToGetPendingForecastExpenseOccurrencesQuery();
-                var items = await handler.Handle(query, cancellationToken);
-                var response = items.Select(o => o.ToForecastExpenseOccurrenceResponse());
+                var (year, month) = request.GetRequiredYearMonth();
+                var items = await handler.Handle(new GetPendingForecastExpenseOccurrencesQuery(year, month), cancellationToken);
+                var response = items.Select(static occurrence => new ForecastExpenseOccurrenceResponse
+                {
+                    Id = occurrence.Id,
+                    ForecastDefinitionId = occurrence.ForecastDefinitionId,
+                    Description = occurrence.Description,
+                    Amount = occurrence.Amount,
+                    ExpectedDate = occurrence.ExpectedDate,
+                    PaymentCategoryId = occurrence.PaymentCategoryId,
+                    Category = occurrence.Category
+                });
 
                 return Results.Ok(response);
             })

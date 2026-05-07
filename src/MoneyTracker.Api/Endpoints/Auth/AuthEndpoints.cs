@@ -1,8 +1,6 @@
-using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using MoneyTracker.Api.Endpoints.Auth.Contracts;
-using MoneyTracker.Api.Endpoints.Auth.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.BusinessLogic.Common.Options;
 using MoneyTracker.BusinessLogic.Features.Auth.Login;
@@ -19,9 +17,17 @@ public static class AuthEndpoints
 
         group.MapPost("/login", static async ([FromServices] IHandler<LoginCommand, LoginAuthTokenDto> handler, LoginRequest request, CancellationToken cancellationToken) =>
             {
-                var command = request.ToLoginCommand();
+                var command = new LoginCommand
+                {
+                    Username = request.Username,
+                    Password = request.Password
+                };
+
                 var result = await handler.Handle(command, cancellationToken);
-                var response = result.ToLoginAuthTokenResponse();
+                var response = new AuthTokenResponse
+                {
+                    Token = result.Token
+                };
 
                 return Results.Ok(response);
             })
@@ -35,9 +41,17 @@ public static class AuthEndpoints
 
         group.MapPost("/register", static async ([FromServices] IHandler<RegisterCommand, RegisterAuthTokenDto> handler, RegisterRequest request, CancellationToken cancellationToken) =>
             {
-                var command = request.ToRegisterCommand();
+                var command = new RegisterCommand
+                {
+                    Username = request.Username,
+                    Password = request.Password
+                };
+
                 var result = await handler.Handle(command, cancellationToken);
-                var response = result.ToRegisterAuthTokenResponse();
+                var response = new AuthTokenResponse
+                {
+                    Token = result.Token
+                };
 
                 return Results.Ok(response);
             })

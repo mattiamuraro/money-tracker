@@ -1,13 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.ForecastIncomes.Contracts;
-using MoneyTracker.Api.Endpoints.ForecastIncomes.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Common.Handlers;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.CreateForecastIncomeDefinition;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.CreateForecastIncomeDefinitionAndSynchronize;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.DeleteForecastIncomeDefinitionAndSynchronize;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.DiscardForecastIncomeOccurrence;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetForecastIncomeDefinitions;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetForecastIncomeRows;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.GetPendingForecastIncomeOccurrences;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes.UpdateForecastIncomeDefinition;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.UpdateForecastIncomeDefinitionAndSynchronize;
 
 namespace MoneyTracker.Api.Endpoints.ForecastIncomes;
@@ -28,7 +29,14 @@ public static class ForecastIncomeEndpoints
             {
                 var query = CreateGetForecastIncomeRowsQuery(startDate, endDate);
                 var forecasts = await getForecastRowsHandler.Handle(query, cancellationToken);
-                var response = forecasts.Select(f => f.ToForecastIncomeRowResponse());
+                var response = forecasts.Select(static forecast => new ForecastIncomeRowResponse
+                {
+                    Id = forecast.Id,
+                    ForecastDefinitionId = forecast.ForecastDefinitionId,
+                    Description = forecast.Description,
+                    Amount = forecast.Amount,
+                    Date = forecast.Date
+                });
 
                 return Results.Ok(response);
             })
@@ -43,7 +51,16 @@ public static class ForecastIncomeEndpoints
                 CancellationToken cancellationToken) =>
             {
                 var definitions = await handler.Handle(new GetForecastIncomeDefinitionsQuery(), cancellationToken);
-                var response = definitions.Select(d => d.ToForecastIncomeDefinitionResponse());
+                var response = definitions.Select(static definition => new ForecastIncomeDefinitionResponse
+                {
+                    Id = definition.Id,
+                    ForecastRecurrenceRuleTypeId = definition.ForecastRecurrenceRuleTypeId,
+                    Description = definition.Description,
+                    Amount = definition.Amount,
+                    RecurrenceStart = definition.RecurrenceStart,
+                    RecurrenceEnd = definition.RecurrenceEnd,
+                    Interval = definition.Interval
+                });
 
                 return Results.Ok(response);
             })
@@ -59,7 +76,15 @@ public static class ForecastIncomeEndpoints
             {
                 var command = new CreateForecastIncomeDefinitionAndSynchronizeCommand
                 {
-                    CreateCommand = request.ToCreateForecastIncomeDefinitionCommand()
+                    CreateCommand = new CreateForecastIncomeDefinitionCommand
+                    {
+                        ForecastRecurrenceRuleTypeId = request.ForecastRecurrenceRuleTypeId,
+                        Description = request.Description,
+                        Amount = request.Amount,
+                        RecurrenceStart = request.RecurrenceStart,
+                        RecurrenceEnd = request.RecurrenceEnd,
+                        Interval = request.Interval
+                    }
                 };
 
                 var id = await handler.Handle(command, cancellationToken);
@@ -80,7 +105,16 @@ public static class ForecastIncomeEndpoints
             {
                 var command = new UpdateForecastIncomeDefinitionAndSynchronizeCommand
                 {
-                    UpdateCommand = request.ToUpdateForecastIncomeDefinitionCommand(id)
+                    UpdateCommand = new UpdateForecastIncomeDefinitionCommand
+                    {
+                        Id = id,
+                        ForecastRecurrenceRuleTypeId = request.ForecastRecurrenceRuleTypeId,
+                        Description = request.Description,
+                        Amount = request.Amount,
+                        RecurrenceStart = request.RecurrenceStart,
+                        RecurrenceEnd = request.RecurrenceEnd,
+                        Interval = request.Interval
+                    }
                 };
 
                 await handler.Handle(command, cancellationToken);
@@ -103,7 +137,7 @@ public static class ForecastIncomeEndpoints
                 return Results.NoContent();
             })
             .WithName("DeleteForecastIncomeDefinition")
-            .WithDescription("Deletes a forecast income definition")
+            .WithDescription(" Deletes a forecast income definition")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status500InternalServerError);
@@ -113,9 +147,16 @@ public static class ForecastIncomeEndpoints
                 [AsParameters] ForecastIncomeOccurrencesQuery request,
                 CancellationToken cancellationToken) =>
             {
-                var query = request.ToGetPendingForecastIncomeOccurrencesQuery();
-                var items = await handler.Handle(query, cancellationToken);
-                var response = items.Select(o => o.ToForecastIncomeOccurrenceResponse());
+                var (year, month) = request.GetRequiredYearMonth();
+                var items = await handler.Handle(new GetPendingForecastIncomeOccurrencesQuery(year, month), cancellationToken);
+                var response = items.Select(static occurrence => new ForecastIncomeOccurrenceResponse
+                {
+                    Id = occurrence.Id,
+                    ForecastDefinitionId = occurrence.ForecastDefinitionId,
+                    Description = occurrence.Description,
+                    Amount = occurrence.Amount,
+                    ExpectedDate = occurrence.ExpectedDate
+                });
 
                 return Results.Ok(response);
             })

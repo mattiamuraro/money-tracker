@@ -1,8 +1,8 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
-using MoneyTracker.BusinessLogic.Common.Extensions;
 using MoneyTracker.BusinessLogic.Common.Handlers;
+using MoneyTracker.BusinessLogic.Features.Forecasts.Shared;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 
@@ -33,7 +33,7 @@ public class UpdateForecastIncomeDefinitionCommandHandler(
         forecastIncome.Interval = command.Interval;
         forecastIncome.ForecastRecurrenceRuleTypeId = command.ForecastRecurrenceRuleTypeId;
 
-        var (startDate, endDate) = ForecastOccurrencesHelper.GetSynchronizationWindow();
+        var (startDate, endDate) = ForecastSynchronizationWindow.GetWindow();
         var expectedOccurrences = forecastIncome.GetRecurrences(startDate, endDate)
             .Select(date => new ForecastOccurrence
             {

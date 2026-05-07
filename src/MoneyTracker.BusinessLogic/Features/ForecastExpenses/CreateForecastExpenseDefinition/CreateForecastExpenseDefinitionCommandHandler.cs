@@ -1,8 +1,8 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
-using MoneyTracker.BusinessLogic.Common.Extensions;
 using MoneyTracker.BusinessLogic.Common.Handlers;
+using MoneyTracker.BusinessLogic.Features.Forecasts.Shared;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 
@@ -45,7 +45,7 @@ public class CreateForecastExpenseDefinitionCommandHandler(
 
     private async Task GenerateOccurrencesAsync(ForecastExpense forecastExpense, CancellationToken cancellationToken)
     {
-        var (startDate, endDate) = ForecastOccurrencesHelper.GetSynchronizationWindow();
+        var (startDate, endDate) = ForecastSynchronizationWindow.GetWindow();
 
         var ruleType = await dbContext.ForecastRecurrenceRuleTypes
             .FirstOrDefaultAsync(f => f.Id == forecastExpense.ForecastRecurrenceRuleTypeId, cancellationToken);

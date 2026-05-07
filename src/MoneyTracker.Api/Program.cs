@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.IdentityModel.Tokens;
 using MoneyTracker.Api.Endpoints.Auth;
+using MoneyTracker.Api.Endpoints.ForecastExpenses;
+using MoneyTracker.Api.Endpoints.ForecastIncomes;
 using MoneyTracker.Api.Endpoints.ForecastRecurrenceRuleTypes;
 using MoneyTracker.Api.Endpoints.Incomes;
 using MoneyTracker.Api.Endpoints.PaymentCategories;
@@ -12,8 +14,6 @@ using MoneyTracker.BusinessLogic.Common.Extensions;
 using MoneyTracker.Data.EntityFramework;
 using MoneyTracker.ServiceDefaults;
 using System.Text;
-using MoneyTracker.Api.Endpoints.ForecastExpenses;
-using MoneyTracker.Api.Endpoints.ForecastIncomes;
 
 var builder = WebApplication.CreateBuilder(args);
 
