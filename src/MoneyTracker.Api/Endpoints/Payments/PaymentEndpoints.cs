@@ -31,8 +31,8 @@ namespace MoneyTracker.Api.Endpoints.Payments
                         paymentFilterQuery.MaxAmount,
                         year,
                         month,
-                        paymentFilterQuery.PageNumber ?? 1,
-                        paymentFilterQuery.PageSize ?? 20,
+                        paymentFilterQuery.GetPageNumber(),
+                        paymentFilterQuery.GetPageSize(),
                         paymentFilterQuery.SortBy,
                         paymentFilterQuery.SortOrder);
 

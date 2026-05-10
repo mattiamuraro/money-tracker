@@ -31,6 +31,7 @@ public class UpdateCategoryCommandHandler(
             throw new ConflictException($"Category with code '{command.Code}' already exists.");
 
         category.Name = command.Name;
+        category.NameNormalized = command.Name.Trim().ToUpperInvariant();
         category.Code = command.Code;
 
         dbContext.PaymentCategories.Update(category);

@@ -28,8 +28,8 @@ public static class IncomeEndpoints
                     incomeFilterQuery.MaxAmount,
                     year,
                     month,
-                    incomeFilterQuery.PageNumber ?? 1,
-                    incomeFilterQuery.PageSize ?? 20,
+                    incomeFilterQuery.GetPageNumber(),
+                    incomeFilterQuery.GetPageSize(),
                     incomeFilterQuery.SortBy,
                     incomeFilterQuery.SortOrder);
 

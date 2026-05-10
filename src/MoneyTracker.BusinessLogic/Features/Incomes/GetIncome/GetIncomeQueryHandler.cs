@@ -18,9 +18,16 @@ public class GetIncomeQueryHandler(MoneyTrackerDbContext dbContext)
         if (request.Id.HasValue)
             query = query.Where(x => x.Id == request.Id.Value);
         if (request.Year.HasValue && request.Month.HasValue)
-            query = query.Where(x => x.Date.Year == request.Year.Value && x.Date.Month == request.Month.Value);
+        {
+            var monthStart = new DateTime(request.Year.Value, request.Month.Value, 1);
+            var nextMonthStart = monthStart.AddMonths(1);
+            query = query.Where(x => x.Date >= monthStart && x.Date < nextMonthStart);
+        }
         if (!string.IsNullOrWhiteSpace(request.DescriptionFilter))
-            query = query.Where(x => x.Description.Contains(request.DescriptionFilter));
+        {
+            var normalizedDescriptionFilter = request.DescriptionFilter.Trim().ToUpperInvariant();
+            query = query.Where(x => x.DescriptionNormalized.StartsWith(normalizedDescriptionFilter));
+        }
         if (request.MinAmount.HasValue)
             query = query.Where(x => x.Amount >= request.MinAmount.Value);
         if (request.MaxAmount.HasValue)

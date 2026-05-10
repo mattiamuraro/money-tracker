@@ -53,6 +53,7 @@ public class CreatePaymentCommandHandler(
         {
             Id = Guid.NewGuid(),
             Description = request.Description,
+            DescriptionNormalized = request.Description.Trim().ToUpperInvariant(),
             PaymentCategoryId = request.PaymentCategoryId,
             ForecastOccurrenceId = request.ForecastOccurrenceId,
             Amount = request.Amount,

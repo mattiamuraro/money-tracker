@@ -16,16 +16,23 @@ public class SynchronizeForecastOccurrencesCommandHandler(MoneyTrackerDbContext 
 
         var forecastExpenses = await dbContext.ForecastExpenses
             .AsNoTracking()
-            .Include(x => x.ForecastRecurrenceRuleType)
-            .Include(x => x.PaymentCategory)
             .Where(x => x.IsActive && x.RecurrenceStart <= endDate && (x.RecurrenceEnd == null || x.RecurrenceEnd >= startDate))
+            .Select(x => new ForecastDefinitionData(
+                x.Id,
+                x.Description,
+                x.Amount,
+                x.RecurrenceStart,
+                x.RecurrenceEnd,
+                x.Interval,
+                x.ForecastRecurrenceRuleType.Code,
+                x.PaymentCategoryId))
             .ToListAsync(cancellationToken);
 
         foreach (var forecast in forecastExpenses)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            foreach (var recurrence in forecast.GetRecurrences(startDate, endDate))
+            foreach (var recurrence in GetRecurrences(forecast, startDate, endDate))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 expectedOccurrences[new OccurrenceKey(forecast.Id, false, recurrence)] = new OccurrenceSeed(
@@ -35,15 +42,23 @@ public class SynchronizeForecastOccurrencesCommandHandler(MoneyTrackerDbContext 
 
         var forecastIncomes = await dbContext.ForecastIncomes
             .AsNoTracking()
-            .Include(x => x.ForecastRecurrenceRuleType)
             .Where(x => x.IsActive && x.RecurrenceStart <= endDate && (x.RecurrenceEnd == null || x.RecurrenceEnd >= startDate))
+            .Select(x => new ForecastDefinitionData(
+                x.Id,
+                x.Description,
+                x.Amount,
+                x.RecurrenceStart,
+                x.RecurrenceEnd,
+                x.Interval,
+                x.ForecastRecurrenceRuleType.Code,
+                null))
             .ToListAsync(cancellationToken);
 
         foreach (var forecast in forecastIncomes)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            foreach (var recurrence in forecast.GetRecurrences(startDate, endDate))
+            foreach (var recurrence in GetRecurrences(forecast, startDate, endDate))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 expectedOccurrences[new OccurrenceKey(forecast.Id, true, recurrence)] = new OccurrenceSeed(
@@ -55,11 +70,11 @@ public class SynchronizeForecastOccurrencesCommandHandler(MoneyTrackerDbContext 
             .Where(x => x.ExpectedDate >= startDate && x.ExpectedDate <= endDate)
             .ToListAsync(cancellationToken);
 
-        await SynchronizeAsync(expectedOccurrences, existingOccurrences, cancellationToken);
+        Synchronize(expectedOccurrences, existingOccurrences, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task SynchronizeAsync(
+    private void Synchronize(
         Dictionary<OccurrenceKey, OccurrenceSeed> expectedOccurrences,
         List<ForecastOccurrence> existingOccurrences,
         CancellationToken cancellationToken)
@@ -112,7 +127,48 @@ public class SynchronizeForecastOccurrencesCommandHandler(MoneyTrackerDbContext 
                 ForecastOccurrenceStatusId = ForecastOccurrenceStatus.PendingId
             });
         }
-
-        await Task.CompletedTask;
     }
+
+    private static IEnumerable<DateOnly> GetRecurrences(ForecastDefinitionData forecast, DateOnly startDate, DateOnly endDate)
+    {
+        var occurrenceDate = forecast.RecurrenceStart;
+
+        while (occurrenceDate <= endDate && (forecast.RecurrenceEnd is null || occurrenceDate <= forecast.RecurrenceEnd))
+        {
+            if (occurrenceDate >= startDate)
+                yield return occurrenceDate;
+
+            var nextOccurrence = GetNextOccurrence(occurrenceDate, forecast.Interval, forecast.RecurrenceCode);
+            if (nextOccurrence is null)
+                yield break;
+
+            occurrenceDate = nextOccurrence.Value;
+        }
+    }
+
+    private static DateOnly? GetNextOccurrence(DateOnly currentDate, int? interval, string recurrenceCode)
+    {
+        if (interval is not int value)
+            return null;
+
+        return recurrenceCode switch
+        {
+            ForecastRecurrenceRuleType.OneTime => null,
+            ForecastRecurrenceRuleType.Day => currentDate.AddDays(value),
+            ForecastRecurrenceRuleType.Week => currentDate.AddDays(7 * value),
+            ForecastRecurrenceRuleType.Month => currentDate.AddMonths(value),
+            ForecastRecurrenceRuleType.Year => currentDate.AddYears(value),
+            _ => null,
+        };
+    }
+
+    private readonly record struct ForecastDefinitionData(
+        Guid Id,
+        string Description,
+        decimal Amount,
+        DateOnly RecurrenceStart,
+        DateOnly? RecurrenceEnd,
+        int? Interval,
+        string RecurrenceCode,
+        Guid? PaymentCategoryId);
 }

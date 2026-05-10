@@ -68,6 +68,10 @@ namespace MoneyTracker.Data.EntityFramework
                 .IsRequired()
                 .HasMaxLength(100);
 
+            entity.Property(e => e.DescriptionNormalized)
+                .IsRequired()
+                .HasMaxLength(100);
+
             entity.Property(e => e.Amount)
                 .HasPrecision(18, 2);
 
@@ -86,6 +90,8 @@ namespace MoneyTracker.Data.EntityFramework
 
             entity.HasIndex(e => e.Date);
             entity.HasIndex(e => e.PaymentCategoryId);
+            entity.HasIndex(e => new { e.Date, e.PaymentCategoryId });
+            entity.HasIndex(e => e.DescriptionNormalized);
             entity.HasIndex(e => e.IdempotencyKey)
                 .IsUnique()
                 .HasFilter("[IdempotencyKey] IS NOT NULL");
@@ -99,6 +105,10 @@ namespace MoneyTracker.Data.EntityFramework
                 .IsRequired()
                 .HasMaxLength(100);
 
+            entity.Property(e => e.DescriptionNormalized)
+                .IsRequired()
+                .HasMaxLength(100);
+
             entity.Property(e => e.Amount)
                 .HasPrecision(18, 2);
 
@@ -109,6 +119,7 @@ namespace MoneyTracker.Data.EntityFramework
             ConfigureSoftDeleteEntity(entity);
 
             entity.HasIndex(e => e.Date);
+            entity.HasIndex(e => e.DescriptionNormalized);
             entity.HasIndex(e => e.IdempotencyKey)
                 .IsUnique()
                 .HasFilter("[IdempotencyKey] IS NOT NULL");
@@ -117,6 +128,12 @@ namespace MoneyTracker.Data.EntityFramework
         private static void ConfigurePaymentCategoryEntity(EntityTypeBuilder<PaymentCategory> entity)
         {
             ConfigureContextEntity(entity);
+
+            entity.Property(e => e.NameNormalized)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.HasIndex(e => e.NameNormalized);
         }
 
         private static void ConfigureForecastExpenseEntity(EntityTypeBuilder<ForecastExpense> entity)
@@ -173,6 +190,7 @@ namespace MoneyTracker.Data.EntityFramework
             entity.HasIndex(e => e.ForecastDefinitionId);
             entity.HasIndex(e => e.ForecastOccurrenceStatusId);
             entity.HasIndex(e => e.PaymentCategoryId);
+            entity.HasIndex(e => new { e.ForecastOccurrenceStatusId, e.ExpectedDate, e.IsIncome });
         }
 
         private static void ConfigureAuditedEntity<TEntity>(EntityTypeBuilder<TEntity> entity)
@@ -260,28 +278,56 @@ namespace MoneyTracker.Data.EntityFramework
 
         public override int SaveChanges()
         {
+            ApplyNormalizedFields();
             ApplyAuditFields();
             return base.SaveChanges();
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
+            ApplyNormalizedFields();
             ApplyAuditFields();
             return base.SaveChangesAsync(cancellationToken);
         }
 
+        private void ApplyNormalizedFields()
+        {
+            foreach (var entry in ChangeTracker.Entries<Payment>())
+            {
+                if (entry.State is not (EntityState.Added or EntityState.Modified))
+                    continue;
+
+                entry.Entity.DescriptionNormalized = NormalizeForSearch(entry.Entity.Description);
+            }
+
+            foreach (var entry in ChangeTracker.Entries<Income>())
+            {
+                if (entry.State is not (EntityState.Added or EntityState.Modified))
+                    continue;
+
+                entry.Entity.DescriptionNormalized = NormalizeForSearch(entry.Entity.Description);
+            }
+
+            foreach (var entry in ChangeTracker.Entries<PaymentCategory>())
+            {
+                if (entry.State is not (EntityState.Added or EntityState.Modified))
+                    continue;
+
+                entry.Entity.NameNormalized = NormalizeForSearch(entry.Entity.Name);
+            }
+        }
+
+        private static string NormalizeForSearch(string value)
+            => string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim().ToUpperInvariant();
+
         private void ApplyAuditFields()
         {
             var entries = ChangeTracker.Entries<BaseEntity>();
+            var now = DateTime.UtcNow;
+            var currentUser = GetCurrentUser();
 
             foreach (var entry in entries)
             {
-                var now = DateTime.UtcNow;
-                var currentUser = GetCurrentUser();
-
-
-
-
                 if (entry.State == EntityState.Added)
                 {
                     entry.Entity.CreatedAt = now;
@@ -294,7 +340,6 @@ namespace MoneyTracker.Data.EntityFramework
                     entry.Entity.ModifiedAt = now;
                     entry.Entity.ModifiedById = currentUser;
 
-                    // Prevent changes to CreatedAt and CreatedById
                     entry.Property(e => e.CreatedAt).IsModified = false;
                     entry.Property(e => e.CreatedById).IsModified = false;
                 }

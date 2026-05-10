@@ -10,6 +10,9 @@ namespace MoneyTracker.Data
     {
         [MaxLength(100)]
         public required string Description { get; set; }
+
+        [MaxLength(100)]
+        public string DescriptionNormalized { get; set; } = string.Empty;
         public Guid PaymentCategoryId { get; set; }
         public Guid? ForecastOccurrenceId { get; set; }
         public decimal Amount { get; set; }

@@ -22,7 +22,11 @@ public class UpdateIncomeCommandHandler(
             throw new EntityNotFoundException($"Income with id {command.IncomeId} not found");
 
         if (!string.IsNullOrWhiteSpace(command.Description))
-            income.Description = command.Description.Trim();
+        {
+            var normalizedDescription = command.Description.Trim();
+            income.Description = normalizedDescription;
+            income.DescriptionNormalized = normalizedDescription.ToUpperInvariant();
+        }
         if (command.Amount.HasValue)
             income.Amount = command.Amount.Value;
         if (command.Date.HasValue)

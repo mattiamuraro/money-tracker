@@ -360,7 +360,7 @@ public class GetPaymentQueryHandlerTests
         await dbContext.SaveChangesAsync();
 
         var handler = new GetPaymentQueryHandler(dbContext);
-        var query = new GetPaymentQuery { DescriptionFilter = "supermarket" };
+        var query = new GetPaymentQuery { DescriptionFilter = "Groceries" };
 
         // Act
         var result = await handler.Handle(query, CancellationToken.None);
@@ -369,7 +369,7 @@ public class GetPaymentQueryHandlerTests
         Assert.NotNull(result);
         Assert.Equal(1, result.TotalItems);
         Assert.Single(result.Items);
-        Assert.Contains("supermarket", result.Items[0].Description);
+        Assert.StartsWith("Groceries", result.Items[0].Description);
     }
 
     [Fact]

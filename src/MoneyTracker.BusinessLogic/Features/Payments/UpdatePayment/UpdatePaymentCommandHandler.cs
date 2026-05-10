@@ -27,7 +27,11 @@ public class UpdatePaymentCommandHandler(
             throw new EntityNotFoundException($"Payment with id {request.PaymentId} not found");
 
         if (!string.IsNullOrWhiteSpace(request.Description))
-            payment.Description = request.Description;
+        {
+            var normalizedDescription = request.Description.Trim();
+            payment.Description = normalizedDescription;
+            payment.DescriptionNormalized = normalizedDescription.ToUpperInvariant();
+        }
 
         if (request.PaymentCategoryId.HasValue)
         {

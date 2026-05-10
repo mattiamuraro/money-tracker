@@ -40,10 +40,13 @@ public class CreateIncomeCommandHandler(
                 throw new BadRequestException($"ForecastOccurrence with id {command.ForecastOccurrenceId.Value} is not pending");
         }
 
+        var normalizedDescription = command.Description.Trim();
+
         var income = new Income
         {
             Id = Guid.NewGuid(),
-            Description = command.Description.Trim(),
+            Description = normalizedDescription,
+            DescriptionNormalized = normalizedDescription.ToUpperInvariant(),
             ForecastOccurrenceId = command.ForecastOccurrenceId,
             Amount = command.Amount,
             Date = command.Date,

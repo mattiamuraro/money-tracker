@@ -30,6 +30,7 @@ public class CreateCategoryCommandHandler(
         {
             Id = Guid.NewGuid(),
             Name = command.Name,
+            NameNormalized = command.Name.Trim().ToUpperInvariant(),
             Code = command.Code
         };
 

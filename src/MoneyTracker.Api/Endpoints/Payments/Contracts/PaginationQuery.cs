@@ -5,15 +5,19 @@ namespace MoneyTracker.Api.Endpoints.Payments.Contracts;
 /// </summary>
 public class PaginationQuery
 {
+    private const int DefaultPageNumber = 1;
+    private const int DefaultPageSize = 20;
+    public const int MaxPageSize = 100;
+
     /// <summary>
     /// Page number (1-based)
     /// </summary>
-    public int? PageNumber { get; set; } = 1;
+    public int? PageNumber { get; set; } = DefaultPageNumber;
 
     /// <summary>
     /// Number of items per page
     /// </summary>
-    public int? PageSize { get; set; } = 20;
+    public int? PageSize { get; set; } = DefaultPageSize;
 
     /// <summary>
     /// Field to sort by
@@ -30,15 +34,16 @@ public class PaginationQuery
     /// </summary>
     public void Validate()
     {
-        if (PageNumber < 1)
-            PageNumber = 1;
+        PageNumber = GetPageNumber();
+        PageSize = GetPageSize();
 
-        if (PageSize < 1)
-            PageSize = 1;
-        else if (PageSize > 100)
-            PageSize = 100;
-
-        if (!new[] { "asc", "desc" }.Contains(SortOrder?.ToLower()))
+        if (!new[] { "asc", "desc" }.Contains(SortOrder?.ToLowerInvariant()))
             SortOrder = "desc";
     }
+
+    public int GetPageNumber()
+        => Math.Max(DefaultPageNumber, PageNumber ?? DefaultPageNumber);
+
+    public int GetPageSize()
+        => Math.Clamp(PageSize ?? DefaultPageSize, 1, MaxPageSize);
 }

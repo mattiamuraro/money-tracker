@@ -19,7 +19,6 @@ public class GetForecastExpenseRowsQueryHandler(MoneyTrackerDbContext dbContext)
 
         return await dbContext.ForecastOccurrences
             .AsNoTracking()
-            .Include(x => x.PaymentCategory)
             .Where(x => !x.IsIncome
                 && x.ForecastOccurrenceStatusId == ForecastOccurrenceStatus.PendingId
                 && x.ExpectedDate >= query.StartDate

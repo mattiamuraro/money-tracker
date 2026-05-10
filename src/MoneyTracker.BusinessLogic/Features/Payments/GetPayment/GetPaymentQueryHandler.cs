@@ -18,11 +18,21 @@ public class GetPaymentQueryHandler(MoneyTrackerDbContext dbContext)
         if (request.Id.HasValue)
             query = query.Where(p => p.Id == request.Id.Value);
         if (request.Year.HasValue && request.Month.HasValue)
-            query = query.Where(p => p.Date.Year == request.Year.Value && p.Date.Month == request.Month.Value);
+        {
+            var monthStart = new DateTime(request.Year.Value, request.Month.Value, 1);
+            var nextMonthStart = monthStart.AddMonths(1);
+            query = query.Where(p => p.Date >= monthStart && p.Date < nextMonthStart);
+        }
         if (!string.IsNullOrWhiteSpace(request.CategoryFilter))
-            query = query.Where(p => p.PaymentCategory.Name.Contains(request.CategoryFilter));
+        {
+            var normalizedCategoryFilter = request.CategoryFilter.Trim().ToUpperInvariant();
+            query = query.Where(p => p.PaymentCategory.NameNormalized.StartsWith(normalizedCategoryFilter));
+        }
         if (!string.IsNullOrWhiteSpace(request.DescriptionFilter))
-            query = query.Where(p => p.Description.Contains(request.DescriptionFilter));
+        {
+            var normalizedDescriptionFilter = request.DescriptionFilter.Trim().ToUpperInvariant();
+            query = query.Where(p => p.DescriptionNormalized.StartsWith(normalizedDescriptionFilter));
+        }
         if (request.CategoryId.HasValue)
             query = query.Where(p => p.PaymentCategoryId == request.CategoryId.Value);
         if (request.MinAmount.HasValue)

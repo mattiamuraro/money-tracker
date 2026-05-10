@@ -10,13 +10,15 @@ public class GetPendingForecastExpenseOccurrencesQueryHandler(MoneyTrackerDbCont
 {
     public async Task<List<ForecastExpenseOccurrenceDto>> Handle(GetPendingForecastExpenseOccurrencesQuery request, CancellationToken cancellationToken)
     {
+        var monthStart = new DateOnly(request.Year, request.Month, 1);
+        var nextMonthStart = monthStart.AddMonths(1);
+
         return await dbContext.ForecastOccurrences
             .AsNoTracking()
-            .Include(x => x.PaymentCategory)
             .Where(x => !x.IsIncome
                 && x.ForecastOccurrenceStatusId == ForecastOccurrenceStatus.PendingId
-                && x.ExpectedDate.Year == request.Year
-                && x.ExpectedDate.Month == request.Month)
+                && x.ExpectedDate >= monthStart
+                && x.ExpectedDate < nextMonthStart)
             .OrderBy(x => x.ExpectedDate)
             .ThenBy(x => x.Description)
             .Select(x => new ForecastExpenseOccurrenceDto

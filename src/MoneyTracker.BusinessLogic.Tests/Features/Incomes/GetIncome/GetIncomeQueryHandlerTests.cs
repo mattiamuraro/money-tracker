@@ -170,16 +170,16 @@ public class GetIncomeQueryHandlerTests
         await dbContext.SaveChangesAsync();
 
         var handler = new GetIncomeQueryHandler(dbContext);
-        var query = new GetIncomeQuery { DescriptionFilter = "Payment" };
+        var query = new GetIncomeQuery { DescriptionFilter = "Salary" };
 
         // Act
         var result = await handler.Handle(query, CancellationToken.None);
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(2, result.TotalItems);
-        Assert.Equal(2, result.Items.Count);
-        Assert.All(result.Items, item => Assert.Contains("Payment", item.Description));
+        Assert.Equal(1, result.TotalItems);
+        Assert.Single(result.Items);
+        Assert.All(result.Items, item => Assert.StartsWith("Salary", item.Description));
     }
 
     [Fact]
@@ -300,7 +300,7 @@ public class GetIncomeQueryHandlerTests
         {
             Year = 2024,
             Month = 1,
-            DescriptionFilter = "Payment",
+            DescriptionFilter = "Salary",
             MinAmount = 2000m
         };
 
