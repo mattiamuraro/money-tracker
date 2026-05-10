@@ -82,7 +82,14 @@ public partial class GlobalExceptionHandlingMiddleware
             ["Path"] = context.Request.Path.Value ?? string.Empty
         });
 
-        LogUnhandledException(_logger, exception);
+        if (IsHandledException(exception))
+        {
+            LogHandledException(_logger, exception.GetType().Name, exception.Message);
+        }
+        else
+        {
+            LogUnhandledException(_logger, exception);
+        }
 
         if (context.Response.HasStarted)
         {
@@ -101,6 +108,15 @@ public partial class GlobalExceptionHandlingMiddleware
         context.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
         return WriteProblemResponseAsync(context, problemDetails);
     }
+
+    private static bool IsHandledException(Exception exception)
+        => exception is FluentValidation.ValidationException
+            or UnauthorizedAccessException
+            or ConflictException
+            or BadRequestException
+            or ArgumentException
+            or InvalidOperationException
+            or EntityNotFoundException;
 
     private static Task WriteProblemResponseAsync(HttpContext context, ProblemDetails problemDetails, CancellationToken cancellationToken)
     {
@@ -209,6 +225,9 @@ public partial class GlobalExceptionHandlingMiddleware
 
     [LoggerMessage(EventId = 1102, Level = LogLevel.Error, Message = "An unhandled exception occurred.")]
     private static partial void LogUnhandledException(ILogger logger, Exception exception);
+
+    [LoggerMessage(EventId = 1104, Level = LogLevel.Warning, Message = "A handled exception occurred: {ExceptionType}. Message: {Message}")]
+    private static partial void LogHandledException(ILogger logger, string exceptionType, string message);
 
     [LoggerMessage(EventId = 1103, Level = LogLevel.Warning, Message = "The response has already started; the exception response cannot be written.")]
     private static partial void LogResponseAlreadyStarted(ILogger logger);

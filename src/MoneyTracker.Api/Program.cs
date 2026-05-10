@@ -13,6 +13,7 @@ using MoneyTracker.Api.Middleware;
 using MoneyTracker.BusinessLogic.Common.Extensions;
 using MoneyTracker.Data.EntityFramework;
 using MoneyTracker.ServiceDefaults;
+using System.Reflection;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -92,6 +93,14 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+var apiVersion = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "unknown";
+app.Logger.LogInformation(
+    new EventId(1201, "ApiStartup"),
+    "Starting {ServiceName} v{ServiceVersion} in {EnvironmentName} environment.",
+    app.Environment.ApplicationName,
+    apiVersion,
+    app.Environment.EnvironmentName);
+
 // Middleware pipeline (order matters)
 app.UseHttpsRedirection();
 
@@ -126,4 +135,4 @@ app.AddForecastExpenseApis();
 
 app.MapDefaultEndpoints();
 
-app.Run();app.Run();
+app.Run();

@@ -1,4 +1,6 @@
+using System.Reflection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MoneyTracker.Data.EntityFramework;
 using MoneyTracker.Data.MigrationService;
 using MoneyTracker.ServiceDefaults;
@@ -18,4 +20,14 @@ builder.AddServiceDefaults();
 builder.Services.AddHostedService<MigrationWorker>();
 
 var host = builder.Build();
+
+var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+var serviceVersion = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "unknown";
+logger.LogInformation(
+    new EventId(4201, "MigrationServiceStartup"),
+    "Starting {ServiceName} v{ServiceVersion} in {EnvironmentName} environment.",
+    builder.Environment.ApplicationName,
+    serviceVersion,
+    builder.Environment.EnvironmentName);
+
 host.Run();
