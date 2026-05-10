@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MoneyTracker.Data.EntityFramework;
 using MoneyTracker.Data.EntityFramework.ExtensionMethods;
 
@@ -6,6 +7,14 @@ namespace MoneyTracker.Data.MigrationService;
 
 public class MigrationWorker : IHostedService
 {
+    private static readonly EventId WorkerStartingEventId = new(4001, nameof(WorkerStartingEventId));
+    private static readonly EventId ApplyingMigrationsEventId = new(4002, nameof(ApplyingMigrationsEventId));
+    private static readonly EventId MigrationsAppliedEventId = new(4003, nameof(MigrationsAppliedEventId));
+    private static readonly EventId DefaultDataSeededEventId = new(4004, nameof(DefaultDataSeededEventId));
+    private static readonly EventId WorkerCanceledEventId = new(4005, nameof(WorkerCanceledEventId));
+    private static readonly EventId WorkerFailedEventId = new(4006, nameof(WorkerFailedEventId));
+    private static readonly EventId WorkerCompletedEventId = new(4007, nameof(WorkerCompletedEventId));
+
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<MigrationWorker> _logger;
     private readonly IConfiguration _configuration;
@@ -19,33 +28,33 @@ public class MigrationWorker : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting EF migration worker...");
+        _logger.LogInformation(WorkerStartingEventId, "Starting EF migration worker...");
 
         try
         {
             using var scope = _serviceProvider.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<MoneyTrackerDbContext>();
 
-            _logger.LogInformation("Applying EF Core migrations...");
+            _logger.LogInformation(ApplyingMigrationsEventId, "Applying EF Core migrations...");
             await db.Database.MigrateAsync(cancellationToken);
-            _logger.LogInformation("Migrations applied successfully.");
+            _logger.LogInformation(MigrationsAppliedEventId, "Migrations applied successfully.");
 
             await db.SeedDefaultDataAsync(_logger, _configuration, cancellationToken);
 
-            _logger.LogInformation("Seeded default data.");
+            _logger.LogInformation(DefaultDataSeededEventId, "Seeded default data.");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            _logger.LogInformation("Migration worker was canceled.");
+            _logger.LogInformation(WorkerCanceledEventId, "Migration worker was canceled.");
             throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error while applying migrations.");
+            _logger.LogError(WorkerFailedEventId, ex, "Error while applying migrations.");
             throw;
         }
 
-        _logger.LogInformation("Migration worker completed. Shutting down.");
+        _logger.LogInformation(WorkerCompletedEventId, "Migration worker completed. Shutting down.");
     }
 
     public Task StopAsync(CancellationToken cancellationToken)

@@ -69,13 +69,13 @@ public partial class CorrelationIdMiddleware
         return newCorrelationId;
     }
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Correlation ID received from header: {CorrelationId}")]
+    [LoggerMessage(EventId = 1001, Level = LogLevel.Debug, Message = "Correlation ID received from header: {CorrelationId}")]
     private static partial void LogCorrelationIdFromHeader(ILogger logger, string correlationId);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Invalid Correlation ID received in header; generating a new one.")]
+    [LoggerMessage(EventId = 1002, Level = LogLevel.Warning, Message = "Invalid Correlation ID received in header; generating a new one.")]
     private static partial void LogInvalidCorrelationId(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Generated new Correlation ID: {CorrelationId}")]
+    [LoggerMessage(EventId = 1003, Level = LogLevel.Debug, Message = "Generated new Correlation ID: {CorrelationId}")]
     private static partial void LogGeneratedCorrelationId(ILogger logger, string correlationId);
 }
 

@@ -6,3 +6,6 @@
 - User prefers reusing existing helper methods such as `ConfigureAuditRelations` for EF model configuration where possible, instead of duplicating audit configuration inline.
 - User prefers moving business logic out of API services into `MoneyTracker.BusinessLogic` following Vertical Slice Architecture (VSA) patterns.
 - User prefers using the 'Dto' suffix when a class is a Data Transfer Object for readability.
+
+## Logging Preferences
+- User prefers direct `ILogger` logging calls over source-generated `LoggerMessage` methods in `MigrationWorker` and `ForecastOccurrenceReconciliationService`, while still using explicit `EventId` values.

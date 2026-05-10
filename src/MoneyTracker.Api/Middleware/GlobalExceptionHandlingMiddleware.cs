@@ -135,13 +135,13 @@ public partial class GlobalExceptionHandlingMiddleware
     private string? GetDevelopmentDetail(string detail)
         => _environment.IsDevelopment() ? detail : null;
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Request was canceled by the client.")]
+    [LoggerMessage(EventId = 1101, Level = LogLevel.Information, Message = "Request was canceled by the client.")]
     private static partial void LogRequestCanceled(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "An unhandled exception occurred.")]
+    [LoggerMessage(EventId = 1102, Level = LogLevel.Error, Message = "An unhandled exception occurred.")]
     private static partial void LogUnhandledException(ILogger logger, Exception exception);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "The response has already started; the exception response cannot be written.")]
+    [LoggerMessage(EventId = 1103, Level = LogLevel.Warning, Message = "The response has already started; the exception response cannot be written.")]
     private static partial void LogResponseAlreadyStarted(ILogger logger);
 }
 

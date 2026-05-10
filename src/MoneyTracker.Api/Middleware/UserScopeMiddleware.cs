@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace MoneyTracker.Api.Middleware;
 
@@ -23,8 +25,8 @@ public partial class UserScopeMiddleware(RequestDelegate next)
 
             using (logger.BeginScope(new Dictionary<string, object?>
             {
-                [UserIdProperty] = userId,
-                [UsernameProperty] = username
+                [UserIdProperty] = HashForLogging(userId),
+                [UsernameProperty] = HashForLogging(username)
             }))
             {
                 await next(context);
@@ -34,6 +36,15 @@ public partial class UserScopeMiddleware(RequestDelegate next)
         {
             await next(context);
         }
+    }
+
+    private static string? HashForLogging(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+        return Convert.ToHexString(bytes.AsSpan(0, 8));
     }
 }
 

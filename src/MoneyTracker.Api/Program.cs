@@ -62,7 +62,6 @@ builder.Services.AddHttpLogging(logging =>
 {
     logging.LoggingFields = HttpLoggingFields.RequestMethod
         | HttpLoggingFields.RequestPath
-        | HttpLoggingFields.RequestQuery
         | HttpLoggingFields.ResponseStatusCode
         | HttpLoggingFields.Duration;
     logging.CombineLogs = true;
@@ -114,7 +113,7 @@ app.UseCors("default");
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 4. Enrich all logs with UserId + Username for authenticated requests
+// 4. Enrich all logs with authenticated user context
 app.UseUserScope();
 
 app.AddAuthApis();
@@ -127,4 +126,4 @@ app.AddForecastExpenseApis();
 
 app.MapDefaultEndpoints();
 
-app.Run();
+app.Run();app.Run();
