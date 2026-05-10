@@ -164,6 +164,7 @@ public class GlobalExceptionHandlingMiddlewareTests
         Assert.Equal("corr-123", doc.RootElement.GetProperty("correlationId").GetString());
         Assert.True(doc.RootElement.TryGetProperty("traceId", out _));
         Assert.True(doc.RootElement.TryGetProperty("timestamp", out _));
+        Assert.True(doc.RootElement.TryGetProperty("subCode", out _));
     }
 
     [Fact]
@@ -184,12 +185,13 @@ public class GlobalExceptionHandlingMiddlewareTests
 
         Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
         Assert.Equal("VALIDATION_ERROR", doc.RootElement.GetProperty("code").GetString());
+        Assert.Equal("VALIDATION_ERROR", doc.RootElement.GetProperty("subCode").GetString());
         Assert.True(doc.RootElement.TryGetProperty("errors", out var errors));
         Assert.True(errors.TryGetProperty("Month", out _));
     }
 
     [Fact]
-    public async Task InvokeAsync_Should_Not_Write_Response_When_Request_Is_Canceled()
+    public async Task InvokeAsync_Should_Return_RequestTimeout_ProblemDetails_When_Request_Is_Canceled()
     {
         var cts = new CancellationTokenSource();
         cts.Cancel();
@@ -201,8 +203,52 @@ public class GlobalExceptionHandlingMiddlewareTests
 
         await middleware.InvokeAsync(context);
 
-        Assert.Equal(StatusCodes.Status200OK, context.Response.StatusCode);
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        Assert.Equal(StatusCodes.Status408RequestTimeout, context.Response.StatusCode);
+        Assert.Equal("REQUEST_CANCELED", doc.RootElement.GetProperty("code").GetString());
+        Assert.Equal("REQUEST_CANCELED", doc.RootElement.GetProperty("subCode").GetString());
         Assert.DoesNotContain(logger.Entries, e => e.Level == LogLevel.Error);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Include_Metadata_Extensions_For_Domain_Exceptions()
+    {
+        var exception = new EntityNotFoundException(
+            "payment not found",
+            errorCode: "PAYMENT_NOT_FOUND",
+            entityName: "Payment",
+            entityId: "123");
+
+        var (middleware, _) = CreateMiddleware(_ => throw exception);
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        Assert.Equal("PAYMENT_NOT_FOUND", doc.RootElement.GetProperty("subCode").GetString());
+        Assert.Equal("Payment", doc.RootElement.GetProperty("entityName").GetString());
+        Assert.Equal("123", doc.RootElement.GetProperty("entityId").GetString());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Redact_Sensitive_Development_Details()
+    {
+        var env = new FakeWebHostEnvironment { EnvironmentName = "Development" };
+        var (middleware, _) = CreateMiddleware(_ => throw new Exception("password=super-secret"), env);
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        Assert.Equal("Sensitive details were redacted.", doc.RootElement.GetProperty("detail").GetString());
     }
 }
 

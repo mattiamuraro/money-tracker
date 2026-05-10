@@ -10,5 +10,6 @@ internal static class ErrorCodes
     public const string InvalidOperation = "INVALID_OPERATION";
     public const string NotFound = "NOT_FOUND";
     public const string TransientFailure = "TRANSIENT_FAILURE";
+    public const string RequestCanceled = "REQUEST_CANCELED";
     public const string InternalServerError = "INTERNAL_SERVER_ERROR";
 }
