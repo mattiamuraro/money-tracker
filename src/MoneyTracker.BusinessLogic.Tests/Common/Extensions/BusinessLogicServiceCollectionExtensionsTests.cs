@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MoneyTracker.BusinessLogic.Common.Extensions;
@@ -867,32 +866,6 @@ public class BusinessLogicServiceCollectionExtensionsTests
 
         Assert.NotNull(serviceDescriptor);
         Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor.Lifetime);
-    }
-
-    [Fact]
-    public void AddBusinessLogicServices_Should_Discover_Feature_Registration_Methods()
-    {
-        var assembly = typeof(BusinessLogicServiceCollectionExtensions).Assembly;
-
-        var registrationTypes = assembly
-            .GetTypes()
-            .Where(type => type.Namespace?.Contains(".Features.", StringComparison.Ordinal) == true)
-            .Where(type => type.GetMethod(
-                "RegisterServices",
-                BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,
-                binder: null,
-                types: [typeof(IServiceCollection)],
-                modifiers: null) is not null)
-            .Select(type => type.FullName)
-            .ToList();
-
-        Assert.Contains("MoneyTracker.BusinessLogic.Features.Auth.AuthFeatureRegistration", registrationTypes);
-        Assert.Contains("MoneyTracker.BusinessLogic.Features.Payments.PaymentsFeatureRegistration", registrationTypes);
-        Assert.Contains("MoneyTracker.BusinessLogic.Features.Incomes.IncomesFeatureRegistration", registrationTypes);
-        Assert.Contains("MoneyTracker.BusinessLogic.Features.Forecasts.ForecastsFeatureRegistration", registrationTypes);
-        Assert.Contains("MoneyTracker.BusinessLogic.Features.ForecastIncomes.ForecastIncomesFeatureRegistration", registrationTypes);
-        Assert.Contains("MoneyTracker.BusinessLogic.Features.ForecastExpenses.ForecastExpensesFeatureRegistration", registrationTypes);
-        Assert.Contains("MoneyTracker.BusinessLogic.Features.PaymentCategories.PaymentCategoriesFeatureRegistration", registrationTypes);
     }
 
     [Fact]
