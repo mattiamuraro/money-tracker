@@ -69,6 +69,26 @@ public class MigrationWorkerTests
     private static MigrationWorker CreateWorker(IServiceProvider rootProvider, FakeLogger logger, IConfiguration config)
         => new(rootProvider, logger, config);
 
+    private static async Task<Exception?> StartAndWaitForExecutionAsync(MigrationWorker worker, CancellationToken cancellationToken = default)
+    {
+        await worker.StartAsync(cancellationToken);
+
+        if (worker.ExecuteTask is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            await worker.ExecuteTask;
+            return null;
+        }
+        catch (Exception ex)
+        {
+            return ex;
+        }
+    }
+
     [Fact]
     public void Constructor_Should_Initialize_Fields()
     {
@@ -108,8 +128,8 @@ public class MigrationWorkerTests
         var (root, db, logger, config) = BuildTestServices();
         var worker = CreateWorker(root, logger, config);
 
-        // Act - InMemory DB does not support MigrateAsync, so an exception is expected
-        try { await worker.StartAsync(CancellationToken.None); } catch { }
+        // Act
+        await StartAndWaitForExecutionAsync(worker);
 
         // Assert
         Assert.Contains(logger.Entries, e =>
@@ -125,7 +145,7 @@ public class MigrationWorkerTests
         var worker = CreateWorker(root, logger, config);
 
         // Act
-        try { await worker.StartAsync(CancellationToken.None); } catch { }
+        await StartAndWaitForExecutionAsync(worker);
 
         // Assert
         Assert.Contains(logger.Entries, e =>
@@ -140,10 +160,11 @@ public class MigrationWorkerTests
         var (root, db, logger, config) = BuildTestServices();
         var worker = CreateWorker(root, logger, config);
 
-        // Act & Assert - InMemory DB throws InvalidOperationException from MigrateAsync
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => worker.StartAsync(CancellationToken.None));
+        // Act
+        var ex = await StartAndWaitForExecutionAsync(worker);
 
+        // Assert
+        Assert.IsType<InvalidOperationException>(ex);
         Assert.Contains(logger.Entries, e =>
             e.Level == LogLevel.Error &&
             e.Message.Contains("Error while applying migrations"));
@@ -156,11 +177,11 @@ public class MigrationWorkerTests
         var (root, db, logger, config) = BuildTestServices();
         var worker = CreateWorker(root, logger, config);
 
-        // Act - MigrateAsync will throw on InMemory; that proves the scope was created and db was resolved
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => worker.StartAsync(CancellationToken.None));
+        // Act
+        var ex = await StartAndWaitForExecutionAsync(worker);
 
-        // If we reach the error log it means the scope was created and db context was obtained
+        // Assert
+        Assert.IsType<InvalidOperationException>(ex);
         Assert.Contains(logger.Entries, e =>
             e.Level == LogLevel.Information &&
             e.Message.Contains("Applying EF Core migrations"));
@@ -187,7 +208,7 @@ public class MigrationWorkerTests
         var worker = new MigrationWorker(root, logger, new ConfigurationBuilder().Build());
 
         // Act
-        try { await worker.StartAsync(CancellationToken.None); } catch { }
+        await StartAndWaitForExecutionAsync(worker);
 
         // Assert
         Assert.All(disposedScopes, s => Assert.True(s.Disposed));
@@ -213,7 +234,7 @@ public class MigrationWorkerTests
         var logger = new FakeLogger();
         var worker = new MigrationWorker(root, logger, new ConfigurationBuilder().Build());
 
-        try { await worker.StartAsync(CancellationToken.None); } catch { }
+        await StartAndWaitForExecutionAsync(worker);
 
         Assert.NotEmpty(disposedScopes);
         Assert.All(disposedScopes, s => Assert.True(s.Disposed));
@@ -227,11 +248,11 @@ public class MigrationWorkerTests
         var worker = CreateWorker(root, logger, config);
         using var cts = new CancellationTokenSource();
 
-        // Act - throws because InMemory doesn't support MigrateAsync
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => worker.StartAsync(cts.Token));
+        // Act
+        var ex = await StartAndWaitForExecutionAsync(worker, cts.Token);
 
-        // The "Applying EF Core migrations" log proves MigrateAsync was reached
+        // Assert
+        Assert.IsType<InvalidOperationException>(ex);
         Assert.Contains(logger.Entries, e =>
             e.Level == LogLevel.Information &&
             e.Message.Contains("Applying EF Core migrations"));

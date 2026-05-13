@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using Microsoft.Extensions.Logging;
 using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.BusinessLogic.Features.Forecasts.SynchronizeForecastOccurrences;
@@ -13,6 +14,13 @@ public class ForecastOccurrenceReconciliationService : BackgroundService
     private static readonly EventId ReconciliationFailedEventId = new(3004, nameof(ReconciliationFailedEventId));
     private static readonly EventId RetryScheduledEventId = new(3005, nameof(RetryScheduledEventId));
     private static readonly EventId ServiceCanceledEventId = new(3006, nameof(ServiceCanceledEventId));
+
+    private static readonly Meter WorkerMeter = new("MoneyTracker.Workers");
+    private static readonly Counter<long> ReconciliationRunsCounter = WorkerMeter.CreateCounter<long>("reconciliation_runs_total");
+    private static readonly Counter<long> ReconciliationSucceededCounter = WorkerMeter.CreateCounter<long>("reconciliation_succeeded_total");
+    private static readonly Counter<long> ReconciliationFailedCounter = WorkerMeter.CreateCounter<long>("reconciliation_failed_total");
+    private static readonly Counter<long> ReconciliationCanceledCounter = WorkerMeter.CreateCounter<long>("reconciliation_canceled_total");
+    private static readonly Counter<long> ReconciliationRetryScheduledCounter = WorkerMeter.CreateCounter<long>("reconciliation_retry_scheduled_total");
 
     private static readonly TimeSpan Interval = TimeSpan.FromHours(12);
     private static readonly TimeSpan MaxFailureDelay = TimeSpan.FromMinutes(30);
@@ -50,6 +58,7 @@ public class ForecastOccurrenceReconciliationService : BackgroundService
 
             if (!succeeded && delay >= AlertThresholdDelay)
             {
+                ReconciliationRetryScheduledCounter.Add(1);
                 _logger.LogWarning(
                     RetryScheduledEventId,
                     "Forecast occurrence reconciliation has failed {ConsecutiveFailures} consecutive times. Next retry in {Delay}.",
@@ -72,6 +81,7 @@ public class ForecastOccurrenceReconciliationService : BackgroundService
     private async Task<bool> ReconcileAsync(CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
+        ReconciliationRunsCounter.Add(1);
 
         try
         {
@@ -80,6 +90,7 @@ public class ForecastOccurrenceReconciliationService : BackgroundService
             var handler = scope.ServiceProvider.GetRequiredService<IHandler<SynchronizeForecastOccurrencesCommand>>();
             await handler.Handle(new SynchronizeForecastOccurrencesCommand(), cancellationToken);
             stopwatch.Stop();
+            ReconciliationSucceededCounter.Add(1);
             _logger.LogInformation(
                 ReconciliationSucceededEventId,
                 "Forecast occurrence reconciliation succeeded in {ElapsedMs}ms.",
@@ -89,6 +100,7 @@ public class ForecastOccurrenceReconciliationService : BackgroundService
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             stopwatch.Stop();
+            ReconciliationCanceledCounter.Add(1);
             _logger.LogInformation(
                 ReconciliationCanceledEventId,
                 "Forecast occurrence reconciliation canceled during execution after {ElapsedMs}ms.",
@@ -98,6 +110,7 @@ public class ForecastOccurrenceReconciliationService : BackgroundService
         catch (Exception ex)
         {
             stopwatch.Stop();
+            ReconciliationFailedCounter.Add(1);
             _logger.LogError(
                 ReconciliationFailedEventId,
                 ex,
