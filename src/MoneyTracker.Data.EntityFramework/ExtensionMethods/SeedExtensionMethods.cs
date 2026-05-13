@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MoneyTracker.Data;
 using MoneyTracker.Data.Base;
@@ -10,10 +9,10 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
 {
     public static class SeedExtensionMethods
     {
-        public static async Task SeedDefaultDataAsync(this MoneyTrackerDbContext db, ILogger logger, IConfiguration configuration, CancellationToken cancellationToken)
+        public static async Task SeedDefaultDataAsync(this MoneyTrackerDbContext db, ILogger logger, AdminCredentialsOptions adminCredentials, CancellationToken cancellationToken)
         {
             await db.SeedSystemUserAsync(logger, cancellationToken);
-            await db.SeedAdminUserAsync(logger, configuration, cancellationToken);
+            await db.SeedAdminUserAsync(logger, adminCredentials, cancellationToken);
             await db.SeedDefaultDataAsync(forecastRecurrenceRuleTypes, logger, cancellationToken);
             await db.SeedDefaultDataAsync(forecastOccurrenceStatuses, logger, cancellationToken);
         }
@@ -39,10 +38,10 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
             logger.LogInformation("Seeded system user '{Username}' ({UserId}).", SystemUsers.SystemUsername, SystemUsers.SystemUserId);
         }
 
-        private static async Task SeedAdminUserAsync(this MoneyTrackerDbContext db, ILogger logger, IConfiguration configuration, CancellationToken cancellationToken)
+        private static async Task SeedAdminUserAsync(this MoneyTrackerDbContext db, ILogger logger, AdminCredentialsOptions adminCredentials, CancellationToken cancellationToken)
         {
-            var username = configuration["Auth:Username"];
-            var password = configuration["Auth:Password"];
+            var username = adminCredentials.Username;
+            var password = adminCredentials.Password;
 
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {

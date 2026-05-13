@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using MoneyTracker.Data;
@@ -13,7 +12,7 @@ public class SeedExtensionMethodsTests : IDisposable
 {
     private readonly MoneyTrackerDbContext _dbContext;
     private readonly ILogger _logger;
-    private IConfiguration _configuration;
+    private AdminCredentialsOptions _adminCredentials;
 
     public SeedExtensionMethodsTests()
     {
@@ -25,7 +24,7 @@ public class SeedExtensionMethodsTests : IDisposable
         _dbContext.Database.EnsureCreated();
 
         _logger = NullLogger.Instance;
-        _configuration = new ConfigurationBuilder().Build();
+        _adminCredentials = new AdminCredentialsOptions();
     }
 
     public void Dispose()
@@ -38,13 +37,13 @@ public class SeedExtensionMethodsTests : IDisposable
     public async Task SeedDefaultDataAsync_SeedsSystemUser_BeforeFailingOnSqliteIncompatibility()
     {
         // Arrange
-        _configuration = BuildConfiguration(username: "admin", password: "password123");
+        _adminCredentials = BuildCredentials(username: "admin", password: "password123");
         var cancellationToken = CancellationToken.None;
 
         // Act
         // The method will seed system and admin users, then fail on forecast seeding due to SQLite incompatibility
         await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(async () =>
-            await _dbContext.SeedDefaultDataAsync(_logger, _configuration, cancellationToken));
+            await _dbContext.SeedDefaultDataAsync(_logger, _adminCredentials, cancellationToken));
 
         // Assert - Verify that users were seeded before the exception
         var systemUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == SystemUsers.SystemUserId, cancellationToken);
@@ -67,7 +66,7 @@ public class SeedExtensionMethodsTests : IDisposable
         // Act & Assert - Should not throw on the initial user seeding parts
         // Note: Will fail at TableExistsAsync due to SQLite not supporting INFORMATION_SCHEMA
         await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(async () =>
-            await _dbContext.SeedDefaultDataAsync(_logger, _configuration, cancellationToken));
+            await _dbContext.SeedDefaultDataAsync(_logger, _adminCredentials, cancellationToken));
 
         // Verify system user was still seeded even without admin config
         var systemUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == SystemUsers.SystemUserId, cancellationToken);
@@ -78,24 +77,24 @@ public class SeedExtensionMethodsTests : IDisposable
     public async Task SeedDefaultDataAsync_RespectsCancellationToken_ThrowsOperationCanceledException()
     {
         // Arrange
-        _configuration = BuildConfiguration(username: "admin", password: "password123");
+        _adminCredentials = BuildCredentials(username: "admin", password: "password123");
         var cancellationToken = new CancellationToken(canceled: true);
 
         // Act & Assert
         await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-            await _dbContext.SeedDefaultDataAsync(_logger, _configuration, cancellationToken));
+            await _dbContext.SeedDefaultDataAsync(_logger, _adminCredentials, cancellationToken));
     }
 
     [Fact]
     public async Task SeedDefaultDataAsync_SkipsAdminUser_WhenUsernameIsEmpty()
     {
         // Arrange
-        _configuration = BuildConfiguration(username: string.Empty, password: "password123");
+        _adminCredentials = BuildCredentials(username: string.Empty, password: "password123");
         var cancellationToken = CancellationToken.None;
 
         // Act
         await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(async () =>
-            await _dbContext.SeedDefaultDataAsync(_logger, _configuration, cancellationToken));
+            await _dbContext.SeedDefaultDataAsync(_logger, _adminCredentials, cancellationToken));
 
         // Assert - Only system user should be seeded
         var users = await _dbContext.Users.ToListAsync(cancellationToken);
@@ -107,12 +106,12 @@ public class SeedExtensionMethodsTests : IDisposable
     public async Task SeedDefaultDataAsync_SkipsAdminUser_WhenPasswordIsEmpty()
     {
         // Arrange
-        _configuration = BuildConfiguration(username: "admin", password: string.Empty);
+        _adminCredentials = BuildCredentials(username: "admin", password: string.Empty);
         var cancellationToken = CancellationToken.None;
 
         // Act
         await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(async () =>
-            await _dbContext.SeedDefaultDataAsync(_logger, _configuration, cancellationToken));
+            await _dbContext.SeedDefaultDataAsync(_logger, _adminCredentials, cancellationToken));
 
         // Assert - Only system user should be seeded
         var users = await _dbContext.Users.ToListAsync(cancellationToken);
@@ -128,23 +127,16 @@ public class SeedExtensionMethodsTests : IDisposable
 
         // Act - Call twice
         await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(async () =>
-            await _dbContext.SeedDefaultDataAsync(_logger, _configuration, cancellationToken));
+            await _dbContext.SeedDefaultDataAsync(_logger, _adminCredentials, cancellationToken));
 
         await Assert.ThrowsAsync<Microsoft.Data.Sqlite.SqliteException>(async () =>
-            await _dbContext.SeedDefaultDataAsync(_logger, _configuration, cancellationToken));
+            await _dbContext.SeedDefaultDataAsync(_logger, _adminCredentials, cancellationToken));
 
         // Assert - Should still have only one system user
         var systemUsers = await _dbContext.Users.Where(u => u.Id == SystemUsers.SystemUserId).ToListAsync(cancellationToken);
         Assert.Single(systemUsers);
     }
 
-    private static IConfiguration BuildConfiguration(string? username = null, string? password = null)
-    {
-        var data = new Dictionary<string, string?>
-        {
-            ["Auth:Username"] = username,
-            ["Auth:Password"] = password
-        };
-        return new ConfigurationBuilder().AddInMemoryCollection(data).Build();
-    }
+    private static AdminCredentialsOptions BuildCredentials(string? username = null, string? password = null)
+        => new() { Username = username, Password = password };
 }

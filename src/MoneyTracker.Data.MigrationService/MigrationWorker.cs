@@ -1,6 +1,7 @@
 using System.Diagnostics.Metrics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MoneyTracker.Data.EntityFramework;
 using MoneyTracker.Data.EntityFramework.ExtensionMethods;
 
@@ -24,61 +25,25 @@ public class MigrationWorker : BackgroundService
 
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<MigrationWorker> _logger;
-    private readonly IConfiguration _configuration;
+    private readonly AdminCredentialsOptions _adminCredentials;
     private readonly IHostApplicationLifetime _applicationLifetime;
 
-    private sealed class NoOpHostApplicationLifetime : IHostApplicationLifetime
-    {
-        public CancellationToken ApplicationStarted => CancellationToken.None;
-        public CancellationToken ApplicationStopping => CancellationToken.None;
-        public CancellationToken ApplicationStopped => CancellationToken.None;
-        public void StopApplication() { }
-    }
-
-    private static readonly IHostApplicationLifetime NoOpLifetime = new NoOpHostApplicationLifetime();
-
     public MigrationWorker(
         IServiceProvider serviceProvider,
         ILogger<MigrationWorker> logger,
-        IConfiguration configuration)
-        : this(serviceProvider, logger, configuration, NoOpLifetime)
-    {
-    }
-
-    public MigrationWorker(
-        IServiceProvider serviceProvider,
-        ILogger<MigrationWorker> logger,
-        IConfiguration configuration,
+        IOptions<AdminCredentialsOptions> adminCredentials,
         IHostApplicationLifetime applicationLifetime)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
-        _configuration = configuration;
+        _adminCredentials = adminCredentials.Value;
         _applicationLifetime = applicationLifetime;
-    }
-
-    public override Task StartAsync(CancellationToken cancellationToken)
-    {
-        return base.StartAsync(cancellationToken);
-    }
-
-    public override Task StopAsync(CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await RunMigrationAsync(stoppingToken);
-    }
-
-    private async Task RunMigrationAsync(CancellationToken stoppingToken)
-    {
         var runId = Guid.NewGuid().ToString("N");
-        using var scope = _logger.BeginScope(new Dictionary<string, object>
-        {
-            ["RunId"] = runId
-        });
+        using var scope = _logger.BeginScope("RunId: {RunId}", runId);
 
         WorkerRunsCounter.Add(1);
         _logger.LogInformation(WorkerStartingEventId, "Starting EF migration worker...");
@@ -92,7 +57,7 @@ public class MigrationWorker : BackgroundService
             await db.Database.MigrateAsync(stoppingToken);
             _logger.LogInformation(MigrationsAppliedEventId, "Migrations applied successfully.");
 
-            await db.SeedDefaultDataAsync(_logger, _configuration, stoppingToken);
+            await db.SeedDefaultDataAsync(_logger, _adminCredentials, stoppingToken);
 
             _logger.LogInformation(DefaultDataSeededEventId, "Seeded default data.");
             WorkerSucceededCounter.Add(1);

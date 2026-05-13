@@ -17,6 +17,8 @@ builder.Services.AddDbContext<MoneyTrackerDbContext>(options =>
 });
 
 builder.AddServiceDefaults();
+builder.Services.AddOptions<AdminCredentialsOptions>()
+    .Bind(builder.Configuration.GetSection(AdminCredentialsOptions.SectionName));
 builder.Services.AddHostedService<MigrationWorker>();
 
 var host = builder.Build();

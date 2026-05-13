@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MoneyTracker.Data.EntityFramework;
 
 namespace MoneyTracker.Data.MigrationService.UnitTests;
@@ -44,8 +45,16 @@ public class MigrationWorkerTests
             => serviceType == typeof(IServiceScopeFactory) ? scopeFactory : null;
     }
 
+    private sealed class FakeApplicationLifetime : IHostApplicationLifetime
+    {
+        public CancellationToken ApplicationStarted => CancellationToken.None;
+        public CancellationToken ApplicationStopping => CancellationToken.None;
+        public CancellationToken ApplicationStopped => CancellationToken.None;
+        public void StopApplication() { }
+    }
+
     // Builds fake infrastructure with MoneyTrackerDbContext registered in scope
-    private static (IServiceProvider rootProvider, MoneyTrackerDbContext db, FakeLogger logger, IConfiguration config)
+    private static (IServiceProvider rootProvider, MoneyTrackerDbContext db, FakeLogger logger, AdminCredentialsOptions adminCredentials)
         BuildTestServices(string? dbName = null)
     {
         var options = new DbContextOptionsBuilder<MoneyTrackerDbContext>()
@@ -61,13 +70,13 @@ public class MigrationWorkerTests
         var rootProvider = new FakeRootServiceProvider(scopeFactory);
 
         var logger = new FakeLogger();
-        var config = new ConfigurationBuilder().Build();
+        var adminCredentials = new AdminCredentialsOptions();
 
-        return (rootProvider, db, logger, config);
+        return (rootProvider, db, logger, adminCredentials);
     }
 
-    private static MigrationWorker CreateWorker(IServiceProvider rootProvider, FakeLogger logger, IConfiguration config)
-        => new(rootProvider, logger, config);
+    private static MigrationWorker CreateWorker(IServiceProvider rootProvider, FakeLogger logger, AdminCredentialsOptions adminCredentials)
+        => new(rootProvider, logger, Options.Create(adminCredentials), new FakeApplicationLifetime());
 
     private static async Task<Exception?> StartAndWaitForExecutionAsync(MigrationWorker worker, CancellationToken cancellationToken = default)
     {
@@ -205,7 +214,7 @@ public class MigrationWorkerTests
         var root = new FakeRootServiceProvider(trackingFactory);
 
         var logger = new FakeLogger();
-        var worker = new MigrationWorker(root, logger, new ConfigurationBuilder().Build());
+        var worker = new MigrationWorker(root, logger, Options.Create(new AdminCredentialsOptions()), new FakeApplicationLifetime());
 
         // Act
         await StartAndWaitForExecutionAsync(worker);
@@ -232,7 +241,7 @@ public class MigrationWorkerTests
         var root = new FakeRootServiceProvider(trackingFactory);
 
         var logger = new FakeLogger();
-        var worker = new MigrationWorker(root, logger, new ConfigurationBuilder().Build());
+        var worker = new MigrationWorker(root, logger, Options.Create(new AdminCredentialsOptions()), new FakeApplicationLifetime());
 
         await StartAndWaitForExecutionAsync(worker);
 
