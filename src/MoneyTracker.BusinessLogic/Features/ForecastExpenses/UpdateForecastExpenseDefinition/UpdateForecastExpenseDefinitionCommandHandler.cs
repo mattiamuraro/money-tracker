@@ -42,7 +42,7 @@ public class UpdateForecastExpenseDefinitionCommandHandler(
         var expectedOccurrences = forecastExpense.GetRecurrences(startDate, endDate)
             .Select(date => new ForecastOccurrence
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.CreateVersion7(),
                 ForecastDefinitionId = forecastExpense.Id,
                 IsIncome = false,
                 Description = forecastExpense.Description,

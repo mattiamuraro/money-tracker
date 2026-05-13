@@ -36,7 +36,7 @@ public class RegisterCommandHandler(
 
         var user = new User
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Username = command.Username,
             PasswordHash = passwordHasher.HashPassword(null!, command.Password),
             CreatedAt = DateTime.UtcNow

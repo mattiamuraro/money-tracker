@@ -117,7 +117,7 @@ public class SynchronizeForecastOccurrencesCommandHandler(MoneyTrackerDbContext 
 
             dbContext.ForecastOccurrences.Add(new ForecastOccurrence
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.CreateVersion7(),
                 ForecastDefinitionId = seed.ForecastDefinitionId,
                 IsIncome = seed.IsIncome,
                 Description = seed.Description,

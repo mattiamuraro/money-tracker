@@ -25,7 +25,7 @@ public class CreateForecastExpenseDefinitionCommandHandler(
 
         var forecastExpense = new ForecastExpense
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             PaymentCategoryId = command.PaymentCategoryId,
             Description = command.Description,
             Amount = command.Amount,
@@ -55,7 +55,7 @@ public class CreateForecastExpenseDefinitionCommandHandler(
         var occurrences = forecastExpense.GetRecurrences(startDate, endDate)
             .Select(date => new ForecastOccurrence
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.CreateVersion7(),
                 ForecastDefinitionId = forecastExpense.Id,
                 IsIncome = false,
                 Description = forecastExpense.Description,

@@ -44,7 +44,7 @@ public class CreateIncomeCommandHandler(
 
         var income = new Income
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Description = normalizedDescription,
             DescriptionNormalized = normalizedDescription.ToUpperInvariant(),
             ForecastOccurrenceId = command.ForecastOccurrenceId,

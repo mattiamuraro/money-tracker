@@ -58,7 +58,7 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
             var hasher = new PasswordHasher<User>();
             var user = new User
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.CreateVersion7(),
                 Username = username,
                 PasswordHash = hasher.HashPassword(null!, password),
             };
@@ -132,11 +132,11 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
 
         private static ForecastRecurrenceRuleType[] forecastRecurrenceRuleTypes =
         {
-                new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "One Time", Code = ForecastRecurrenceRuleType.OneTime, OrderIndex = 1 },
-                new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Day", Code = ForecastRecurrenceRuleType.Day, OrderIndex = 2 },
-                new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Week", Code = ForecastRecurrenceRuleType.Week, OrderIndex = 3 },
-                new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Month", Code = ForecastRecurrenceRuleType.Month, OrderIndex = 4 },
-                new ForecastRecurrenceRuleType { Id = Guid.NewGuid(), Name = "Year", Code = ForecastRecurrenceRuleType.Year, OrderIndex = 5 }
+                new ForecastRecurrenceRuleType { Id = Guid.CreateVersion7(), Name = "One Time", Code = ForecastRecurrenceRuleType.OneTime, OrderIndex = 1 },
+                new ForecastRecurrenceRuleType { Id = Guid.CreateVersion7(), Name = "Day", Code = ForecastRecurrenceRuleType.Day, OrderIndex = 2 },
+                new ForecastRecurrenceRuleType { Id = Guid.CreateVersion7(), Name = "Week", Code = ForecastRecurrenceRuleType.Week, OrderIndex = 3 },
+                new ForecastRecurrenceRuleType { Id = Guid.CreateVersion7(), Name = "Month", Code = ForecastRecurrenceRuleType.Month, OrderIndex = 4 },
+                new ForecastRecurrenceRuleType { Id = Guid.CreateVersion7(), Name = "Year", Code = ForecastRecurrenceRuleType.Year, OrderIndex = 5 }
         };
 
         private static ForecastOccurrenceStatus[] forecastOccurrenceStatuses =

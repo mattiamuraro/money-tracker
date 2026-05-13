@@ -51,7 +51,7 @@ public class CreatePaymentCommandHandler(
 
         var payment = new Payment
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Description = request.Description,
             DescriptionNormalized = request.Description.Trim().ToUpperInvariant(),
             PaymentCategoryId = request.PaymentCategoryId,

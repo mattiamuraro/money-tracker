@@ -20,7 +20,7 @@ public class CreateForecastIncomeDefinitionCommandHandler(
 
         var forecastIncome = new ForecastIncome
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Description = command.Description,
             Amount = command.Amount,
             RecurrenceStart = command.RecurrenceStart,
@@ -49,7 +49,7 @@ public class CreateForecastIncomeDefinitionCommandHandler(
         var occurrences = forecastIncome.GetRecurrences(startDate, endDate)
             .Select(date => new ForecastOccurrence
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.CreateVersion7(),
                 ForecastDefinitionId = forecastIncome.Id,
                 IsIncome = true,
                 Description = forecastIncome.Description,

@@ -78,11 +78,8 @@ public class ForecastOccurrenceReconciliationService : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var runId = Guid.NewGuid().ToString("N");
-            using var scope = _logger.BeginScope(new Dictionary<string, object>
-            {
-                ["RunId"] = runId
-            });
+            var runId = Activity.Current?.TraceId.ToString() ?? Guid.CreateVersion7().ToString();
+            using var scope = _logger.BeginScope("RunId: {RunId}", runId);
 
             var succeeded = await ReconcileAsync(stoppingToken);
 

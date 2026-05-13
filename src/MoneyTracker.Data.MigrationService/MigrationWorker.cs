@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -42,7 +43,7 @@ public class MigrationWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var runId = Guid.NewGuid().ToString("N");
+        var runId = Activity.Current?.TraceId.ToString() ?? Guid.CreateVersion7().ToString();
         using var scope = _logger.BeginScope("RunId: {RunId}", runId);
 
         WorkerRunsCounter.Add(1);

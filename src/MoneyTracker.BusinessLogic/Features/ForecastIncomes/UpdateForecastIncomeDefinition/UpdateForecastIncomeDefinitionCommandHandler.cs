@@ -37,7 +37,7 @@ public class UpdateForecastIncomeDefinitionCommandHandler(
         var expectedOccurrences = forecastIncome.GetRecurrences(startDate, endDate)
             .Select(date => new ForecastOccurrence
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.CreateVersion7(),
                 ForecastDefinitionId = forecastIncome.Id,
                 IsIncome = true,
                 Description = forecastIncome.Description,

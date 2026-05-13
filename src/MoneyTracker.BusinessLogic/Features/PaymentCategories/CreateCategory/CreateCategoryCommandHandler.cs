@@ -28,7 +28,7 @@ public class CreateCategoryCommandHandler(
 
         var category = new PaymentCategory
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.CreateVersion7(),
             Name = command.Name,
             NameNormalized = command.Name.Trim().ToUpperInvariant(),
             Code = command.Code
