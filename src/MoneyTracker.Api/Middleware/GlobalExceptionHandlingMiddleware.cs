@@ -1,6 +1,8 @@
 ﻿using System.Data.Common;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using MoneyTracker.Api.Options;
 using MoneyTracker.Api.Resources;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
 
@@ -17,15 +19,21 @@ public partial class GlobalExceptionHandlingMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionHandlingMiddleware> _logger;
     private readonly IWebHostEnvironment _environment;
+    private readonly ExceptionDetailOptions _exceptionDetailOptions;
+    private readonly IExceptionDetailSanitizer _exceptionDetailSanitizer;
 
     public GlobalExceptionHandlingMiddleware(
         RequestDelegate next,
         ILogger<GlobalExceptionHandlingMiddleware> logger,
-        IWebHostEnvironment environment)
+        IWebHostEnvironment environment,
+        IOptions<ExceptionDetailOptions> exceptionDetailOptions,
+        IExceptionDetailSanitizer exceptionDetailSanitizer)
     {
         _next = next;
         _logger = logger;
         _environment = environment;
+        _exceptionDetailOptions = exceptionDetailOptions.Value;
+        _exceptionDetailSanitizer = exceptionDetailSanitizer;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -63,7 +71,7 @@ public partial class GlobalExceptionHandlingMiddleware
         {
             Status = StatusCodes.Status408RequestTimeout,
             Title = ErrorMessageResources.RequestCanceled,
-            Detail = GetDevelopmentDetail(exception.Message),
+            Detail = GetClientDetail(exception.Message),
             Type = $"https://httpstatuses.com/{StatusCodes.Status408RequestTimeout}",
             Instance = context.Request.Path
         }
@@ -115,7 +123,6 @@ public partial class GlobalExceptionHandlingMiddleware
             or ConflictException
             or BadRequestException
             or ArgumentException
-            or InvalidOperationException
             or EntityNotFoundException;
 
     private static Task WriteProblemResponseAsync(HttpContext context, ProblemDetails problemDetails, CancellationToken cancellationToken)
@@ -152,23 +159,20 @@ public partial class GlobalExceptionHandlingMiddleware
         var (statusCode, code, title, detail, subCode, entityName, entityId) = exception switch
         {
             UnauthorizedAccessException unauthorizedEx =>
-                (StatusCodes.Status401Unauthorized, ErrorCodes.Unauthorized, ErrorMessageResources.Unauthorized, GetDevelopmentDetail(unauthorizedEx.Message), ErrorCodes.Unauthorized, (string?)null, (string?)null),
+                (StatusCodes.Status401Unauthorized, ErrorCodes.Unauthorized, ErrorMessageResources.Unauthorized, GetClientDetail(unauthorizedEx.Message), ErrorCodes.Unauthorized, (string?)null, (string?)null),
             ConflictException conflictEx =>
-                (StatusCodes.Status409Conflict, ErrorCodes.Conflict, ErrorMessageResources.Conflict, GetDevelopmentDetail(conflictEx.Message), conflictEx.ErrorCode ?? ErrorCodes.Conflict, conflictEx.EntityName, conflictEx.EntityId),
+                (StatusCodes.Status409Conflict, ErrorCodes.Conflict, ErrorMessageResources.Conflict, GetClientDetail(conflictEx.Message), conflictEx.ErrorCode ?? ErrorCodes.Conflict, conflictEx.EntityName, conflictEx.EntityId),
             BadRequestException badRequestEx =>
-                (StatusCodes.Status400BadRequest, ErrorCodes.BadRequest, ErrorMessageResources.BadRequest, GetDevelopmentDetail(badRequestEx.Message), badRequestEx.ErrorCode ?? ErrorCodes.BadRequest, badRequestEx.EntityName, badRequestEx.EntityId),
+                (StatusCodes.Status400BadRequest, ErrorCodes.BadRequest, ErrorMessageResources.BadRequest, GetClientDetail(badRequestEx.Message), badRequestEx.ErrorCode ?? ErrorCodes.BadRequest, badRequestEx.EntityName, badRequestEx.EntityId),
             ArgumentException argumentEx =>
-                (StatusCodes.Status400BadRequest, ErrorCodes.BadRequest, ErrorMessageResources.BadRequest, GetDevelopmentDetail(argumentEx.Message), ErrorCodes.BadRequest, (string?)null, (string?)null),
-            InvalidOperationException invalidOpEx =>
-                (StatusCodes.Status400BadRequest, ErrorCodes.InvalidOperation, ErrorMessageResources.InvalidOperation, GetDevelopmentDetail(invalidOpEx.Message), ErrorCodes.InvalidOperation, (string?)null, (string?)null),
+                (StatusCodes.Status400BadRequest, ErrorCodes.BadRequest, ErrorMessageResources.BadRequest, GetClientDetail(argumentEx.Message), ErrorCodes.BadRequest, (string?)null, (string?)null),
             EntityNotFoundException notFoundEx =>
-                (StatusCodes.Status404NotFound, ErrorCodes.NotFound, ErrorMessageResources.NotFound, GetDevelopmentDetail(notFoundEx.Message), notFoundEx.ErrorCode ?? ErrorCodes.NotFound, notFoundEx.EntityName, notFoundEx.EntityId),
+                (StatusCodes.Status404NotFound, ErrorCodes.NotFound, ErrorMessageResources.NotFound, GetClientDetail(notFoundEx.Message), notFoundEx.ErrorCode ?? ErrorCodes.NotFound, notFoundEx.EntityName, notFoundEx.EntityId),
             TimeoutException timeoutEx =>
-                (StatusCodes.Status503ServiceUnavailable, ErrorCodes.TransientFailure, ErrorMessageResources.TransientFailure, GetDevelopmentDetail(timeoutEx.Message), ErrorCodes.TransientFailure, (string?)null, (string?)null),
-            DbException dbException =>
-                (StatusCodes.Status503ServiceUnavailable, ErrorCodes.TransientFailure, ErrorMessageResources.TransientFailure, GetDevelopmentDetail(dbException.Message), ErrorCodes.TransientFailure, (string?)null, (string?)null),
+                (StatusCodes.Status503ServiceUnavailable, ErrorCodes.TransientFailure, ErrorMessageResources.TransientFailure, GetClientDetail(timeoutEx.Message), ErrorCodes.TransientFailure, (string?)null, (string?)null),
+            DbException dbException => ClassifyDbException(dbException),
             _ =>
-                (StatusCodes.Status500InternalServerError, ErrorCodes.InternalServerError, ErrorMessageResources.InternalServerError, GetDevelopmentDetail(exception.ToString()), ErrorCodes.InternalServerError, (string?)null, (string?)null)
+                (StatusCodes.Status500InternalServerError, ErrorCodes.InternalServerError, ErrorMessageResources.InternalServerError, GetClientDetail(exception.Message), ErrorCodes.InternalServerError, (string?)null, (string?)null)
         };
 
         return new ProblemDetails
@@ -183,42 +187,82 @@ public partial class GlobalExceptionHandlingMiddleware
         .WithExceptionMetadata(subCode, entityName, entityId);
     }
 
-    private string? GetDevelopmentDetail(string detail)
+    private (int StatusCode, string Code, string Title, string? Detail, string? SubCode, string? EntityName, string? EntityId) ClassifyDbException(DbException dbException)
     {
-        if (!_environment.IsDevelopment())
+        var classification = GetDbExceptionClassification(dbException);
+
+        _logger.LogWarning(
+            new EventId(1105, "DbExceptionClassified"),
+            dbException,
+            "Database exception classified as {Classification} with status code {StatusCode}.",
+            classification,
+            classification switch
+            {
+                DbExceptionClassification.Transient => StatusCodes.Status503ServiceUnavailable,
+                DbExceptionClassification.Conflict => StatusCodes.Status409Conflict,
+                _ => StatusCodes.Status500InternalServerError
+            });
+
+        return classification switch
+        {
+            DbExceptionClassification.Transient =>
+                (StatusCodes.Status503ServiceUnavailable, ErrorCodes.TransientFailure, ErrorMessageResources.TransientFailure, GetClientDetail(dbException.Message), ErrorCodes.TransientFailure, (string?)null, (string?)null),
+            DbExceptionClassification.Conflict =>
+                (StatusCodes.Status409Conflict, ErrorCodes.Conflict, ErrorMessageResources.Conflict, GetClientDetail(dbException.Message), ErrorCodes.Conflict, (string?)null, (string?)null),
+            _ =>
+                (StatusCodes.Status500InternalServerError, ErrorCodes.InternalServerError, ErrorMessageResources.InternalServerError, GetClientDetail(dbException.Message), ErrorCodes.InternalServerError, (string?)null, (string?)null)
+        };
+    }
+
+    private static DbExceptionClassification GetDbExceptionClassification(DbException dbException)
+    {
+        var message = dbException.Message;
+
+        if (ContainsAny(message,
+                "timeout",
+                "deadlock",
+                "transport-level",
+                "connection is broken",
+                "network-related",
+                "temporarily unavailable",
+                "transient"))
+        {
+            return DbExceptionClassification.Transient;
+        }
+
+        if (ContainsAny(message,
+                "unique constraint",
+                "duplicate key",
+                "foreign key",
+                "check constraint",
+                "violates",
+                "primary key"))
+        {
+            return DbExceptionClassification.Conflict;
+        }
+
+        return DbExceptionClassification.Unknown;
+    }
+
+    private static bool ContainsAny(string value, params string[] markers)
+        => markers.Any(marker => value.Contains(marker, StringComparison.OrdinalIgnoreCase));
+
+    private enum DbExceptionClassification
+    {
+        Unknown,
+        Transient,
+        Conflict
+    }
+
+    private string? GetClientDetail(string? detail)
+    {
+        if (!_environment.IsDevelopment() || !_exceptionDetailOptions.IncludeExceptionDetails)
         {
             return null;
         }
 
-        return SanitizeDetail(detail);
+        return _exceptionDetailSanitizer.Sanitize(detail);
     }
-
-    private static string? SanitizeDetail(string? detail)
-    {
-        if (string.IsNullOrWhiteSpace(detail))
-        {
-            return detail;
-        }
-
-        var redactedDetail = detail;
-
-        if (ContainsSensitiveKey(redactedDetail, "password")
-            || ContainsSensitiveKey(redactedDetail, "pwd")
-            || ContainsSensitiveKey(redactedDetail, "secret")
-            || ContainsSensitiveKey(redactedDetail, "token")
-            || ContainsSensitiveKey(redactedDetail, "apikey")
-            || ContainsSensitiveKey(redactedDetail, "api-key")
-            || ContainsSensitiveKey(redactedDetail, "connectionstring")
-            || ContainsSensitiveKey(redactedDetail, "connection string"))
-        {
-            redactedDetail = "Sensitive details were redacted.";
-        }
-
-        return redactedDetail;
-    }
-
-    private static bool ContainsSensitiveKey(string value, string key)
-        => value.Contains(key, StringComparison.OrdinalIgnoreCase);
 
     [LoggerMessage(EventId = 1101, Level = LogLevel.Information, Message = "Request was canceled by the client.")]
     private static partial void LogRequestCanceled(ILogger logger);

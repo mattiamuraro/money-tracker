@@ -1,12 +1,15 @@
-﻿using System.Text.Json;
+﻿using System.Data.Common;
+using System.Text.Json;
 using FluentValidation;
 using FluentValidation.Results;
+using MoneyTracker.Api.Middleware;
+using MoneyTracker.Api.Options;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
-using MoneyTracker.Api.Middleware;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace MoneyTracker.Api.Tests.Middleware;
@@ -16,6 +19,8 @@ namespace MoneyTracker.Api.Tests.Middleware;
 /// </summary>
 public class GlobalExceptionHandlingMiddlewareTests
 {
+    private sealed class TestDbException(string message) : DbException(message);
+
     private sealed class FakeLogger : ILogger<GlobalExceptionHandlingMiddleware>
     {
         public record LogEntry(LogLevel Level, Exception? Exception, string Message);
@@ -43,11 +48,14 @@ public class GlobalExceptionHandlingMiddlewareTests
 
     private static (GlobalExceptionHandlingMiddleware middleware, FakeLogger logger) CreateMiddleware(
         RequestDelegate? next = null,
-        IWebHostEnvironment? environment = null)
+        IWebHostEnvironment? environment = null,
+        bool includeExceptionDetails = true)
     {
         var logger = new FakeLogger();
         var env = environment ?? new FakeWebHostEnvironment();
-        var middleware = new GlobalExceptionHandlingMiddleware(next ?? (_ => Task.CompletedTask), logger, env);
+        var options = Microsoft.Extensions.Options.Options.Create(new ExceptionDetailOptions { IncludeExceptionDetails = includeExceptionDetails });
+        var sanitizer = new ExceptionDetailSanitizer();
+        var middleware = new GlobalExceptionHandlingMiddleware(next ?? (_ => Task.CompletedTask), logger, env, options, sanitizer);
         return (middleware, logger);
     }
 
@@ -191,7 +199,7 @@ public class GlobalExceptionHandlingMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_Should_Return_RequestTimeout_ProblemDetails_When_Request_Is_Canceled()
+    public async Task InvokeAsync_Should_Return_RequestTimeout_ProblemDetails_When_ValidationException_Thrown()
     {
         var cts = new CancellationTokenSource();
         cts.Cancel();
@@ -248,7 +256,163 @@ public class GlobalExceptionHandlingMiddlewareTests
         context.Response.Body.Position = 0;
         using var doc = await JsonDocument.ParseAsync(context.Response.Body);
 
-        Assert.Equal("Sensitive details were redacted.", doc.RootElement.GetProperty("detail").GetString());
+        Assert.Equal("password=[REDACTED]", doc.RootElement.GetProperty("detail").GetString());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Redact_Bearer_And_Api_Key_Details()
+    {
+        var env = new FakeWebHostEnvironment { EnvironmentName = "Development" };
+        var rawMessage = "Authorization: Bearer abcdefghijklmnopqrstuvwxyz123456; x-api-key=topsecret";
+        var (middleware, _) = CreateMiddleware(_ => throw new Exception(rawMessage), env);
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        var detail = doc.RootElement.GetProperty("detail").GetString();
+        Assert.NotNull(detail);
+        Assert.DoesNotContain("abcdefghijklmnopqrstuvwxyz123456", detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("topsecret", detail, StringComparison.Ordinal);
+        Assert.Contains("Bearer [REDACTED]", detail, StringComparison.Ordinal);
+        Assert.Contains("x-api-key=[REDACTED]", detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Redact_Json_Secret_Details()
+    {
+        var env = new FakeWebHostEnvironment { EnvironmentName = "Development" };
+        var rawMessage = "payload= {\"token\":\"abc123\",\"password\":\"super-secret\"}";
+        var (middleware, _) = CreateMiddleware(_ => throw new Exception(rawMessage), env);
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        var detail = doc.RootElement.GetProperty("detail").GetString();
+        Assert.NotNull(detail);
+        Assert.DoesNotContain("abc123", detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("super-secret", detail, StringComparison.Ordinal);
+        Assert.Contains("\"token\":\"[REDACTED]\"", detail, StringComparison.Ordinal);
+        Assert.Contains("\"password\":\"[REDACTED]\"", detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Not_Include_Detail_In_Production()
+    {
+        var env = new FakeWebHostEnvironment { EnvironmentName = "Production" };
+        var (middleware, _) = CreateMiddleware(_ => throw new Exception("password=super-secret"), env);
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        Assert.False(doc.RootElement.TryGetProperty("detail", out _));
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Not_Include_Detail_When_Option_Disabled()
+    {
+        var env = new FakeWebHostEnvironment { EnvironmentName = "Development" };
+        var (middleware, _) = CreateMiddleware(_ => throw new Exception("password=super-secret"), env, includeExceptionDetails: false);
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        Assert.False(doc.RootElement.TryGetProperty("detail", out _));
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Map_InvalidOperationException_To_InternalServerError()
+    {
+        // Arrange
+        var (middleware, _) = CreateMiddleware(_ => throw new InvalidOperationException("Unexpected state"));
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        Assert.Equal(StatusCodes.Status500InternalServerError, context.Response.StatusCode);
+        Assert.Equal("INTERNAL_SERVER_ERROR", doc.RootElement.GetProperty("code").GetString());
+        Assert.Equal("INTERNAL_SERVER_ERROR", doc.RootElement.GetProperty("subCode").GetString());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Map_Transient_DbException_To_ServiceUnavailable()
+    {
+        // Arrange
+        var (middleware, _) = CreateMiddleware(_ => throw new TestDbException("A transient timeout occurred while connecting to database."));
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, context.Response.StatusCode);
+        Assert.Equal("TRANSIENT_FAILURE", doc.RootElement.GetProperty("code").GetString());
+        Assert.Equal("TRANSIENT_FAILURE", doc.RootElement.GetProperty("subCode").GetString());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Map_Constraint_DbException_To_Conflict()
+    {
+        // Arrange
+        var (middleware, _) = CreateMiddleware(_ => throw new TestDbException("Violation of UNIQUE CONSTRAINT on table Payments."));
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        Assert.Equal(StatusCodes.Status409Conflict, context.Response.StatusCode);
+        Assert.Equal("CONFLICT", doc.RootElement.GetProperty("code").GetString());
+        Assert.Equal("CONFLICT", doc.RootElement.GetProperty("subCode").GetString());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Map_Unknown_DbException_To_InternalServerError()
+    {
+        // Arrange
+        var (middleware, _) = CreateMiddleware(_ => throw new TestDbException("Unknown database engine failure."));
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        Assert.Equal(StatusCodes.Status500InternalServerError, context.Response.StatusCode);
+        Assert.Equal("INTERNAL_SERVER_ERROR", doc.RootElement.GetProperty("code").GetString());
+        Assert.Equal("INTERNAL_SERVER_ERROR", doc.RootElement.GetProperty("subCode").GetString());
     }
 }
 

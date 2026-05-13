@@ -3,6 +3,8 @@ using Microsoft.Extensions.Logging;
 using MoneyTracker.BusinessLogic.Common.Extensions;
 using MoneyTracker.Data.EntityFramework;
 using MoneyTracker.ReconciliationWorker;
+using MoneyTracker.ReconciliationWorker.Incidents;
+using MoneyTracker.ReconciliationWorker.Options;
 using MoneyTracker.ServiceDefaults;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -10,6 +12,9 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.AddServiceDefaults();
 builder.AddSqlServerDbContext<MoneyTrackerDbContext>("moneytacker-db");
 builder.Services.AddBusinessLogicServices();
+builder.Services.Configure<WorkerResilienceOptions>(
+    builder.Configuration.GetSection(WorkerResilienceOptions.SectionName));
+builder.Services.AddSingleton<IWorkerIncidentNotifier, NoOpWorkerIncidentNotifier>();
 builder.Services.AddHostedService<ForecastOccurrenceReconciliationService>();
 
 var host = builder.Build();
