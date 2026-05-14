@@ -14,6 +14,7 @@ public class LoginCommandHandler(
     IValidator<LoginCommand> validator,
     IOptions<JwtOptions> jwtOptions,
     IPasswordHasher<User> passwordHasher,
+    ILoginAttemptService loginAttemptService,
     MoneyTrackerDbContext dbContext)
     : IHandler<LoginCommand, LoginAuthTokenDto>
 {
@@ -25,14 +26,28 @@ public class LoginCommandHandler(
         if (!validationResult.IsValid)
             throw new ValidationException(validationResult.Errors);
 
-        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Username == command.Username, cancellationToken);
+        var username = command.Username.Trim();
+        var nowUtc = DateTimeOffset.UtcNow;
+
+        if (loginAttemptService.IsLockedOut(username, nowUtc))
+            throw new UnauthorizedAccessException(LoginCommand.AuthFailedMessage);
+
+        var user = await dbContext.Users.FirstOrDefaultAsync(u => u.Username == username, cancellationToken);
 
         if (user is null)
-            throw new UnauthorizedAccessException("Username or password is incorrect");
+        {
+            loginAttemptService.RegisterFailure(username, nowUtc);
+            throw new UnauthorizedAccessException(LoginCommand.AuthFailedMessage);
+        }
 
         var result = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, command.Password);
         if (result == PasswordVerificationResult.Failed)
-            throw new UnauthorizedAccessException("Username or password is incorrect");
+        {
+            loginAttemptService.RegisterFailure(username, nowUtc);
+            throw new UnauthorizedAccessException(LoginCommand.AuthFailedMessage);
+        }
+
+        loginAttemptService.RegisterSuccess(username);
 
         var token = user.BuildToken(_jwtOptions);
 

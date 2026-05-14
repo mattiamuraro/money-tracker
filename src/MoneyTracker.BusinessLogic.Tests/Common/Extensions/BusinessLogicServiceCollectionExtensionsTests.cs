@@ -888,6 +888,7 @@ public class BusinessLogicServiceCollectionExtensionsTests
         services.Configure<MoneyTracker.BusinessLogic.Features.Auth.Options.AuthOptions>(o => o.AllowRegistration = true);
         services.AddSingleton<Microsoft.AspNetCore.Identity.IPasswordHasher<MoneyTracker.Data.User>,
             Microsoft.AspNetCore.Identity.PasswordHasher<MoneyTracker.Data.User>>();
+        services.AddSingleton<ILoginAttemptService, NoOpLoginAttemptService>();
 
         // Assert
         var serviceProvider = services.BuildServiceProvider();
@@ -940,5 +941,18 @@ public class BusinessLogicServiceCollectionExtensionsTests
         Assert.NotNull(serviceProvider.GetService<IValidator<UpdateForecastIncomeDefinitionCommand>>());
         Assert.NotNull(serviceProvider.GetService<IValidator<CreateForecastExpenseDefinitionCommand>>());
         Assert.NotNull(serviceProvider.GetService<IValidator<UpdateForecastExpenseDefinitionCommand>>());
+    }
+
+    private sealed class NoOpLoginAttemptService : ILoginAttemptService
+    {
+        public bool IsLockedOut(string username, DateTimeOffset nowUtc) => false;
+
+        public void RegisterFailure(string username, DateTimeOffset nowUtc)
+        {
+        }
+
+        public void RegisterSuccess(string username)
+        {
+        }
     }
 }

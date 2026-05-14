@@ -1,5 +1,7 @@
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MoneyTracker.Api.Endpoints.Auth;
 using MoneyTracker.Api.Endpoints.ForecastExpenses;
@@ -10,6 +12,7 @@ using MoneyTracker.Api.Endpoints.PaymentCategories;
 using MoneyTracker.Api.Endpoints.Payments;
 using MoneyTracker.Api.ExtensionMethods;
 using MoneyTracker.Api.Middleware;
+using MoneyTracker.Api.Options;
 using MoneyTracker.BusinessLogic.Common.Extensions;
 using MoneyTracker.Data.EntityFramework;
 using MoneyTracker.ServiceDefaults;
@@ -29,6 +32,9 @@ static bool IsAllowedDevelopmentOrigin(string? origin)
         || uri.Host.EndsWith(".dev.localhost", StringComparison.OrdinalIgnoreCase);
 }
 
+static string ResolveRateLimitPartition(HttpContext context)
+    => context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
 
@@ -38,6 +44,17 @@ builder.Services.AddOpenApi();
 builder.Services.AddResponseCompression(options =>
     options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>());
 
+builder.Services.AddOptions<CorsOptions>()
+    .Bind(builder.Configuration.GetSection(CorsOptions.SectionName))
+    .Validate(options => builder.Environment.IsDevelopment() || options.AllowedOrigins.Length > 0,
+        "Cors:AllowedOrigins must contain at least one origin outside Development.")
+    .Validate(options => options.AllowedOrigins.All(origin => Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+        && uri.Scheme is "http" or "https"),
+        "Cors:AllowedOrigins must contain only absolute http/https origins.")
+    .ValidateOnStart();
+
+var corsOptions = builder.Configuration.GetSection(CorsOptions.SectionName).Get<CorsOptions>() ?? new CorsOptions();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("default", policy =>
@@ -45,17 +62,50 @@ builder.Services.AddCors(options =>
         if (builder.Environment.IsDevelopment())
             policy.SetIsOriginAllowed(IsAllowedDevelopmentOrigin);
         else
-            policy.WithOrigins(
-                    "https://localhost:7001",
-                    "http://localhost:5001",
-                    "http://localhost:58100",
-                    "http://127.0.0.1:58100",
-                    "https://localhost:58100",
-                    "https://127.0.0.1:58100")
-                .SetIsOriginAllowedToAllowWildcardSubdomains();
+            policy.WithOrigins(corsOptions.AllowedOrigins);
 
         policy.AllowAnyMethod().AllowAnyHeader().AllowCredentials();
     });
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetSlidingWindowLimiter(
+            partitionKey: ResolveRateLimitPartition(context),
+            factory: static _ => new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 6,
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+
+    options.AddPolicy("auth-login", context =>
+        RateLimitPartition.GetSlidingWindowLimiter(
+            partitionKey: ResolveRateLimitPartition(context),
+            factory: static _ => new SlidingWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                SegmentsPerWindow = 6,
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+
+    options.AddPolicy("auth-register", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ResolveRateLimitPartition(context),
+            factory: static _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
 });
 
 // Configure HTTP request/response logging (replaces the old RequestResponseLoggingMiddleware)
@@ -85,7 +135,28 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+            ClockSkew = TimeSpan.FromMinutes(1)
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = context =>
+            {
+                var jwtToken = context.SecurityToken as System.IdentityModel.Tokens.Jwt.JwtSecurityToken;
+                if (jwtToken is null)
+                {
+                    context.Fail("Invalid token type.");
+                    return Task.CompletedTask;
+                }
+
+                if (!string.Equals(jwtToken.Header.Alg, SecurityAlgorithms.HmacSha256, StringComparison.Ordinal))
+                {
+                    context.Fail("Invalid token algorithm.");
+                }
+
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -102,6 +173,9 @@ app.Logger.LogInformation(
     app.Environment.EnvironmentName);
 
 // Middleware pipeline (order matters)
+if (!app.Environment.IsDevelopment())
+    app.UseHsts();
+
 app.UseHttpsRedirection();
 
 // 1. Enrich all logs with CorrelationId
@@ -109,6 +183,8 @@ app.UseCorrelationId();
 
 // 2. Catch all unhandled exceptions
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
+
+app.UseSecurityHeaders();
 
 // 3. Structured HTTP logging (method, path, status, duration)
 app.UseHttpLogging();
@@ -118,6 +194,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseResponseCompression();
 app.UseCors("default");
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
