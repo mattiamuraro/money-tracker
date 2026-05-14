@@ -14,12 +14,14 @@ using MoneyTracker.Api.ExtensionMethods;
 using MoneyTracker.Api.Middleware;
 using MoneyTracker.Api.Options;
 using MoneyTracker.BusinessLogic.Common.Extensions;
+using MoneyTracker.BusinessLogic.Features.Auth;
 using MoneyTracker.Data.EntityFramework;
 using MoneyTracker.ServiceDefaults;
 using System.Reflection;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.AddEnvironmentSecretProviders();
 
 static bool IsAllowedDevelopmentOrigin(string? origin)
 {
@@ -143,14 +145,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnTokenValidated = context =>
             {
-                var jwtToken = context.SecurityToken as System.IdentityModel.Tokens.Jwt.JwtSecurityToken;
-                if (jwtToken is null)
+                var algorithm = context.SecurityToken switch
+                {
+                    System.IdentityModel.Tokens.Jwt.JwtSecurityToken jwtSecurityToken => jwtSecurityToken.Header.Alg,
+                    Microsoft.IdentityModel.JsonWebTokens.JsonWebToken jsonWebToken => jsonWebToken.Alg,
+                    _ => null
+                };
+
+                if (algorithm is null)
                 {
                     context.Fail("Invalid token type.");
                     return Task.CompletedTask;
                 }
 
-                if (!string.Equals(jwtToken.Header.Alg, SecurityAlgorithms.HmacSha256, StringComparison.Ordinal))
+                if (!string.Equals(algorithm, SecurityAlgorithms.HmacSha256, StringComparison.Ordinal))
                 {
                     context.Fail("Invalid token algorithm.");
                 }
@@ -160,7 +168,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AuthAuthorization.Policies.ReadAccess, policy =>
+        policy.RequireAuthenticatedUser()
+            .RequireClaim(AuthAuthorization.PermissionClaimType, AuthAuthorization.Permissions.Read));
+
+    options.AddPolicy(AuthAuthorization.Policies.WriteAccess, policy =>
+        policy.RequireAuthenticatedUser()
+            .RequireClaim(AuthAuthorization.PermissionClaimType, AuthAuthorization.Permissions.Write));
+});
 
 var app = builder.Build();
 

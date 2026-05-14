@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.Payments.Contracts;
 using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.BusinessLogic.Common.Models;
+using MoneyTracker.BusinessLogic.Features.Auth;
 using MoneyTracker.BusinessLogic.Features.Payments.CreatePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.DeletePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
@@ -16,7 +17,7 @@ namespace MoneyTracker.Api.Endpoints.Payments
         {
             var group = app.MapGroup("/api/v1/payments")
                         .WithTags("Payments")
-                        .RequireAuthorization();
+                        .RequireAuthorization(AuthAuthorization.Policies.ReadAccess);
 
             // GET all payments with pagination and filtering
             group.MapGet("/", static async ([FromServices] IHandler<GetPaymentQuery, PaginatedResponse<PaymentDto>> handler, [AsParameters] PaymentFilterQuery paymentFilterQuery, CancellationToken cancellationToken) =>
@@ -107,6 +108,7 @@ namespace MoneyTracker.Api.Endpoints.Payments
                     var id = await handler.Handle(command, cancellationToken);
                     return Results.Created($"/api/v1/payments/{id}", id);
                 })
+                .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
                 .WithName("CreatePayment")
                 .WithDescription("Creates a new payment (supports idempotency with X-Idempotency-Key header)")
                 .Accepts<CreatePaymentRequest>("application/json")
@@ -130,6 +132,7 @@ namespace MoneyTracker.Api.Endpoints.Payments
                     await handler.Handle(command, cancellationToken);
                     return Results.NoContent();
                 })
+                .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
                 .WithName("UpdatePayment")
                 .WithDescription("Updates an existing payment")
                 .Accepts<UpdatePaymentRequest>("application/json")
@@ -150,6 +153,7 @@ namespace MoneyTracker.Api.Endpoints.Payments
                     await handler.Handle(command, cancellationToken);
                     return Results.NoContent();
                 })
+                .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
                 .WithName("DeletePayment")
                 .WithDescription("Deletes a payment")
                 .Produces(StatusCodes.Status204NoContent)

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.Incomes.Contracts;
 using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.BusinessLogic.Common.Models;
+using MoneyTracker.BusinessLogic.Features.Auth;
 using MoneyTracker.BusinessLogic.Features.Incomes.CreateIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.DeleteIncome;
 using MoneyTracker.BusinessLogic.Features.Incomes.GetIncome;
@@ -16,7 +17,7 @@ public static class IncomeEndpoints
     {
         var group = app.MapGroup("/api/v1/incomes")
             .WithTags("Incomes")
-            .RequireAuthorization();
+            .RequireAuthorization(AuthAuthorization.Policies.ReadAccess);
 
         group.MapGet("/", static async ([FromServices] IHandler<GetIncomeQuery, PaginatedResponse<IncomeDto>> handler, [AsParameters] IncomeFilterQuery incomeFilterQuery, CancellationToken cancellationToken) =>
             {
@@ -94,6 +95,7 @@ public static class IncomeEndpoints
                 var id = await handler.Handle(command, cancellationToken);
                 return Results.Created($"/api/v1/incomes/{id}", id);
             })
+            .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
             .WithName("CreateIncome")
             .WithDescription("Creates a new income")
             .Accepts<CreateIncomeRequest>("application/json")
@@ -115,6 +117,7 @@ public static class IncomeEndpoints
                 await handler.Handle(command, cancellationToken);
                 return Results.NoContent();
             })
+            .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
             .WithName("UpdateIncome")
             .WithDescription("Updates an income")
             .Accepts<UpdateIncomeRequest>("application/json")
@@ -134,6 +137,7 @@ public static class IncomeEndpoints
                 await handler.Handle(command, cancellationToken);
                 return Results.NoContent();
             })
+            .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
             .WithName("DeleteIncome")
             .WithDescription("Deletes an income")
             .Produces(StatusCodes.Status204NoContent)

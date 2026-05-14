@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.PaymentCategories.Contracts;
 using MoneyTracker.BusinessLogic.Common.Handlers;
+using MoneyTracker.BusinessLogic.Features.Auth;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.CreateCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.DeleteCategory;
 using MoneyTracker.BusinessLogic.Features.PaymentCategories.GetAllCategories;
@@ -15,7 +16,7 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
         {
             var group = app.MapGroup("/api/v1/categories")
                         .WithTags("Payment Categories")
-                        .RequireAuthorization();
+                        .RequireAuthorization(AuthAuthorization.Policies.ReadAccess);
 
             group.MapGet("/", static async ([FromServices] IHandler<GetAllCategoriesQuery, IEnumerable<PaymentCategoryDto>> handler, CancellationToken cancellationToken) =>
                 {
@@ -63,6 +64,7 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                     var categoryId = await handler.Handle(command, cancellationToken);
                     return Results.Created($"/api/v1/categories/{categoryId}", categoryId);
                 })
+                .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
                 .WithName("CreateCategory")
                 .WithDescription("Creates a new payment category")
                 .Accepts<CreatePaymentCategoryRequest>("application/json")
@@ -82,6 +84,7 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                     await handler.Handle(command, cancellationToken);
                     return Results.NoContent();
                 })
+                .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
                 .WithName("UpdateCategory")
                 .WithDescription("Updates an existing payment category")
                 .Accepts<UpdatePaymentCategoryRequest>("application/json")
@@ -95,6 +98,7 @@ namespace MoneyTracker.Api.Endpoints.PaymentCategories
                     await handler.Handle(new DeleteCategoryCommand(id), cancellationToken);
                     return Results.NoContent();
                 })
+                .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
                 .WithName("DeleteCategory")
                 .WithDescription("Deletes a payment category")
                 .Produces(StatusCodes.Status204NoContent)

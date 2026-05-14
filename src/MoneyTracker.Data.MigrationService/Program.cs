@@ -7,7 +7,7 @@ using MoneyTracker.ServiceDefaults;
 
 
 var builder = Host.CreateApplicationBuilder(args);
-
+builder.AddEnvironmentSecretProviders();
 
 // Register the DbContext the same way as in the API
 builder.Services.AddDbContext<MoneyTrackerDbContext>(options =>
@@ -18,7 +18,12 @@ builder.Services.AddDbContext<MoneyTrackerDbContext>(options =>
 
 builder.AddServiceDefaults();
 builder.Services.AddOptions<AdminCredentialsOptions>()
-    .Bind(builder.Configuration.GetSection(AdminCredentialsOptions.SectionName));
+    .Bind(builder.Configuration.GetSection(AdminCredentialsOptions.SectionName))
+    .Validate(options => builder.Environment.IsDevelopment() || !string.IsNullOrWhiteSpace(options.Username),
+        "Auth:Username must be configured outside Development.")
+    .Validate(options => builder.Environment.IsDevelopment() || !string.IsNullOrWhiteSpace(options.Password),
+        "Auth:Password must be configured outside Development.")
+    .ValidateOnStart();
 builder.Services.AddHostedService<MigrationWorker>();
 
 var host = builder.Build();

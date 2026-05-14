@@ -18,6 +18,8 @@ namespace MoneyTracker.BusinessLogic.Features.Auth.ExtensionMethods
             {
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(AuthAuthorization.PermissionClaimType, AuthAuthorization.Permissions.Read),
+                new Claim(AuthAuthorization.PermissionClaimType, AuthAuthorization.Permissions.Write),
             };
 
             var token = new JwtSecurityToken(
