@@ -1,6 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using MoneyTracker.BusinessLogic.Common.Options;
+using MoneyTracker.BusinessLogic.Features.Auth.Options;
 using MoneyTracker.Data;
 
 namespace MoneyTracker.BusinessLogic.Tests.Features.Auth.ExtensionMethods;

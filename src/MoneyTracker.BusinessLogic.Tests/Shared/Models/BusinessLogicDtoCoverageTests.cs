@@ -67,13 +67,12 @@ public class BusinessLogicDtoCoverageTests
     }
 
     [Fact]
-    public void PaymentCategoryDto_And_Row_ShouldStoreProperties()
+    public void PaymentCategoryDto_ShouldStoreProperties()
     {
         var id = Guid.NewGuid();
         var dto = new PaymentCategoryDto { Id = id, Name = "Food", Code = "FOOD", CreatedAt = DateTime.UtcNow };
-        var row = new PaymentCategoryRow { Id = id, Name = "Food", Code = "FOOD", CreatedAt = DateTime.UtcNow };
 
-        Assert.Equal(dto.Id, row.Id);
+        Assert.Equal(id, dto.Id);
     }
 
     [Fact]

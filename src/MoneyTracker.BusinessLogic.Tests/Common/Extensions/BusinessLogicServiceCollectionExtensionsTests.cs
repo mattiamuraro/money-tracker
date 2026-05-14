@@ -879,13 +879,13 @@ public class BusinessLogicServiceCollectionExtensionsTests
 
         // Register required dependencies that handlers depend on
         services.AddDbContext<MoneyTrackerDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
-        services.Configure<MoneyTracker.BusinessLogic.Common.Options.JwtOptions>(o =>
+        services.Configure<MoneyTracker.BusinessLogic.Features.Auth.Options.JwtOptions>(o =>
         {
             o.Key = "test-key-with-at-least-32-characters-long";
             o.Issuer = "test";
             o.Audience = "test";
         });
-        services.Configure<MoneyTracker.BusinessLogic.Common.Options.AuthOptions>(o => o.AllowRegistration = true);
+        services.Configure<MoneyTracker.BusinessLogic.Features.Auth.Options.AuthOptions>(o => o.AllowRegistration = true);
         services.AddSingleton<Microsoft.AspNetCore.Identity.IPasswordHasher<MoneyTracker.Data.User>,
             Microsoft.AspNetCore.Identity.PasswordHasher<MoneyTracker.Data.User>>();
 

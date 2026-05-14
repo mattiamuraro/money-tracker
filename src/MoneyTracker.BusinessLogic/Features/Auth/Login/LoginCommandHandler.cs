@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using MoneyTracker.BusinessLogic.Common.Handlers;
-using MoneyTracker.BusinessLogic.Common.Options;
 using MoneyTracker.BusinessLogic.Features.Auth.ExtensionMethods;
+using MoneyTracker.BusinessLogic.Features.Auth.Options;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 

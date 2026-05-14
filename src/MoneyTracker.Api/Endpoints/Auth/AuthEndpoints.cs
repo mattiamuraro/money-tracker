@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using MoneyTracker.Api.Endpoints.Auth.Contracts;
 using MoneyTracker.BusinessLogic.Common.Handlers;
-using MoneyTracker.BusinessLogic.Common.Options;
 using MoneyTracker.BusinessLogic.Features.Auth.Login;
+using MoneyTracker.BusinessLogic.Features.Auth.Options;
 using MoneyTracker.BusinessLogic.Features.Auth.Register;
 
 namespace MoneyTracker.Api.Endpoints.Auth;

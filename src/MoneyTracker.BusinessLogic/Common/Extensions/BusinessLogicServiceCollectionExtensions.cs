@@ -1,5 +1,11 @@
-using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using MoneyTracker.BusinessLogic.Features.Auth;
+using MoneyTracker.BusinessLogic.Features.ForecastExpenses;
+using MoneyTracker.BusinessLogic.Features.ForecastIncomes;
+using MoneyTracker.BusinessLogic.Features.Forecasts;
+using MoneyTracker.BusinessLogic.Features.Incomes;
+using MoneyTracker.BusinessLogic.Features.PaymentCategories;
+using MoneyTracker.BusinessLogic.Features.Payments;
 
 namespace MoneyTracker.BusinessLogic.Common.Extensions;
 
@@ -8,8 +14,6 @@ namespace MoneyTracker.BusinessLogic.Common.Extensions;
 /// </summary>
 public static class BusinessLogicServiceCollectionExtensions
 {
-    private const string RegistrationMethodName = "RegisterServices";
-
     /// <summary>
     /// Registers all business logic handlers and validators.
     /// </summary>
@@ -17,26 +21,14 @@ public static class BusinessLogicServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        foreach (var registrationMethod in GetRegistrationMethods())
-            services = (IServiceCollection)registrationMethod.Invoke(null, [services])!;
+        services = services.AddAuthFeatureServices();
+        services = services.AddPaymentsFeatureServices();
+        services = services.AddIncomesFeatureServices();
+        services = services.AddPaymentCategoriesFeatureServices();
+        services = services.AddForecastIncomesFeatureServices();
+        services = services.AddForecastExpensesFeatureServices();
+        services = services.AddForecastsFeatureServices();
 
         return services;
-    }
-
-    private static IEnumerable<MethodInfo> GetRegistrationMethods()
-    {
-        return typeof(BusinessLogicServiceCollectionExtensions).Assembly
-            .GetTypes()
-            .Where(type => type.Namespace?.Contains(".Features.", StringComparison.Ordinal) == true)
-            .Where(type => !type.Name.EndsWith("FeatureRegistration", StringComparison.Ordinal))
-            .Select(type => type.GetMethod(
-                RegistrationMethodName,
-                BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic,
-                binder: null,
-                types: [typeof(IServiceCollection)],
-                modifiers: null))
-            .Where(method => method is not null && method.ReturnType == typeof(IServiceCollection))
-            .OrderBy(method => method!.DeclaringType!.FullName)
-            .Cast<MethodInfo>();
     }
 }

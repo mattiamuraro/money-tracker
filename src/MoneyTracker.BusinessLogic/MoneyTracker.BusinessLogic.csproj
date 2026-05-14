@@ -16,4 +16,8 @@
     <ProjectReference Include="..\MoneyTracker.Data\MoneyTracker.Data.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Common\Options\" />
+  </ItemGroup>
+
 </Project>

@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using MoneyTracker.Api.Middleware;
 using MoneyTracker.Api.Options;
-using MoneyTracker.BusinessLogic.Common.Options;
+using MoneyTracker.BusinessLogic.Features.Auth.Options;
 using MoneyTracker.Data;
 
 namespace MoneyTracker.Api.ExtensionMethods

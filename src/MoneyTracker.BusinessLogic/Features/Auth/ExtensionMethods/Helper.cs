@@ -1,6 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
-using MoneyTracker.BusinessLogic.Common.Options;
+﻿using Microsoft.IdentityModel.Tokens;
+using MoneyTracker.BusinessLogic.Features.Auth.Options;
 using MoneyTracker.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -10,16 +9,16 @@ namespace MoneyTracker.BusinessLogic.Features.Auth.ExtensionMethods
 {
     internal static class Helper
     {
-        public static  string BuildToken(this User user, JwtOptions jwtOptions)
+        public static string BuildToken(this User user, JwtOptions jwtOptions)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var expiry = DateTime.UtcNow.AddMinutes(jwtOptions.ExpiryMinutes);
             var claims = new[]
             {
-            new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-        };
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            };
 
             var token = new JwtSecurityToken(
                 issuer: jwtOptions.Issuer,

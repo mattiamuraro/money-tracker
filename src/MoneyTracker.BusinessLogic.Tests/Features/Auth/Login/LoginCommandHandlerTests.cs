@@ -2,8 +2,8 @@ using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using MoneyTracker.BusinessLogic.Common.Options;
 using MoneyTracker.BusinessLogic.Features.Auth.Login;
+using MoneyTracker.BusinessLogic.Features.Auth.Options;
 using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 
