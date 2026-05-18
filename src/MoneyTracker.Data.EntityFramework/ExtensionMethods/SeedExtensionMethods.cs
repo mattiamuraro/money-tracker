@@ -56,14 +56,23 @@ namespace MoneyTracker.Data.EntityFramework.ExtensionMethods
                 return;
 
             var hasher = new PasswordHasher<User>();
+            var passwordHash = hasher.HashPassword(null!, password);
             var user = new User
             {
                 Id = Guid.CreateVersion7(),
                 Username = username,
-                PasswordHash = hasher.HashPassword(null!, password),
+                PasswordHash = passwordHash,
             };
 
             db.Users.Add(user);
+            db.UserPasswordHistories.Add(new UserPasswordHistory
+            {
+                Id = Guid.CreateVersion7(),
+                UserId = user.Id,
+                PasswordHash = passwordHash,
+                CreatedAt = DateTime.UtcNow
+            });
+
             await db.SaveChangesAsync(cancellationToken);
 
             logger.LogInformation("Seeded admin user '{Username}'.", username);

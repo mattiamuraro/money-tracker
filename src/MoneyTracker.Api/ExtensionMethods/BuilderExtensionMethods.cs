@@ -28,6 +28,18 @@ namespace MoneyTracker.Api.ExtensionMethods
                 .Validate(options => options.ExpiryMinutes > 0, "Jwt:ExpiryMinutes must be greater than 0.")
                 .ValidateOnStart();
 
+            builder.Services.AddOptions<RefreshTokenOptions>()
+                .Bind(builder.Configuration.GetSection(RefreshTokenOptions.SectionName))
+                .Validate(options => options.ExpiryDays >= 1, "Auth:RefreshToken:ExpiryDays must be at least 1.")
+                .ValidateOnStart();
+
+            builder.Services.AddOptions<PasswordPolicyOptions>()
+                .Bind(builder.Configuration.GetSection(PasswordPolicyOptions.SectionName))
+                .Validate(options => options.MinimumLength >= 8, "Auth:PasswordPolicy:MinimumLength must be at least 8.")
+                .Validate(options => options.MaximumLength >= options.MinimumLength, "Auth:PasswordPolicy:MaximumLength must be greater or equal to minimum length.")
+                .Validate(options => options.PasswordHistoryCount >= 1, "Auth:PasswordPolicy:PasswordHistoryCount must be at least 1.")
+                .ValidateOnStart();
+
             builder.Services.AddOptions<LoginProtectionOptions>()
                 .Bind(builder.Configuration.GetSection(LoginProtectionOptions.SectionName))
                 .Validate(options => options.MaxFailedAttempts >= 1, "Security:LoginProtection:MaxFailedAttempts must be at least 1.")

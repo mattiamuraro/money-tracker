@@ -161,27 +161,27 @@ public class RegisterCommandValidatorTests
     }
 
     [Fact]
-    public void Should_Fail_When_Password_Is_Less_Than_8_Characters()
+    public void Should_Fail_When_Password_Is_Less_Than_12_Characters()
     {
         var command = new RegisterCommand
         {
             Username = "testuser",
-            Password = "pass123"
+            Password = "Aa1#pass123"
         };
 
         var result = _validator.TestValidate(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Password)
-            .WithErrorMessage("Password must be at least 8 characters.");
+            .WithErrorMessage("Password must be at least 12 characters.");
     }
 
     [Fact]
-    public void Should_Succeed_When_Password_Is_8_Characters()
+    public void Should_Succeed_When_Password_Is_12_Characters()
     {
         var command = new RegisterCommand
         {
             Username = "testuser",
-            Password = "passwor8"
+            Password = "Aa1#pass1234"
         };
 
         var result = _validator.TestValidate(command);
@@ -190,27 +190,27 @@ public class RegisterCommandValidatorTests
     }
 
     [Fact]
-    public void Should_Fail_When_Password_Exceeds_100_Characters()
+    public void Should_Fail_When_Password_Exceeds_128_Characters()
     {
         var command = new RegisterCommand
         {
             Username = "testuser",
-            Password = new string('a', 101)
+            Password = $"Aa1#{new string('a', 126)}"
         };
 
         var result = _validator.TestValidate(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Password)
-            .WithErrorMessage("Password cannot exceed 100 characters.");
+            .WithErrorMessage("Password cannot exceed 128 characters.");
     }
 
     [Fact]
-    public void Should_Succeed_When_Password_Is_100_Characters()
+    public void Should_Succeed_When_Password_Is_128_Characters()
     {
         var command = new RegisterCommand
         {
             Username = "testuser",
-            Password = new string('a', 100)
+            Password = $"Aa1#{new string('a', 124)}"
         };
 
         var result = _validator.TestValidate(command);
@@ -239,7 +239,7 @@ public class RegisterCommandValidatorTests
         var command = new RegisterCommand
         {
             Username = "testuser",
-            Password = "password123"
+            Password = "StrongPass#123"
         };
 
         var result = _validator.TestValidate(command);
@@ -292,17 +292,17 @@ public class RegisterCommandValidatorTests
     }
 
     [Fact]
-    public void Should_Fail_When_Password_Is_7_Characters()
+    public void Should_Fail_When_Password_Is_11_Characters()
     {
         var command = new RegisterCommand
         {
             Username = "testuser",
-            Password = "passwor"
+            Password = "Aa1#pass123"
         };
 
         var result = _validator.TestValidate(command);
 
         result.ShouldHaveValidationErrorFor(x => x.Password)
-            .WithErrorMessage("Password must be at least 8 characters.");
+            .WithErrorMessage("Password must be at least 12 characters.");
     }
 }

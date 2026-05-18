@@ -18,15 +18,17 @@ public class BusinessLogicDtoCoverageTests
     [Fact]
     public void LoginAuthTokenDto_ShouldStoreToken()
     {
-        var dto = new LoginAuthTokenDto { Token = "abc" };
+        var dto = new LoginAuthTokenDto { Token = "abc", RefreshToken = "ref-abc" };
         Assert.Equal("abc", dto.Token);
+        Assert.Equal("ref-abc", dto.RefreshToken);
     }
 
     [Fact]
     public void RegisterAuthTokenDto_ShouldStoreToken()
     {
-        var dto = new RegisterAuthTokenDto { Token = "xyz" };
+        var dto = new RegisterAuthTokenDto { Token = "xyz", RefreshToken = "ref-xyz" };
         Assert.Equal("xyz", dto.Token);
+        Assert.Equal("ref-xyz", dto.RefreshToken);
     }
 
     [Fact]

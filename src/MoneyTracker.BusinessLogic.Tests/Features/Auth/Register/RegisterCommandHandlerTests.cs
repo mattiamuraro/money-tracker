@@ -27,6 +27,7 @@ public class RegisterCommandHandlerTests
         new(new RegisterCommandValidator(),
             Options.Create(new AuthOptions { AllowRegistration = allowRegistration }),
             Options.Create(DefaultJwtOptions),
+            Options.Create(new RefreshTokenOptions { ExpiryDays = 14 }),
             new FakePasswordHasher(),
             db);
 
@@ -85,7 +86,7 @@ public class RegisterCommandHandlerTests
         await db.SaveChangesAsync();
 
         var handler = CreateHandler(db);
-        var command = new RegisterCommand { Username = "testuser", Password = "password123" };
+        var command = new RegisterCommand { Username = "testuser", Password = "StrongPass#123" };
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<ValidationException>(
@@ -100,7 +101,7 @@ public class RegisterCommandHandlerTests
         // Arrange
         using var db = CreateDbContext();
         var handler = CreateHandler(db);
-        var command = new RegisterCommand { Username = "newuser", Password = "password123" };
+        var command = new RegisterCommand { Username = "newuser", Password = "StrongPass#123" };
 
         // Act
         var result = await handler.Handle(command, CancellationToken.None);
@@ -108,11 +109,12 @@ public class RegisterCommandHandlerTests
         // Assert
         Assert.NotNull(result);
         Assert.NotEmpty(result.Token);
+        Assert.NotEmpty(result.RefreshToken);
 
         var savedUser = await db.Users.FirstOrDefaultAsync(u => u.Username == "newuser");
         Assert.NotNull(savedUser);
         Assert.Equal("newuser", savedUser.Username);
-        Assert.Equal("hashed_password123", savedUser.PasswordHash);
+        Assert.Equal("hashed_StrongPass#123", savedUser.PasswordHash);
         Assert.NotEqual(Guid.Empty, savedUser.Id);
         Assert.NotEqual(default(DateTime), savedUser.CreatedAt);
     }

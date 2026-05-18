@@ -29,6 +29,7 @@ public class LoginCommandHandlerTests
         ILoginAttemptService? loginAttemptService = null) =>
         new(new LoginCommandValidator(),
             Options.Create(DefaultJwtOptions),
+            Options.Create(new RefreshTokenOptions { ExpiryDays = 14 }),
             new FakePasswordHasher(verificationResult),
             loginAttemptService ?? new FakeLoginAttemptService(),
             db);

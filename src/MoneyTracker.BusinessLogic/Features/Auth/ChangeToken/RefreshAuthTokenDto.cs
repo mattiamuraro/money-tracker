@@ -1,6 +1,6 @@
-﻿namespace MoneyTracker.BusinessLogic.Features.Auth.Login;
+namespace MoneyTracker.BusinessLogic.Features.Auth.ChangeToken;
 
-public class LoginAuthTokenDto
+public class RefreshAuthTokenDto
 {
     public required string Token { get; set; }
     public required string RefreshToken { get; set; }

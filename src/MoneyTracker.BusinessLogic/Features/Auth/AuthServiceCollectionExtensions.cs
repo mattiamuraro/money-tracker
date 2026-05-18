@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using MoneyTracker.BusinessLogic.Features.Auth.ChangePassword;
+using MoneyTracker.BusinessLogic.Features.Auth.ChangeToken;
 using MoneyTracker.BusinessLogic.Features.Auth.Login;
 using MoneyTracker.BusinessLogic.Features.Auth.Register;
 
@@ -12,6 +14,8 @@ internal static class AuthServiceCollectionExtensions
 
         services = LoginRegistration.RegisterServices(services);
         services = RegisterRegistration.RegisterServices(services);
+        services = ChangeTokenRegistration.RegisterServices(services);
+        services = ChangePasswordRegistration.RegisterServices(services);
 
         return services;
     }

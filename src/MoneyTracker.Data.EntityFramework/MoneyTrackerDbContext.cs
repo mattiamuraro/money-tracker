@@ -23,6 +23,8 @@ namespace MoneyTracker.Data.EntityFramework
         public DbSet<ForecastOccurrence> ForecastOccurrences { get; set; }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<UserRefreshToken> UserRefreshTokens { get; set; }
+        public DbSet<UserPasswordHistory> UserPasswordHistories { get; set; }
 
         public MoneyTrackerDbContext(DbContextOptions<MoneyTrackerDbContext> options, IHttpContextAccessor? httpContextAccessor = null)
             : base(options)
@@ -35,6 +37,8 @@ namespace MoneyTracker.Data.EntityFramework
             base.OnModelCreating(modelBuilder);
 
             ConfigureUserEntity(modelBuilder.Entity<User>());
+            ConfigureUserRefreshTokenEntity(modelBuilder.Entity<UserRefreshToken>());
+            ConfigureUserPasswordHistoryEntity(modelBuilder.Entity<UserPasswordHistory>());
             ConfigurePaymentEntity(modelBuilder.Entity<Payment>());
             ConfigureIncomeEntity(modelBuilder.Entity<Income>());
             ConfigurePaymentCategoryEntity(modelBuilder.Entity<PaymentCategory>());
@@ -58,6 +62,52 @@ namespace MoneyTracker.Data.EntityFramework
 
             entity.HasIndex(e => e.Username)
                 .IsUnique();
+        }
+
+        private static void ConfigureUserRefreshTokenEntity(EntityTypeBuilder<UserRefreshToken> entity)
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.TokenHash)
+                .IsRequired()
+                .HasMaxLength(64);
+
+            entity.Property(e => e.CreatedAt)
+                .IsRequired();
+
+            entity.Property(e => e.ExpiresAt)
+                .IsRequired();
+
+            entity.Property(e => e.ReplacedByTokenHash)
+                .HasMaxLength(64);
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.RefreshTokens)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => e.TokenHash)
+                .IsUnique();
+
+            entity.HasIndex(e => new { e.UserId, e.ExpiresAt });
+        }
+
+        private static void ConfigureUserPasswordHistoryEntity(EntityTypeBuilder<UserPasswordHistory> entity)
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.PasswordHash)
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .IsRequired();
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.PasswordHistories)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.UserId, e.CreatedAt });
         }
 
         private static void ConfigurePaymentEntity(EntityTypeBuilder<Payment> entity)

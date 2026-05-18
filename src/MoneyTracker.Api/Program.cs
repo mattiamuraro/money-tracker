@@ -1,6 +1,12 @@
+using System.Diagnostics.Metrics;
+using System.Net;
+using System.Reflection;
+using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MoneyTracker.Api.Endpoints.Auth;
@@ -17,8 +23,6 @@ using MoneyTracker.BusinessLogic.Common.Extensions;
 using MoneyTracker.BusinessLogic.Features.Auth;
 using MoneyTracker.Data.EntityFramework;
 using MoneyTracker.ServiceDefaults;
-using System.Reflection;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddEnvironmentSecretProviders();
@@ -36,6 +40,9 @@ static bool IsAllowedDevelopmentOrigin(string? origin)
 
 static string ResolveRateLimitPartition(HttpContext context)
     => context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+var securityMeter = new Meter("MoneyTracker.Api.Security", "1.0.0");
+var rateLimitRejectedCounter = securityMeter.CreateCounter<long>("ratelimit.rejected");
 
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
@@ -55,11 +62,38 @@ builder.Services.AddOptions<CorsOptions>()
         "Cors:AllowedOrigins must contain only absolute http/https origins.")
     .ValidateOnStart();
 
+builder.Services.AddOptions<ReverseProxyOptions>()
+    .Bind(builder.Configuration.GetSection(ReverseProxyOptions.SectionName))
+    .Validate(options => options.ForwardLimit > 0, "ReverseProxy:ForwardLimit must be greater than 0.")
+    .Validate(options => options.KnownProxies.All(value => IPAddress.TryParse(value, out _)),
+        "ReverseProxy:KnownProxies must contain valid IP addresses.")
+    .Validate(options => options.KnownNetworks.All(value => Microsoft.AspNetCore.HttpOverrides.IPNetwork.TryParse(value, out _)),
+        "ReverseProxy:KnownNetworks must contain valid CIDR values.")
+    .ValidateOnStart();
+
+builder.Services.AddOptions<RequestLimitsOptions>()
+    .Bind(builder.Configuration.GetSection(RequestLimitsOptions.SectionName))
+    .Validate(options => options.MaxRequestBodySizeBytes > 0,
+        "Security:RequestLimits:MaxRequestBodySizeBytes must be greater than 0.")
+    .Validate(options => options.MaxRequestHeadersTotalSizeBytes > 0,
+        "Security:RequestLimits:MaxRequestHeadersTotalSizeBytes must be greater than 0.")
+    .ValidateOnStart();
+
 var corsOptions = builder.Configuration.GetSection(CorsOptions.SectionName).Get<CorsOptions>() ?? new CorsOptions();
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("default", policy =>
+    options.AddPolicy(CorsPolicyNames.Public, policy =>
+    {
+        if (builder.Environment.IsDevelopment())
+            policy.SetIsOriginAllowed(IsAllowedDevelopmentOrigin);
+        else
+            policy.WithOrigins(corsOptions.AllowedOrigins);
+
+        policy.AllowAnyMethod().AllowAnyHeader();
+    });
+
+    options.AddPolicy(CorsPolicyNames.Credentialed, policy =>
     {
         if (builder.Environment.IsDevelopment())
             policy.SetIsOriginAllowed(IsAllowedDevelopmentOrigin);
@@ -70,9 +104,52 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.WebHost.ConfigureKestrel((context, kestrel) =>
+{
+    var requestLimits = context.Configuration.GetSection(RequestLimitsOptions.SectionName).Get<RequestLimitsOptions>()
+        ?? new RequestLimitsOptions();
+
+    kestrel.Limits.MaxRequestBodySize = requestLimits.MaxRequestBodySizeBytes;
+    kestrel.Limits.MaxRequestHeadersTotalSize = requestLimits.MaxRequestHeadersTotalSizeBytes;
+});
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        var logger = context.HttpContext.RequestServices
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("RateLimiter");
+
+        var endpointName = context.HttpContext.GetEndpoint()?.DisplayName ?? "unknown";
+        var remoteIp = context.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        rateLimitRejectedCounter.Add(1,
+            KeyValuePair.Create<string, object?>("endpoint", endpointName),
+            KeyValuePair.Create<string, object?>("ip", remoteIp));
+
+        logger.LogWarning(
+            new EventId(1401, "RateLimitRejected"),
+            "Rate limit rejected request for endpoint {Endpoint} from {RemoteIp}.",
+            endpointName,
+            remoteIp);
+
+        context.HttpContext.Response.ContentType = "application/problem+json";
+        var retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfterValue)
+            ? retryAfterValue.TotalSeconds
+            : (double?)null;
+
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new
+            {
+                title = "Too Many Requests",
+                status = StatusCodes.Status429TooManyRequests,
+                detail = "Rate limit exceeded. Please retry later.",
+                retryAfterSeconds = retryAfter
+            },
+            cancellationToken);
+    };
 
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
         RateLimitPartition.GetSlidingWindowLimiter(
@@ -179,6 +256,30 @@ builder.Services.AddAuthorization(options =>
             .RequireClaim(AuthAuthorization.PermissionClaimType, AuthAuthorization.Permissions.Write));
 });
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    var reverseProxyOptions = builder.Configuration
+        .GetSection(ReverseProxyOptions.SectionName)
+        .Get<ReverseProxyOptions>() ?? new ReverseProxyOptions();
+
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = reverseProxyOptions.ForwardLimit;
+
+    options.KnownNetworks.Clear();
+    foreach (var network in reverseProxyOptions.KnownNetworks)
+    {
+        if (Microsoft.AspNetCore.HttpOverrides.IPNetwork.TryParse(network, out var ipNetwork))
+            options.KnownNetworks.Add(ipNetwork);
+    }
+
+    options.KnownProxies.Clear();
+    foreach (var proxy in reverseProxyOptions.KnownProxies)
+    {
+        if (IPAddress.TryParse(proxy, out var ipAddress))
+            options.KnownProxies.Add(ipAddress);
+    }
+});
+
 var app = builder.Build();
 
 var apiVersion = Assembly.GetEntryAssembly()?.GetName().Version?.ToString() ?? "unknown";
@@ -193,6 +294,7 @@ app.Logger.LogInformation(
 if (!app.Environment.IsDevelopment())
     app.UseHsts();
 
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 
 // 1. Enrich all logs with CorrelationId
@@ -202,6 +304,7 @@ app.UseCorrelationId();
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.UseSecurityHeaders();
+app.UseJsonContentTypeEnforcement();
 
 // 3. Structured HTTP logging (method, path, status, duration)
 app.UseHttpLogging();
@@ -210,7 +313,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 
 app.UseResponseCompression();
-app.UseCors("default");
+app.UseCors(CorsPolicyNames.Public);
 app.UseRateLimiter();
 
 app.UseAuthentication();

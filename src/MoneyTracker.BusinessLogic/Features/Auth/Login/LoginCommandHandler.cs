@@ -13,12 +13,14 @@ namespace MoneyTracker.BusinessLogic.Features.Auth.Login;
 public class LoginCommandHandler(
     IValidator<LoginCommand> validator,
     IOptions<JwtOptions> jwtOptions,
+    IOptions<RefreshTokenOptions> refreshTokenOptions,
     IPasswordHasher<User> passwordHasher,
     ILoginAttemptService loginAttemptService,
     MoneyTrackerDbContext dbContext)
     : IHandler<LoginCommand, LoginAuthTokenDto>
 {
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
+    private readonly RefreshTokenOptions _refreshTokenOptions = refreshTokenOptions.Value;
 
     public async Task<LoginAuthTokenDto> Handle(LoginCommand command, CancellationToken cancellationToken)
     {
@@ -50,7 +52,24 @@ public class LoginCommandHandler(
         loginAttemptService.RegisterSuccess(username);
 
         var token = user.BuildToken(_jwtOptions);
+        var refreshToken = RefreshTokenHelper.GenerateRefreshToken();
+        var refreshTokenHash = RefreshTokenHelper.ComputeTokenHash(refreshToken);
 
-        return new LoginAuthTokenDto { Token = token };
+        dbContext.UserRefreshTokens.Add(new UserRefreshToken
+        {
+            Id = Guid.CreateVersion7(),
+            UserId = user.Id,
+            TokenHash = refreshTokenHash,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(_refreshTokenOptions.ExpiryDays)
+        });
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        return new LoginAuthTokenDto
+        {
+            Token = token,
+            RefreshToken = refreshToken
+        };
     }
 }
