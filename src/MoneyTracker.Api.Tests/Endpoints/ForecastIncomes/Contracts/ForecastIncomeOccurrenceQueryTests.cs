@@ -137,31 +137,25 @@ public class ForecastIncomeOccurrencesQueryTests
     }
 
     [Xunit.Fact]
-    public void GetRequiredYearMonth_Should_Handle_Single_Digit_Month_Without_Leading_Zero()
+    public void GetRequiredYearMonth_Should_Throw_When_Month_Has_Single_Digit()
     {
         // Arrange
         var query = new ForecastIncomeOccurrencesQuery { Month = "2024-5" };
 
-        // Act
-        var result = query.GetRequiredYearMonth();
-
-        // Assert
-        Xunit.Assert.Equal(2024, result.Year);
-        Xunit.Assert.Equal(5, result.Month);
+        // Act & Assert
+        var exception = Assert.Throws<BadRequestException>((Action)(() => query.GetRequiredYearMonth()));
+        Xunit.Assert.Equal("Month is required and must use yyyy-MM format.", exception.Message);
     }
 
     [Xunit.Fact]
-    public void GetRequiredYearMonth_Should_Handle_Whitespace_Around_Parts()
+    public void GetRequiredYearMonth_Should_Throw_When_Month_Has_Whitespace_Around_Parts()
     {
         // Arrange
         var query = new ForecastIncomeOccurrencesQuery { Month = " 2024 - 03 " };
 
-        // Act
-        var result = query.GetRequiredYearMonth();
-
-        // Assert
-        Xunit.Assert.Equal(2024, result.Year);
-        Xunit.Assert.Equal(3, result.Month);
+        // Act & Assert
+        var exception = Assert.Throws<BadRequestException>((Action)(() => query.GetRequiredYearMonth()));
+        Xunit.Assert.Equal("Month is required and must use yyyy-MM format.", exception.Message);
     }
 
     [Xunit.Fact]

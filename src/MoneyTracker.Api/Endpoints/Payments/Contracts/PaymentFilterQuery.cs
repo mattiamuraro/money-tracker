@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using MoneyTracker.BusinessLogic.Common.Exceptions;
+﻿using MoneyTracker.Api.ExtensionMethods;
 
 namespace MoneyTracker.Api.Endpoints.Payments.Contracts;
 
@@ -8,6 +7,8 @@ namespace MoneyTracker.Api.Endpoints.Payments.Contracts;
 /// </summary>
 public class PaymentFilterQuery : PaginationQuery
 {
+    private const string MonthValidationMessage = "Month filter is required and must use yyyy-MM format.";
+
     /// <summary>
     /// Required month filter in yyyy-MM format
     /// </summary>
@@ -39,17 +40,5 @@ public class PaymentFilterQuery : PaginationQuery
     public Guid? CategoryId { get; set; }
 
     public (int Year, int Month) GetRequiredYearMonth()
-    {
-        if (string.IsNullOrWhiteSpace(Month))
-        {
-            throw new BadRequestException("Month filter is required and must use yyyy-MM format.");
-        }
-
-        if (!DateTime.TryParseExact(Month, "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedMonth))
-        {
-            throw new BadRequestException("Month filter is required and must use yyyy-MM format.");
-        }
-
-        return (parsedMonth.Year, parsedMonth.Month);
-    }
+        => Month.GetRequiredYearMonth(MonthValidationMessage);
 }

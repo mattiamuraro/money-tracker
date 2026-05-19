@@ -1,24 +1,17 @@
 ﻿using MoneyTracker.Api.Endpoints.Payments.Contracts;
-using MoneyTracker.BusinessLogic.Common.Exceptions;
-using System.Globalization;
+using MoneyTracker.Api.ExtensionMethods;
 
 namespace MoneyTracker.Api.Endpoints.Incomes.Contracts;
 
 public class IncomeFilterQuery : PaginationQuery
 {
+    private const string MonthValidationMessage = "Month filter is required and must use yyyy-MM format.";
+
     public string? Month { get; set; }
     public string? DescriptionFilter { get; set; }
     public decimal? MinAmount { get; set; }
     public decimal? MaxAmount { get; set; }
 
     public (int Year, int Month) GetRequiredYearMonth()
-    {
-        if (string.IsNullOrWhiteSpace(Month))
-            throw new BadRequestException("Month filter is required and must use yyyy-MM format.");
-
-        if (!DateTime.TryParseExact(Month, "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedMonth))
-            throw new BadRequestException("Month filter is required and must use yyyy-MM format.");
-
-        return (parsedMonth.Year, parsedMonth.Month);
-    }
+        => Month.GetRequiredYearMonth(MonthValidationMessage);
 }

@@ -18,6 +18,7 @@ internal static class ErrorMessageResources
     public static string NotFound => Get(nameof(NotFound), "The requested resource was not found.");
     public static string TransientFailure => Get(nameof(TransientFailure), "A temporary infrastructure error occurred. Please retry.");
     public static string RequestCanceled => Get(nameof(RequestCanceled), "The request was canceled by the client.");
+    public static string RequestPayloadTooLarge => Get(nameof(RequestPayloadTooLarge), "Request payload is too large.");
     public static string InternalServerError => Get(nameof(InternalServerError), "An internal server error occurred.");
 
     private static string Get(string key, string fallback)

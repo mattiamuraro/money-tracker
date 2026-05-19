@@ -36,6 +36,9 @@
   <data name="RequestCanceled" xml:space="preserve">
     <value>The request was canceled by the client.</value>
   </data>
+  <data name="RequestPayloadTooLarge" xml:space="preserve">
+    <value>Request payload is too large.</value>
+  </data>
   <data name="InternalServerError" xml:space="preserve">
     <value>An internal server error occurred.</value>
   </data>

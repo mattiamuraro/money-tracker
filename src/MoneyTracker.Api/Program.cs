@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
@@ -290,6 +291,27 @@ app.Logger.LogInformation(
     apiVersion,
     app.Environment.EnvironmentName);
 
+var startupRequestLimits = app.Services.GetRequiredService<IOptions<RequestLimitsOptions>>().Value;
+var startupReverseProxyOptions = app.Configuration
+    .GetSection(ReverseProxyOptions.SectionName)
+    .Get<ReverseProxyOptions>() ?? new ReverseProxyOptions();
+var startupCorsOptions = app.Configuration
+    .GetSection(CorsOptions.SectionName)
+    .Get<CorsOptions>() ?? new CorsOptions();
+
+app.Logger.LogInformation(
+    new EventId(1202, "ObservabilityStartupConfiguration"),
+    "Observability startup configuration: HttpLoggingEnabled={HttpLoggingEnabled}, CorrelationMiddlewareEnabled={CorrelationMiddlewareEnabled}, UserScopeMiddlewareEnabled={UserScopeMiddlewareEnabled}, MaxRequestBodySizeBytes={MaxRequestBodySizeBytes}, MaxRequestHeadersTotalSizeBytes={MaxRequestHeadersTotalSizeBytes}, ForwardLimit={ForwardLimit}, KnownProxiesCount={KnownProxiesCount}, KnownNetworksCount={KnownNetworksCount}, AllowedOriginsCount={AllowedOriginsCount}.",
+    true,
+    true,
+    true,
+    startupRequestLimits.MaxRequestBodySizeBytes,
+    startupRequestLimits.MaxRequestHeadersTotalSizeBytes,
+    startupReverseProxyOptions.ForwardLimit,
+    startupReverseProxyOptions.KnownProxies.Length,
+    startupReverseProxyOptions.KnownNetworks.Length,
+    startupCorsOptions.AllowedOrigins.Length);
+
 // Middleware pipeline (order matters)
 if (!app.Environment.IsDevelopment())
     app.UseHsts();
@@ -299,6 +321,7 @@ app.UseHttpsRedirection();
 
 // 1. Enrich all logs with CorrelationId
 app.UseCorrelationId();
+app.UseRequestObservability();
 
 // 2. Catch all unhandled exceptions
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
@@ -330,6 +353,11 @@ app.AddForecastRecurrenceRuleTypeApis();
 app.AddForecastIncomeApis();
 app.AddForecastExpenseApis();
 
+app.MapHealthChecks("/health/ready");
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("live")
+});
 app.MapDefaultEndpoints();
 
 app.Run();

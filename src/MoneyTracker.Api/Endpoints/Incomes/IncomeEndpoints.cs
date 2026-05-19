@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.Incomes.Contracts;
+using MoneyTracker.Api.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.BusinessLogic.Common.Models;
 using MoneyTracker.BusinessLogic.Features.Auth;
@@ -82,14 +83,13 @@ public static class IncomeEndpoints
 
         group.MapPost("/", static async (HttpContext httpContext, [FromServices] IHandler<CreateIncomeCommand, Guid> handler, CreateIncomeRequest request, CancellationToken cancellationToken) =>
             {
-                var idempotencyKey = httpContext.Request.Headers["X-Idempotency-Key"].ToString();
                 var command = new CreateIncomeCommand
                 {
                     Description = request.Description,
                     ForecastOccurrenceId = request.ForecastOccurrenceId,
                     Amount = request.Amount,
                     Date = request.Date,
-                    IdempotencyKey = string.IsNullOrWhiteSpace(idempotencyKey) ? request.IdempotencyKey : idempotencyKey
+                    IdempotencyKey = httpContext.GetIdempotencyKey(request.IdempotencyKey)
                 };
 
                 var id = await handler.Handle(command, cancellationToken);

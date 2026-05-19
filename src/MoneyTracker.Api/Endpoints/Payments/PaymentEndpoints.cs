@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.Payments.Contracts;
+using MoneyTracker.Api.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.BusinessLogic.Common.Models;
 using MoneyTracker.BusinessLogic.Features.Auth;
@@ -93,7 +94,6 @@ namespace MoneyTracker.Api.Endpoints.Payments
             // POST create payment
             group.MapPost("/", static async (HttpContext httpContext, [FromServices] IHandler<CreatePaymentCommand, Guid> handler, CreatePaymentRequest request, CancellationToken cancellationToken) =>
                 {
-                    var idempotencyKey = httpContext.Request.Headers["X-Idempotency-Key"].ToString();
                     var command = new CreatePaymentCommand
                     {
                         Description = request.Description,
@@ -102,7 +102,7 @@ namespace MoneyTracker.Api.Endpoints.Payments
                         Amount = request.Amount,
                         Date = request.Date,
                         IsOneShot = request.IsOneShot,
-                        IdempotencyKey = string.IsNullOrEmpty(idempotencyKey) ? null : idempotencyKey
+                        IdempotencyKey = httpContext.GetIdempotencyKey()
                     };
 
                     var id = await handler.Handle(command, cancellationToken);

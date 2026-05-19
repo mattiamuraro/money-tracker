@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -20,13 +21,17 @@ public partial class UserScopeMiddleware(RequestDelegate next)
 
         if (user.Identity?.IsAuthenticated == true)
         {
-            var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
-            var username = user.FindFirstValue(ClaimTypes.Name);
+            var hashedUserId = HashForLogging(user.FindFirstValue(ClaimTypes.NameIdentifier));
+            var hashedUsername = HashForLogging(user.FindFirstValue(ClaimTypes.Name));
+
+            var activity = Activity.Current;
+            activity?.SetTag("user.id", hashedUserId);
+            activity?.SetTag("enduser.id", hashedUsername);
 
             using (logger.BeginScope(new Dictionary<string, object?>
             {
-                [UserIdProperty] = HashForLogging(userId),
-                [UsernameProperty] = HashForLogging(username)
+                [UserIdProperty] = hashedUserId,
+                [UsernameProperty] = hashedUsername
             }))
             {
                 await next(context);
