@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.ForecastIncomes.Contracts;
+using MoneyTracker.Api.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Common.Handlers;
-using MoneyTracker.BusinessLogic.Features.Auth;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.CreateForecastIncomeDefinition;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.CreateForecastIncomeDefinitionAndSynchronize;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes.DeleteForecastIncomeDefinitionAndSynchronize;
@@ -18,9 +18,8 @@ public static class ForecastIncomeEndpoints
 {
     internal static WebApplication AddForecastIncomeApis(this WebApplication app)
     {
-        var group = app.MapGroup("/api/v1/forecast-incomes")
-            .WithTags("Forecast Incomes")
-            .RequireAuthorization(AuthAuthorization.Policies.ReadAccess);
+        var group = app.MapApiGroup(ApiRoutes.ForecastIncomes, "Forecast Incomes")
+            .RequireReadAccess();
 
         group.MapGet("/", static async (
                 [FromServices] IHandler<GetForecastIncomeRowsQuery, List<ForecastIncomeDto>> getForecastRowsHandler,
@@ -89,9 +88,9 @@ public static class ForecastIncomeEndpoints
                 };
 
                 var id = await handler.Handle(command, cancellationToken);
-                return Results.Created($"/api/v1/forecast-incomes/definitions/{id}", id);
+                return ApiEndpointConventions.CreatedResource(ApiRoutes.ForecastIncomeDefinitions, id);
             })
-            .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
+            .RequireWriteAccess()
             .WithName("CreateForecastIncomeDefinition")
             .WithDescription("Creates a new forecast income definition")
             .Accepts<CreateForecastIncomeRequest>("application/json")
@@ -122,7 +121,7 @@ public static class ForecastIncomeEndpoints
                 await handler.Handle(command, cancellationToken);
                 return Results.NoContent();
             })
-            .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
+            .RequireWriteAccess()
             .WithName("UpdateForecastIncomeDefinition")
             .WithDescription("Updates an existing forecast income definition")
             .Accepts<UpdateForecastIncomeRequest>("application/json")
@@ -139,9 +138,9 @@ public static class ForecastIncomeEndpoints
                 await handler.Handle(new DeleteForecastIncomeDefinitionAndSynchronizeCommand { Id = id }, cancellationToken);
                 return Results.NoContent();
             })
-            .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
+            .RequireWriteAccess()
             .WithName("DeleteForecastIncomeDefinition")
-            .WithDescription(" Deletes a forecast income definition")
+            .WithDescription("Deletes a forecast income definition")
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status500InternalServerError);
@@ -179,7 +178,7 @@ public static class ForecastIncomeEndpoints
 
                 return Results.NoContent();
             })
-            .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
+            .RequireWriteAccess()
             .WithName("DiscardForecastIncomeOccurrence")
             .WithDescription("Discards a pending forecast income occurrence")
             .Produces(StatusCodes.Status204NoContent)

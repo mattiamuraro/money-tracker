@@ -1,8 +1,8 @@
 using System.Globalization;
 using System.Security.Claims;
 using FluentValidation;
+using MoneyTracker.Api.Resources;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
-using MoneyTracker.Data;
 
 namespace MoneyTracker.Api.ExtensionMethods;
 
@@ -10,8 +10,13 @@ internal static class EndpointHelpers
 {
     internal static Guid GetCurrentUserId(this HttpContext httpContext)
     {
+        ArgumentNullException.ThrowIfNull(httpContext);
+
         var userIdClaim = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return Guid.TryParse(userIdClaim, out var userId) ? userId : SystemUsers.SystemUserId;
+        if (!Guid.TryParse(userIdClaim, out var userId))
+            throw new UnauthorizedAccessException(ErrorMessageResources.Unauthorized);
+
+        return userId;
     }
 
     internal static Dictionary<string, string[]> ToValidationErrors(this ValidationException exception)

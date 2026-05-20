@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MoneyTracker.Api.Endpoints.ForecastExpenses.Contracts;
+using MoneyTracker.Api.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Common.Handlers;
-using MoneyTracker.BusinessLogic.Features.Auth;
 using MoneyTracker.BusinessLogic.Features.ForecastExpenses.CreateForecastExpenseDefinition;
 using MoneyTracker.BusinessLogic.Features.ForecastExpenses.CreateForecastExpenseDefinitionAndSynchronize;
 using MoneyTracker.BusinessLogic.Features.ForecastExpenses.DeleteForecastExpenseDefinitionAndSynchronize;
@@ -18,9 +18,8 @@ public static class ForecastExpenseEndpoints
 {
     internal static WebApplication AddForecastExpenseApis(this WebApplication app)
     {
-        var group = app.MapGroup("/api/v1/forecast-expenses")
-            .WithTags("Forecast Expenses")
-            .RequireAuthorization(AuthAuthorization.Policies.ReadAccess);
+        var group = app.MapApiGroup(ApiRoutes.ForecastExpenses, "Forecast Expenses")
+            .RequireReadAccess();
 
         group.MapGet("/", static async (
                 [FromServices] IHandler<GetForecastExpenseRowsQuery, List<ForecastExpenseDto>> getForecastRowsHandler,
@@ -94,9 +93,9 @@ public static class ForecastExpenseEndpoints
                 };
 
                 var id = await handler.Handle(command, cancellationToken);
-                return Results.Created($"/api/v1/forecast-expenses/definitions/{id}", id);
+                return ApiEndpointConventions.CreatedResource(ApiRoutes.ForecastExpenseDefinitions, id);
             })
-            .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
+            .RequireWriteAccess()
             .WithName("CreateForecastExpenseDefinition")
             .WithDescription("Creates a new forecast expense definition")
             .Accepts<CreateForecastExpenseRequest>("application/json")
@@ -128,7 +127,7 @@ public static class ForecastExpenseEndpoints
                 await handler.Handle(command, cancellationToken);
                 return Results.NoContent();
             })
-            .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
+            .RequireWriteAccess()
             .WithName("UpdateForecastExpenseDefinition")
             .WithDescription("Updates an existing forecast expense definition")
             .Accepts<UpdateForecastExpenseRequest>("application/json")
@@ -145,7 +144,7 @@ public static class ForecastExpenseEndpoints
                 await handler.Handle(new DeleteForecastExpenseDefinitionAndSynchronizeCommand { Id = id }, cancellationToken);
                 return Results.NoContent();
             })
-            .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
+            .RequireWriteAccess()
             .WithName("DeleteForecastExpenseDefinition")
             .WithDescription("Deletes a forecast expense definition")
             .Produces(StatusCodes.Status204NoContent)
@@ -187,7 +186,7 @@ public static class ForecastExpenseEndpoints
 
                 return Results.NoContent();
             })
-            .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
+            .RequireWriteAccess()
             .WithName("DiscardForecastExpenseOccurrence")
             .WithDescription("Discards a pending forecast expense occurrence")
             .Produces(StatusCodes.Status204NoContent)

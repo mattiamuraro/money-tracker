@@ -8,4 +8,5 @@ public class CreatePaymentRequest
     public decimal Amount { get; set; }
     public DateTime Date { get; set; }
     public bool IsOneShot { get; set; }
+    public string? IdempotencyKey { get; set; }
 }

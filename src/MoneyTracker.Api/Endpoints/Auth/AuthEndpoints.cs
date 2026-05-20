@@ -16,8 +16,7 @@ public static class AuthEndpoints
 {
     internal static WebApplication AddAuthApis(this WebApplication app)
     {
-        var group = app.MapGroup("/api/v1/auth")
-                    .WithTags("Auth");
+        var group = app.MapApiGroup(ApiRoutes.Auth, "Auth");
 
         group.MapPost("/login", static async ([FromServices] IHandler<LoginCommand, LoginAuthTokenDto> handler, LoginRequest request, CancellationToken cancellationToken) =>
             {
@@ -123,13 +122,9 @@ public static class AuthEndpoints
 
         group.MapPost("/change-password", static async (HttpContext httpContext, [FromServices] IHandler<ChangePasswordCommand, bool> handler, ChangePasswordRequest request, CancellationToken cancellationToken) =>
             {
-                var userIdClaim = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                if (!Guid.TryParse(userIdClaim, out var userId))
-                    return Results.Unauthorized();
-
                 await handler.Handle(new ChangePasswordCommand
                 {
-                    UserId = userId,
+                    UserId = httpContext.GetCurrentUserId(),
                     CurrentPassword = request.CurrentPassword,
                     NewPassword = request.NewPassword
                 }, cancellationToken);

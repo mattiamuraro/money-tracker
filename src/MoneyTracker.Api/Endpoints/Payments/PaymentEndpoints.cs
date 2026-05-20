@@ -3,7 +3,6 @@ using MoneyTracker.Api.Endpoints.Payments.Contracts;
 using MoneyTracker.Api.ExtensionMethods;
 using MoneyTracker.BusinessLogic.Common.Handlers;
 using MoneyTracker.BusinessLogic.Common.Models;
-using MoneyTracker.BusinessLogic.Features.Auth;
 using MoneyTracker.BusinessLogic.Features.Payments.CreatePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.DeletePayment;
 using MoneyTracker.BusinessLogic.Features.Payments.GetPayment;
@@ -16,9 +15,8 @@ namespace MoneyTracker.Api.Endpoints.Payments
     {
         internal static WebApplication AddPaymentApis(this WebApplication app)
         {
-            var group = app.MapGroup("/api/v1/payments")
-                        .WithTags("Payments")
-                        .RequireAuthorization(AuthAuthorization.Policies.ReadAccess);
+            var group = app.MapApiGroup(ApiRoutes.Payments, "Payments")
+                .RequireReadAccess();
 
             // GET all payments with pagination and filtering
             group.MapGet("/", static async ([FromServices] IHandler<GetPaymentQuery, PaginatedResponse<PaymentDto>> handler, [AsParameters] PaymentFilterQuery paymentFilterQuery, CancellationToken cancellationToken) =>
@@ -102,13 +100,13 @@ namespace MoneyTracker.Api.Endpoints.Payments
                         Amount = request.Amount,
                         Date = request.Date,
                         IsOneShot = request.IsOneShot,
-                        IdempotencyKey = httpContext.GetIdempotencyKey()
+                        IdempotencyKey = httpContext.GetIdempotencyKey(request.IdempotencyKey)
                     };
 
                     var id = await handler.Handle(command, cancellationToken);
-                    return Results.Created($"/api/v1/payments/{id}", id);
+                    return ApiEndpointConventions.CreatedResource(ApiRoutes.Payments, id);
                 })
-                .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
+                .RequireWriteAccess()
                 .WithName("CreatePayment")
                 .WithDescription("Creates a new payment (supports idempotency with X-Idempotency-Key header)")
                 .Accepts<CreatePaymentRequest>("application/json")
@@ -132,7 +130,7 @@ namespace MoneyTracker.Api.Endpoints.Payments
                     await handler.Handle(command, cancellationToken);
                     return Results.NoContent();
                 })
-                .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
+                .RequireWriteAccess()
                 .WithName("UpdatePayment")
                 .WithDescription("Updates an existing payment")
                 .Accepts<UpdatePaymentRequest>("application/json")
@@ -153,7 +151,7 @@ namespace MoneyTracker.Api.Endpoints.Payments
                     await handler.Handle(command, cancellationToken);
                     return Results.NoContent();
                 })
-                .RequireAuthorization(AuthAuthorization.Policies.WriteAccess)
+                .RequireWriteAccess()
                 .WithName("DeletePayment")
                 .WithDescription("Deletes a payment")
                 .Produces(StatusCodes.Status204NoContent)

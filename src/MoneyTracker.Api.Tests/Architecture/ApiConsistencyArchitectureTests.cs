@@ -43,6 +43,56 @@ public class ApiConsistencyArchitectureTests
         Assert.DoesNotContain("Request.Headers[\"X-Idempotency-Key\"]", content, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void PaymentAndIncomeEndpoints_Should_Use_Shared_CreatedResource_Convention()
+    {
+        Assert.Contains("ApiEndpointConventions.CreatedResource(ApiRoutes.Payments, id)", ReadApiFile("Endpoints/Payments/PaymentEndpoints.cs"), StringComparison.Ordinal);
+        Assert.Contains("ApiEndpointConventions.CreatedResource(ApiRoutes.Incomes, id)", ReadApiFile("Endpoints/Incomes/IncomeEndpoints.cs"), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Endpoints/PaymentCategories/PaymentCategoryEndpoints.cs")]
+    [InlineData("Endpoints/Payments/PaymentEndpoints.cs")]
+    [InlineData("Endpoints/Incomes/IncomeEndpoints.cs")]
+    [InlineData("Endpoints/ForecastRecurrenceRuleTypes/ForecastRecurrenceRuleTypeEndpoints.cs")]
+    [InlineData("Endpoints/ForecastIncomes/ForecastIncomeEndpoints.cs")]
+    [InlineData("Endpoints/ForecastExpenses/ForecastExpenseEndpoints.cs")]
+    [InlineData("Endpoints/Auth/AuthEndpoints.cs")]
+    public void EndpointSlices_Should_Use_Shared_MapApiGroup_Convention(string relativePath)
+    {
+        var content = ReadApiFile(relativePath);
+
+        Assert.Contains("MapApiGroup(", content, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Endpoints/PaymentCategories/PaymentCategoryEndpoints.cs")]
+    [InlineData("Endpoints/Payments/PaymentEndpoints.cs")]
+    [InlineData("Endpoints/Incomes/IncomeEndpoints.cs")]
+    [InlineData("Endpoints/ForecastRecurrenceRuleTypes/ForecastRecurrenceRuleTypeEndpoints.cs")]
+    [InlineData("Endpoints/ForecastIncomes/ForecastIncomeEndpoints.cs")]
+    [InlineData("Endpoints/ForecastExpenses/ForecastExpenseEndpoints.cs")]
+    public void Protected_EndpointSlices_Should_Use_Shared_ReadAccess_Convention(string relativePath)
+    {
+        var content = ReadApiFile(relativePath);
+
+        Assert.Contains(".RequireReadAccess()", content, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Endpoints/PaymentCategories/PaymentCategoryEndpoints.cs")]
+    [InlineData("Endpoints/Payments/PaymentEndpoints.cs")]
+    [InlineData("Endpoints/Incomes/IncomeEndpoints.cs")]
+    [InlineData("Endpoints/ForecastIncomes/ForecastIncomeEndpoints.cs")]
+    [InlineData("Endpoints/ForecastExpenses/ForecastExpenseEndpoints.cs")]
+    public void Mutable_EndpointSlices_Should_Use_Shared_WriteAccess_Convention(string relativePath)
+    {
+        var content = ReadApiFile(relativePath);
+
+        Assert.Contains(".RequireWriteAccess()", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("RequireAuthorization(AuthAuthorization.Policies.WriteAccess)", content, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("Endpoints/ForecastExpenses/Contracts/ForecastExpenseOccurrencesQuery.cs")]
     [InlineData("Endpoints/ForecastIncomes/Contracts/ForecastIncomeOccurrencesQuery.cs")]
@@ -67,6 +117,13 @@ public class ApiConsistencyArchitectureTests
             .ToArray();
 
         Assert.Empty(violatingFiles);
+    }
+
+    [Fact]
+    public void BuilderExtensionMethods_Should_Be_Removable_After_ApiServiceCollection_Refactor()
+    {
+        var builderExtensionsPath = Path.Combine(ApiProjectRoot, "ExtensionMethods", "BuilderExtensionMethods.cs");
+        Assert.False(File.Exists(builderExtensionsPath));
     }
 
     private static string ReadApiFile(string relativePath)
