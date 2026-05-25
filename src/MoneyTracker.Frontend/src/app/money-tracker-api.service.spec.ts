@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { MoneyTrackerApiService } from './money-tracker-api.service';
 
 describe('MoneyTrackerApiService', () => {
@@ -8,8 +9,11 @@ describe('MoneyTrackerApiService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
-      providers: [MoneyTrackerApiService],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        MoneyTrackerApiService,
+      ],
     });
 
     service = TestBed.inject(MoneyTrackerApiService);

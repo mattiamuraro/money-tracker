@@ -1,0 +1,508 @@
+<main class="content-stack">
+  <div class="page-tabs" role="tablist" aria-label="Payments page tabs">
+    <button
+      class="page-tab"
+      type="button"
+      role="tab"
+      [class.page-tab-active]="activeTab() === 'payments'"
+      [attr.aria-selected]="activeTab() === 'payments'"
+      (click)="setActiveTab('payments')">
+      Payments
+    </button>
+    <button
+      class="page-tab"
+      type="button"
+      role="tab"
+      [class.page-tab-active]="activeTab() === 'incomes'"
+      [attr.aria-selected]="activeTab() === 'incomes'"
+      (click)="setActiveTab('incomes')">
+      Incomes
+    </button>
+  </div>
+
+  <section *ngIf="activeTab() === 'payments'" class="management-panel" id="payments" role="tabpanel" aria-label="Payments">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Entity</p>
+        <h2>Payments</h2>
+        <p>Track expenses with category, amount, date, and quick edit or delete actions.</p>
+      </div>
+      <span class="pill">{{ paymentListItems().length }} rows</span>
+    </div>
+
+    <section class="payment-widgets" aria-label="Month summary and payment category breakdown">
+      <div class="widget-grid payment-widget-grid">
+        <article class="widget-card accent-green">
+          <span class="widget-label">Income · {{ selectedPaymentMonthLabel() }}</span>
+          <strong class="widget-value">{{ monthIncomeTotal() | currency:'EUR':'symbol':'1.2-2' }}</strong>
+          <span class="widget-footnote">Total monthly income</span>
+        </article>
+
+        <article class="widget-card accent-rose">
+          <span class="widget-label">Payments · {{ selectedPaymentMonthLabel() }}</span>
+          <strong class="widget-value">{{ monthPaymentTotal() | currency:'EUR':'symbol':'1.2-2' }}</strong>
+          <span class="widget-footnote">Total monthly payments</span>
+        </article>
+
+        <article class="widget-card accent-violet">
+          <span class="widget-label">Net · {{ selectedPaymentMonthLabel() }}</span>
+          <strong class="widget-value">{{ monthNetTotal() | currency:'EUR':'symbol':'1.2-2' }}</strong>
+          <span class="widget-footnote">Income minus payments</span>
+        </article>
+      </div>
+
+      <article class="widget-card payment-breakdown-card">
+        <div class="compact-heading">
+          <div>
+            <h3>Payment categories breakdown</h3>
+            <p class="muted-copy">Share of monthly payments and pending forecast expenses by category</p>
+          </div>
+          <button
+            class="secondary-button breakdown-toggle"
+            type="button"
+            [attr.aria-expanded]="!isPaymentBreakdownCollapsed()"
+            aria-controls="payment-breakdown-content"
+            (click)="togglePaymentBreakdown()">
+            {{ isPaymentBreakdownCollapsed() ? 'Show breakdown' : 'Hide breakdown' }}
+          </button>
+        </div>
+
+        <div *ngIf="!isPaymentBreakdownCollapsed()" id="payment-breakdown-content">
+          <div *ngIf="paymentCategoryBreakdown().length; else noCategoryBreakdown" class="payment-breakdown-list">
+            <div class="payment-breakdown-columns" [class.with-forecast]="showPaymentForecastColumn()">
+              <strong>Category</strong>
+              <strong class="align-right">Total</strong>
+              <strong class="align-right">Items</strong>
+              <strong *ngIf="showPaymentForecastColumn()" class="align-right">Forecast</strong>
+            </div>
+
+            <div *ngFor="let item of paymentCategoryBreakdown(); trackBy: trackByCategory" class="payment-breakdown-item">
+              <div class="payment-breakdown-columns" [class.with-forecast]="showPaymentForecastColumn()">
+                <strong>{{ item.category }}</strong>
+                <span class="align-right">{{ item.amount | currency:'EUR':'symbol':'1.2-2' }}</span>
+                <span class="align-right">{{ item.count }}</span>
+                <span *ngIf="showPaymentForecastColumn()" class="align-right">{{ item.forecastAmount ?? 0 | currency:'EUR':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="payment-breakdown-bar" role="presentation">
+                <span class="payment-breakdown-fill" [style.width.%]="item.percentage"></span>
+              </div>
+            </div>
+
+            <p *ngIf="showPaymentForecastColumn()" class="muted-copy payment-breakdown-total-forecast">
+              Total forecast: {{ totalPaymentForecast() | currency:'EUR':'symbol':'1.2-2' }}
+            </p>
+          </div>
+        </div>
+
+        <ng-template #noCategoryBreakdown>
+          <p class="muted-copy">No payments available for category breakdown.</p>
+        </ng-template>
+      </article>
+    </section>
+
+    <div class="panel-grid">
+      <form class="editor-card" (ngSubmit)="paymentFacade.submitPayment()">
+        <div class="card-heading">
+          <h3>{{ paymentFacade.isEditingPayment() ? 'Edit payment' : 'Create payment' }}</h3>
+          <button *ngIf="paymentFacade.isEditingPayment()" class="text-button" type="button" (click)="paymentFacade.cancelPaymentEdit()">
+            Cancel edit
+          </button>
+        </div>
+
+        <div *ngIf="paymentFacade.paymentForm().forecastOccurrenceId" class="tag" style="margin-bottom: 1rem; display: inline-flex; gap: .5rem; align-items: center;">
+          <span>Linked forecast occurrence</span>
+          <button *ngIf="!paymentFacade.isEditingPayment()" class="text-button" type="button" (click)="paymentFacade.clearPaymentForecastOccurrence()">
+            Remove link
+          </button>
+        </div>
+
+        <label class="field-label" for="payment-description">Description</label>
+        <input
+          id="payment-description"
+          class="field-input"
+          type="text"
+          name="paymentDescription"
+          [(ngModel)]="paymentFacade.paymentForm().description"
+          maxlength="100"
+          placeholder="Groceries, rent, coffee..."
+          required />
+
+        <div class="field-row">
+          <div>
+            <label class="field-label" for="payment-category">Category</label>
+            <select
+              id="payment-category"
+              class="field-input"
+              name="paymentCategory"
+              [(ngModel)]="paymentFacade.paymentForm().paymentCategoryId"
+              [disabled]="!paymentFacade.hasCategories()"
+              required>
+              <option value="">{{ paymentFacade.hasCategories() ? 'Select a category' : 'No categories available' }}</option>
+              <option *ngFor="let category of paymentFacade.categories(); trackBy: trackById" [value]="category.id">
+                {{ category.name }} · {{ category.code }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label" for="payment-amount">Amount</label>
+            <input
+              id="payment-amount"
+              class="field-input"
+              type="number"
+              name="paymentAmount"
+              [(ngModel)]="paymentFacade.paymentForm().amount"
+              min="0.01"
+              step="0.01"
+              placeholder="0.00"
+              required />
+          </div>
+        </div>
+
+        <div class="field-row compact-row">
+          <div>
+            <label class="field-label" for="payment-date">Date</label>
+            <input
+              id="payment-date"
+              class="field-input"
+              type="date"
+              name="paymentDate"
+              [(ngModel)]="paymentFacade.paymentForm().date"
+              required />
+          </div>
+
+          <label class="switch-field">
+            <input type="checkbox" name="paymentOneShot" [(ngModel)]="paymentFacade.paymentForm().isOneShot" />
+            <span>One-time payment</span>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button class="primary-button" type="submit" [disabled]="paymentFacade.isSavingPayment() || !paymentFacade.hasCategories()">
+            {{ paymentFacade.isSavingPayment() ? 'Saving...' : (paymentFacade.isEditingPayment() ? 'Update payment' : 'Create payment') }}
+          </button>
+          <button class="secondary-button" type="button" (click)="paymentFacade.resetPaymentForm()">Reset</button>
+        </div>
+      </form>
+
+      <article class="list-card">
+        <div class="card-heading">
+          <div>
+            <h3>Month payments</h3>
+            <span class="muted-copy">Actual payments and pending forecast expenses, ordered by date ascending</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1rem; display: grid; gap: .75rem;">
+          <div class="field-row" style="margin: 0; align-items: end;">
+            <div>
+              <label class="field-label" for="payment-list-month">Month</label>
+              <input
+                id="payment-list-month"
+                class="field-input"
+                type="month"
+                [ngModel]="paymentFacade.selectedMonth()"
+                (ngModelChange)="paymentFacade.onPaymentMonthChanged($event)"
+                required />
+            </div>
+
+            <div>
+              <label class="field-label" for="payment-list-category-id">Category</label>
+              <select
+                id="payment-list-category-id"
+                class="field-input"
+                [ngModel]="paymentFacade.paymentFilters().categoryId"
+                (ngModelChange)="paymentFacade.setCategoryFilter($event)">
+                <option value="">All categories</option>
+                <option *ngFor="let category of paymentFacade.categories(); trackBy: trackById" [value]="category.id">
+                  {{ category.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field-row compact-row" style="margin: 0; align-items: end;">
+            <div>
+              <label class="field-label" for="payment-list-min-amount">Min amount</label>
+              <input
+                id="payment-list-min-amount"
+                class="field-input"
+                type="number"
+                min="0"
+                step="0.01"
+                [ngModel]="paymentFacade.paymentFilters().minAmount"
+                (ngModelChange)="paymentFacade.updatePaymentFilters({ minAmount: $event })" />
+            </div>
+
+            <div>
+              <label class="field-label" for="payment-list-max-amount">Max amount</label>
+              <input
+                id="payment-list-max-amount"
+                class="field-input"
+                type="number"
+                min="0"
+                step="0.01"
+                [ngModel]="paymentFacade.paymentFilters().maxAmount"
+                (ngModelChange)="paymentFacade.updatePaymentFilters({ maxAmount: $event })" />
+            </div>
+          </div>
+
+          <div class="field-row" style="margin: 0; align-items: end;">
+            <div>
+              <label class="field-label" for="payment-list-description-filter">Description</label>
+              <input
+                id="payment-list-description-filter"
+                class="field-input"
+                type="text"
+                maxlength="100"
+                placeholder="e.g. Rent"
+                [ngModel]="paymentFacade.paymentFilters().descriptionFilter"
+                (ngModelChange)="paymentFacade.setDescriptionFilter($event)" />
+            </div>
+
+            <div class="action-group" style="display: flex; gap: .5rem;">
+              <button class="primary-button" type="button" (click)="paymentFacade.applyPaymentFilters()">Apply</button>
+              <button class="secondary-button" type="button" (click)="paymentFacade.resetFilters()">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="paymentListItems().length; else paymentsEmpty" class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Category</th>
+                <th>Date</th>
+                <th class="align-right">Amount</th>
+                <th class="align-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let item of paymentListItems(); trackBy: trackByPaymentListItem"
+                [class.future-dated-row]="item.isFutureDated"
+                [class.pending-forecast-row]="isPendingForecastExpense(item)">
+                <td>
+                  <strong>{{ item.description }}</strong>
+                  <span *ngIf="item.isFutureDated" class="scheduled-badge">Scheduled</span>
+                  <span *ngIf="isPendingForecastExpense(item)" class="scheduled-badge pending-forecast-badge">Pending forecast</span>
+                  <span *ngIf="!isPendingForecastExpense(item) && item.isForecastLinked" class="scheduled-badge">Forecast</span>
+                </td>
+                <td>
+                  <span class="tag">{{ item.category }}</span>
+                </td>
+                <td>{{ item.date | date:'dd MMM yyyy' }}</td>
+                <td class="align-right">{{ item.amount | currency:'EUR':'symbol':'1.2-2' }}</td>
+                <td class="align-right action-group">
+                  <ng-container *ngIf="isPendingForecastExpense(item); else paymentActions">
+                    <button class="icon-button" type="button" (click)="usePendingForecastExpense(item)">Use</button>
+                    <button class="icon-button danger" type="button" (click)="discardPendingForecastExpense(item)">Discard</button>
+                  </ng-container>
+                  <ng-template #paymentActions>
+                    <button class="icon-button" type="button" (click)="paymentFacade.startPaymentEdit(item.payment!)">Edit</button>
+                    <button class="icon-button danger" type="button" (click)="paymentFacade.deletePayment(item.payment!)">Delete</button>
+                  </ng-template>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ng-template #paymentsEmpty>
+          <div class="empty-state">
+            <h4>No payments or pending forecast expenses</h4>
+            <p>Create a payment or add a forecast definition to populate the list.</p>
+          </div>
+        </ng-template>
+      </article>
+    </div>
+  </section>
+
+  <section *ngIf="activeTab() === 'incomes'" class="management-panel" id="incomes" role="tabpanel" aria-label="Incomes">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Entity</p>
+        <h2>Incomes</h2>
+        <p>Track incoming transactions with amount, date, and quick edit or delete actions.</p>
+      </div>
+      <span class="pill">{{ incomeListItems().length }} rows</span>
+    </div>
+
+    <div class="panel-grid">
+      <form class="editor-card" (ngSubmit)="incomeFacade.submitIncome()">
+        <div class="card-heading">
+          <h3>{{ incomeFacade.isEditingIncome() ? 'Edit income' : 'Create income' }}</h3>
+          <button *ngIf="incomeFacade.isEditingIncome()" class="text-button" type="button" (click)="incomeFacade.cancelIncomeEdit()">
+            Cancel edit
+          </button>
+        </div>
+
+        <div *ngIf="incomeFacade.incomeForm().forecastOccurrenceId" class="tag" style="margin-bottom: 1rem; display: inline-flex; gap: .5rem; align-items: center;">
+          <span>Linked forecast occurrence</span>
+          <button *ngIf="!incomeFacade.isEditingIncome()" class="text-button" type="button" (click)="incomeFacade.clearIncomeForecastOccurrence()">
+            Remove link
+          </button>
+        </div>
+
+        <label class="field-label" for="income-description">Description</label>
+        <input
+          id="income-description"
+          class="field-input"
+          type="text"
+          name="incomeDescription"
+          [(ngModel)]="incomeFacade.incomeForm().description"
+          maxlength="100"
+          placeholder="Salary, refund, freelance..."
+          required />
+
+        <div class="field-row">
+          <div>
+            <label class="field-label" for="income-amount">Amount</label>
+            <input
+              id="income-amount"
+              class="field-input"
+              type="number"
+              name="incomeAmount"
+              [(ngModel)]="incomeFacade.incomeForm().amount"
+              min="0.01"
+              step="0.01"
+              placeholder="0.00"
+              required />
+          </div>
+
+          <div>
+            <label class="field-label" for="income-date">Date</label>
+            <input
+              id="income-date"
+              class="field-input"
+              type="date"
+              name="incomeDate"
+              [(ngModel)]="incomeFacade.incomeForm().date"
+              required />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="primary-button" type="submit" [disabled]="incomeFacade.isSavingIncome()">
+            {{ incomeFacade.isSavingIncome() ? 'Saving...' : (incomeFacade.isEditingIncome() ? 'Update income' : 'Create income') }}
+          </button>
+          <button class="secondary-button" type="button" (click)="incomeFacade.resetIncomeForm()">Reset</button>
+        </div>
+      </form>
+
+      <article class="list-card">
+        <div class="card-heading">
+          <div>
+            <h3>Month incomes</h3>
+            <span class="muted-copy">Actual incomes and pending forecast incomes, ordered by date ascending</span>
+          </div>
+          <strong class="muted-copy">Total: {{ incomeFacade.incomeTotal() | currency:'EUR':'symbol':'1.2-2' }}</strong>
+        </div>
+
+        <div style="margin-bottom: 1rem; display: grid; gap: .75rem;">
+          <div class="field-row" style="margin: 0; align-items: end;">
+            <div>
+              <label class="field-label" for="income-list-month">Month</label>
+              <input
+                id="income-list-month"
+                class="field-input"
+                type="month"
+                [ngModel]="incomeFacade.selectedMonth()"
+                (ngModelChange)="incomeFacade.onMonthChanged($event)"
+                required />
+            </div>
+
+            <div>
+              <label class="field-label" for="income-list-description-filter">Description</label>
+              <input
+                id="income-list-description-filter"
+                class="field-input"
+                type="text"
+                maxlength="100"
+                placeholder="e.g. Salary"
+                [ngModel]="incomeFacade.incomeFilters().descriptionFilter"
+                (ngModelChange)="incomeFacade.setDescriptionFilter($event)" />
+            </div>
+          </div>
+
+          <div class="field-row compact-row" style="margin: 0; align-items: end;">
+            <div>
+              <label class="field-label" for="income-list-min-amount">Min amount</label>
+              <input
+                id="income-list-min-amount"
+                class="field-input"
+                type="number"
+                min="0"
+                step="0.01"
+                [ngModel]="incomeFacade.incomeFilters().minAmount"
+                (ngModelChange)="incomeFacade.updateIncomeFilters({ minAmount: $event })" />
+            </div>
+
+            <div>
+              <label class="field-label" for="income-list-max-amount">Max amount</label>
+              <input
+                id="income-list-max-amount"
+                class="field-input"
+                type="number"
+                min="0"
+                step="0.01"
+                [ngModel]="incomeFacade.incomeFilters().maxAmount"
+                (ngModelChange)="incomeFacade.updateIncomeFilters({ maxAmount: $event })" />
+            </div>
+
+            <div class="action-group" style="display: flex; gap: .5rem;">
+              <button class="primary-button" type="button" (click)="incomeFacade.applyIncomeFilters()">Apply</button>
+              <button class="secondary-button" type="button" (click)="incomeFacade.resetFilters()">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="incomeListItems().length; else incomesEmpty" class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Date</th>
+                <th class="align-right">Amount</th>
+                <th class="align-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let item of incomeListItems(); trackBy: trackByIncomeListItem"
+                [class.future-dated-row]="item.isFutureDated"
+                [class.pending-forecast-row]="isPendingForecastIncome(item)">
+                <td>
+                  <strong>{{ item.description }}</strong>
+                  <span *ngIf="item.isFutureDated" class="scheduled-badge">Scheduled</span>
+                  <span *ngIf="isPendingForecastIncome(item)" class="scheduled-badge pending-forecast-badge">Pending forecast</span>
+                  <span *ngIf="!isPendingForecastIncome(item) && item.isForecastLinked" class="scheduled-badge">Forecast</span>
+                </td>
+                <td>{{ item.date | date:'dd MMM yyyy' }}</td>
+                <td class="align-right">{{ item.amount | currency:'EUR':'symbol':'1.2-2' }}</td>
+                <td class="align-right action-group">
+                  <ng-container *ngIf="isPendingForecastIncome(item); else incomeActions">
+                    <button class="icon-button" type="button" (click)="usePendingForecastIncome(item)">Use</button>
+                    <button class="icon-button danger" type="button" (click)="discardPendingForecastIncome(item)">Discard</button>
+                  </ng-container>
+                  <ng-template #incomeActions>
+                    <button class="icon-button" type="button" (click)="incomeFacade.startIncomeEdit(item.income!)">Edit</button>
+                    <button class="icon-button danger" type="button" (click)="incomeFacade.deleteIncome(item.income!)">Delete</button>
+                  </ng-template>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ng-template #incomesEmpty>
+          <div class="empty-state">
+            <h4>No incomes or pending forecast incomes</h4>
+            <p>Create an income or add a forecast definition to populate this section.</p>
+          </div>
+        </ng-template>
+      </article>
+    </div>
+  </section>
+</main>

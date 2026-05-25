@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using MoneyTracker.BusinessLogic.Features.Auth;
+using MoneyTracker.BusinessLogic.Features.Dashboard;
 using MoneyTracker.BusinessLogic.Features.ForecastExpenses;
 using MoneyTracker.BusinessLogic.Features.ForecastIncomes;
 using MoneyTracker.BusinessLogic.Features.Forecasts;
@@ -28,6 +29,7 @@ public static class BusinessLogicServiceCollectionExtensions
         services = services.AddForecastIncomesFeatureServices();
         services = services.AddForecastExpensesFeatureServices();
         services = services.AddForecastsFeatureServices();
+        services = services.AddDashboardFeatureServices();
 
         return services;
     }

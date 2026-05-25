@@ -1,0 +1,90 @@
+<main class="content-stack">
+  <section class="management-panel" id="admin-categories">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Admin</p>
+        <h2>Payment categories</h2>
+        <p>Create, update, and remove categories used by payment entries.</p>
+      </div>
+      <span class="pill">{{ paymentFacade.categories().length }} categories</span>
+    </div>
+
+    <div class="panel-grid">
+      <form class="editor-card" (ngSubmit)="paymentFacade.submitCategory()">
+        <div class="card-heading">
+          <h3>{{ paymentFacade.isEditingCategory() ? 'Edit category' : 'Create category' }}</h3>
+          <button *ngIf="paymentFacade.isEditingCategory()" class="text-button" type="button" (click)="paymentFacade.cancelCategoryEdit()">
+            Cancel edit
+          </button>
+        </div>
+
+        <label class="field-label" for="category-name">Name</label>
+        <input
+          id="category-name"
+          class="field-input"
+          type="text"
+          name="categoryName"
+          [(ngModel)]="paymentFacade.categoryForm().name"
+          maxlength="50"
+          placeholder="Housing, Utilities, Groceries..."
+          required />
+
+        <label class="field-label" for="category-code">Code</label>
+        <input
+          id="category-code"
+          class="field-input"
+          type="text"
+          name="categoryCode"
+          [(ngModel)]="paymentFacade.categoryForm().code"
+          maxlength="5"
+          placeholder="HOU"
+          required />
+
+        <div class="form-actions">
+          <button class="primary-button" type="submit" [disabled]="paymentFacade.isSavingCategory()">
+            {{ paymentFacade.isSavingCategory() ? 'Saving...' : (paymentFacade.isEditingCategory() ? 'Update category' : 'Create category') }}
+          </button>
+          <button class="secondary-button" type="button" (click)="paymentFacade.resetCategoryForm()">Reset</button>
+        </div>
+      </form>
+
+      <article class="list-card">
+        <div class="card-heading">
+          <h3>Available categories</h3>
+          <span class="muted-copy">Used in payment management</span>
+        </div>
+
+        <div *ngIf="paymentFacade.categories().length; else categoriesEmpty" class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Code</th>
+                <th>Updated</th>
+                <th class="align-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let category of paymentFacade.categories(); trackBy: trackById">
+                <td><strong>{{ category.name }}</strong></td>
+                <td><span class="tag">{{ category.code }}</span></td>
+                <td>{{ (category.modifiedAt || category.createdAt) | date:'dd MMM yyyy' }}</td>
+                <td class="align-right action-group">
+                  <button class="icon-button" type="button" (click)="paymentFacade.startCategoryEdit(category)">Edit</button>
+                  <button class="icon-button danger" type="button" (click)="paymentFacade.deleteCategory(category)">Delete</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ng-template #categoriesEmpty>
+          <div class="empty-state">
+            <h4>No categories yet</h4>
+            <p>Create a category to enable payment tracking.</p>
+          </div>
+        </ng-template>
+      </article>
+    </div>
+  </section>
+</main>

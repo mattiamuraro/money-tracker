@@ -10,17 +10,28 @@ import {
   ForecastIncomeRow,
   ForecastOccurrenceRow,
   ForecastRecurrenceRuleTypeOption,
-  IncomeFormModel,
-  IncomeQuery,
-  IncomeRow,
   OccurrenceDeleteAction,
-  PaginatedResponse,
+} from './features/forecasts/forecast.models';
+import { IncomeFormModel, IncomeQuery, IncomeRow } from './features/incomes/income.models';
+import { PaginatedResponse } from './shared/models/pagination.models';
+import {
   PaymentCategory,
   PaymentCategoryFormModel,
   PaymentFormModel,
   PaymentQuery,
   PaymentRow,
-} from './models';
+} from './features/payments/payment.models';
+
+export interface DashboardSummary {
+  paymentsCount: number;
+  paymentTotal: number;
+  latestPaymentDescription: string | null;
+  latestPaymentDate: string | null;
+  forecastIncomeTotal: number;
+  forecastExpenseTotal: number;
+  forecastBalance: number;
+  nextUpcomingExpenseDescription: string | null;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -150,6 +161,13 @@ export class MoneyTrackerApiService {
   getForecastExpenseRows(startDate: string, endDate: string): Promise<ForecastExpenseRow[]> {
     const params = new HttpParams().set('startDate', startDate).set('endDate', endDate);
     return firstValueFrom(this.httpClient.get<ForecastExpenseRow[]>(`${this.apiBaseUrl}/forecast-expenses`, { params }));
+  }
+
+  getDashboardSummary(month: string): Promise<DashboardSummary> {
+    const params = new HttpParams().set('month', month);
+    return firstValueFrom(
+      this.httpClient.get<DashboardSummary>(`${this.apiBaseUrl}/dashboard/summary`, { params })
+    );
   }
 
   getForecastIncomeOccurrences(month: string): Promise<ForecastOccurrenceRow[]> {

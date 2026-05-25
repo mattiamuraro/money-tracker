@@ -12,6 +12,7 @@ internal static class ApiRoutes
     internal const string ForecastIncomeDefinitions = "forecast-incomes/definitions";
     internal const string ForecastExpenses = "forecast-expenses";
     internal const string ForecastExpenseDefinitions = "forecast-expenses/definitions";
+    internal const string Dashboard = "dashboard";
 
     internal static string CreateGroupPath(string routeSegment)
     {

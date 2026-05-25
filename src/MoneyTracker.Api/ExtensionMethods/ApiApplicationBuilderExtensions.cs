@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using MoneyTracker.Api.Endpoints.Auth;
+using MoneyTracker.Api.Endpoints.Dashboard;
 using MoneyTracker.Api.Endpoints.ForecastExpenses;
 using MoneyTracker.Api.Endpoints.ForecastIncomes;
 using MoneyTracker.Api.Endpoints.ForecastRecurrenceRuleTypes;
@@ -88,6 +89,7 @@ internal static class ApiApplicationBuilderExtensions
         app.AddForecastRecurrenceRuleTypeApis();
         app.AddForecastIncomeApis();
         app.AddForecastExpenseApis();
+        app.AddDashboardApis();
         app.MapHealthChecks("/health/ready");
         app.MapHealthChecks("/health/live", new HealthCheckOptions
         {

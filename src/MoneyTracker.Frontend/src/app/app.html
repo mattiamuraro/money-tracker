@@ -31,8 +31,6 @@
           class="nav-refresh-btn"
           type="button"
           (click)="reloadDashboard()"
-          [disabled]="isLoading"
-          [class.is-spinning]="isLoading"
           title="Refresh data"
         >&#x21BB;</button>
 
@@ -41,14 +39,6 @@
         </button>
       </div>
     </nav>
-
-    <section *ngIf="successMessage" class="banner banner-success">
-      {{ successMessage }}
-    </section>
-
-    <section *ngIf="errorMessage" class="banner banner-error">
-      {{ errorMessage }}
-    </section>
 
     <router-outlet></router-outlet>
 
