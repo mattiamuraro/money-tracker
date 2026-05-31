@@ -9,3 +9,6 @@ app.UseApiMiddlewarePipeline();
 app.MapApiEndpoints();
 
 app.Run();
+
+// Expose Program to integration tests via WebApplicationFactory<Program>
+public partial class Program { }

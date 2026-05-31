@@ -127,7 +127,7 @@ internal static class ApiServiceCollectionExtensions
             options.AddPolicy(CorsPolicyNames.Public, policy =>
             {
                 if (builder.Environment.IsDevelopment())
-                    policy.SetIsOriginAllowed(IsAllowedDevelopmentOrigin);
+                    policy.SetIsOriginAllowed(CorsOriginValidator.IsAllowedDevelopmentOrigin);
                 else
                     policy.WithOrigins(corsOptions.AllowedOrigins);
 
@@ -137,7 +137,7 @@ internal static class ApiServiceCollectionExtensions
             options.AddPolicy(CorsPolicyNames.Credentialed, policy =>
             {
                 if (builder.Environment.IsDevelopment())
-                    policy.SetIsOriginAllowed(IsAllowedDevelopmentOrigin);
+                    policy.SetIsOriginAllowed(CorsOriginValidator.IsAllowedDevelopmentOrigin);
                 else
                     policy.WithOrigins(corsOptions.AllowedOrigins);
 
@@ -175,14 +175,9 @@ internal static class ApiServiceCollectionExtensions
                             _ => null
                         };
 
-                        if (algorithm is null)
-                        {
-                            context.Fail("Invalid token type.");
-                            return Task.CompletedTask;
-                        }
-
-                        if (!string.Equals(algorithm, SecurityAlgorithms.HmacSha256, StringComparison.Ordinal))
-                            context.Fail("Invalid token algorithm.");
+                        var error = JwtAlgorithmValidator.Validate(algorithm);
+                        if (error is not null)
+                            context.Fail(error);
 
                         return Task.CompletedTask;
                     }
@@ -262,7 +257,6 @@ internal static class ApiServiceCollectionExtensions
                 endpointName,
                 remoteIp);
 
-            context.HttpContext.Response.ContentType = "application/problem+json";
             var retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfterValue)
                 ? retryAfterValue.TotalSeconds
                 : (double?)null;
@@ -275,6 +269,8 @@ internal static class ApiServiceCollectionExtensions
                     detail = "Rate limit exceeded. Please retry later.",
                     retryAfterSeconds = retryAfter
                 },
+                options: null,
+                contentType: "application/problem+json",
                 cancellationToken);
         };
 
@@ -323,17 +319,6 @@ internal static class ApiServiceCollectionExtensions
         logging.CombineLogs = true;
     }
 
-    private static bool IsAllowedDevelopmentOrigin(string? origin)
-    {
-        if (string.IsNullOrWhiteSpace(origin) || !Uri.TryCreate(origin, UriKind.Absolute, out var uri))
-            return false;
-        if (uri.Scheme is not ("http" or "https"))
-            return false;
-        return uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
-            || uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase)
-            || uri.Host.EndsWith(".dev.localhost", StringComparison.OrdinalIgnoreCase);
-    }
-
     private static string ResolveRateLimitPartition(HttpContext context)
-        => context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        => RateLimitPartitionResolver.Resolve(context);
 }

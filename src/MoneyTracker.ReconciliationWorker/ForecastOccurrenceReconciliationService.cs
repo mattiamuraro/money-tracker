@@ -127,7 +127,7 @@ public class ForecastOccurrenceReconciliationService : BackgroundService
 
             try
             {
-                await Task.Delay(delay, stoppingToken);
+                await DelayAsync(delay, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -264,6 +264,10 @@ public class ForecastOccurrenceReconciliationService : BackgroundService
             return false;
         }
     }
+
+    /// <summary>Overridable delay to allow test subclasses to skip real waits.</summary>
+    protected virtual Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken)
+        => Task.Delay(delay, cancellationToken);
 
     private static TimeSpan CalculateFailureDelay(int consecutiveFailures)
     {

@@ -27,5 +27,11 @@ public class SecurityHeadersMiddlewareTests
 
         Assert.True(context.Response.Headers.TryGetValue("Referrer-Policy", out StringValues referrerPolicy));
         Assert.Equal("no-referrer", referrerPolicy.ToString());
+
+        Assert.True(context.Response.Headers.TryGetValue("Permissions-Policy", out StringValues permissionsPolicy));
+        Assert.Equal("camera=(), microphone=(), geolocation=()", permissionsPolicy.ToString());
+
+        Assert.True(context.Response.Headers.TryGetValue("Content-Security-Policy", out StringValues csp));
+        Assert.Equal("default-src 'none'; frame-ancestors 'none'; base-uri 'none'", csp.ToString());
     }
 }

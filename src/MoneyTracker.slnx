@@ -14,6 +14,7 @@
     <Build />
     <Deploy />
   </Project>
+  <Project Path="MoneyTracker.ReconciliationWorker.UnitTests/MoneyTracker.ReconciliationWorker.UnitTests.csproj" />
   <Project Path="MoneyTracker.ReconciliationWorker/MoneyTracker.ReconciliationWorker.csproj" />
   <Project Path="MoneyTracker.ServiceDefaults.UnitTests/MoneyTracker.ServiceDefaults.UnitTests.csproj" />
   <Project Path="MoneyTracker.ServiceDefaults/MoneyTracker.ServiceDefaults.csproj" />

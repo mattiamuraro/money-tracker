@@ -52,4 +52,77 @@ public class MemoryCacheLoginAttemptServiceTests
         // Assert
         Assert.False(service.IsLockedOut("user", now));
     }
+
+    [Fact]
+    public void IsLockedOut_ReturnsFalse_WhenNoFailuresRegistered()
+    {
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new MemoryCacheLoginAttemptService(
+            cache,
+            Microsoft.Extensions.Options.Options.Create(new LoginProtectionOptions
+            {
+                MaxFailedAttempts = 3,
+                LockoutMinutes = 5
+            }));
+
+        Assert.False(service.IsLockedOut("user", DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
+    public void IsLockedOut_ReturnsFalse_WhenBelowFailureThreshold()
+    {
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new MemoryCacheLoginAttemptService(
+            cache,
+            Microsoft.Extensions.Options.Options.Create(new LoginProtectionOptions
+            {
+                MaxFailedAttempts = 3,
+                LockoutMinutes = 5
+            }));
+
+        var now = DateTimeOffset.UtcNow;
+        service.RegisterFailure("user", now);
+        service.RegisterFailure("user", now);
+
+        Assert.False(service.IsLockedOut("user", now));
+    }
+
+    [Fact]
+    public void IsLockedOut_ReturnsFalse_WhenLockoutHasExpired()
+    {
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new MemoryCacheLoginAttemptService(
+            cache,
+            Microsoft.Extensions.Options.Options.Create(new LoginProtectionOptions
+            {
+                MaxFailedAttempts = 1,
+                LockoutMinutes = 5
+            }));
+
+        var past = DateTimeOffset.UtcNow.AddMinutes(-10);
+        service.RegisterFailure("user", past);
+
+        // Checking at a time after the lockout window has passed
+        Assert.False(service.IsLockedOut("user", DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
+    public void IsLockedOut_IsCaseInsensitive()
+    {
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var service = new MemoryCacheLoginAttemptService(
+            cache,
+            Microsoft.Extensions.Options.Options.Create(new LoginProtectionOptions
+            {
+                MaxFailedAttempts = 1,
+                LockoutMinutes = 5
+            }));
+
+        var now = DateTimeOffset.UtcNow;
+        service.RegisterFailure("USER", now);
+
+        Assert.True(service.IsLockedOut("user", now));
+        Assert.True(service.IsLockedOut("User", now));
+        Assert.True(service.IsLockedOut("USER", now));
+    }
 }

@@ -126,6 +126,109 @@ public class ApiConsistencyArchitectureTests
         Assert.False(File.Exists(builderExtensionsPath));
     }
 
+    [Fact]
+    public void MiddlewarePipeline_Should_Call_UseHsts_Only_Outside_Development()
+    {
+        var content = ReadApiFile("ExtensionMethods/ApiApplicationBuilderExtensions.cs");
+
+        // HSTS must be guarded — never called unconditionally
+        Assert.DoesNotContain("\n        app.UseHsts();", content, StringComparison.Ordinal);
+        Assert.Contains("if (!app.Environment.IsDevelopment())", content, StringComparison.Ordinal);
+        Assert.Contains("app.UseHsts();", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MiddlewarePipeline_Should_Call_UseHttpsRedirection()
+    {
+        var content = ReadApiFile("ExtensionMethods/ApiApplicationBuilderExtensions.cs");
+        Assert.Contains("app.UseHttpsRedirection();", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MiddlewarePipeline_Should_Place_Authentication_Before_Authorization()
+    {
+        var content = ReadApiFile("ExtensionMethods/ApiApplicationBuilderExtensions.cs");
+        var authNIndex = content.IndexOf("app.UseAuthentication();", StringComparison.Ordinal);
+        var authZIndex = content.IndexOf("app.UseAuthorization();", StringComparison.Ordinal);
+
+        Assert.True(authNIndex >= 0, "UseAuthentication() not found in pipeline.");
+        Assert.True(authZIndex >= 0, "UseAuthorization() not found in pipeline.");
+        Assert.True(authNIndex < authZIndex, "UseAuthentication() must come before UseAuthorization().");
+    }
+
+    [Fact]
+    public void MiddlewarePipeline_Should_Place_SecurityHeaders_Before_Authentication()
+    {
+        var content = ReadApiFile("ExtensionMethods/ApiApplicationBuilderExtensions.cs");
+        var secHeadersIndex = content.IndexOf("app.UseSecurityHeaders();", StringComparison.Ordinal);
+        var authNIndex = content.IndexOf("app.UseAuthentication();", StringComparison.Ordinal);
+
+        Assert.True(secHeadersIndex >= 0, "UseSecurityHeaders() not found in pipeline.");
+        Assert.True(secHeadersIndex < authNIndex, "UseSecurityHeaders() must come before UseAuthentication().");
+    }
+
+    [Fact]
+    public void MiddlewarePipeline_Should_Place_RateLimiter_Before_Authentication()
+    {
+        var content = ReadApiFile("ExtensionMethods/ApiApplicationBuilderExtensions.cs");
+        var rateLimiterIndex = content.IndexOf("app.UseRateLimiter();", StringComparison.Ordinal);
+        var authNIndex = content.IndexOf("app.UseAuthentication();", StringComparison.Ordinal);
+
+        Assert.True(rateLimiterIndex >= 0, "UseRateLimiter() not found in pipeline.");
+        Assert.True(rateLimiterIndex < authNIndex, "UseRateLimiter() must come before UseAuthentication().");
+    }
+
+    [Fact]
+    public void MiddlewarePipeline_Should_Place_ExceptionHandling_Before_SecurityHeaders()
+    {
+        var content = ReadApiFile("ExtensionMethods/ApiApplicationBuilderExtensions.cs");
+        var exceptionIndex = content.IndexOf("app.UseMiddleware<GlobalExceptionHandlingMiddleware>();", StringComparison.Ordinal);
+        var secHeadersIndex = content.IndexOf("app.UseSecurityHeaders();", StringComparison.Ordinal);
+
+        Assert.True(exceptionIndex >= 0, "GlobalExceptionHandlingMiddleware not found in pipeline.");
+        Assert.True(exceptionIndex < secHeadersIndex, "Exception handling must come before security headers.");
+    }
+
+    [Fact]
+    public void RateLimiter_Should_Define_AuthLogin_Policy()
+    {
+        var content = ReadApiFile("ExtensionMethods/ApiServiceCollectionExtensions.cs");
+
+        Assert.Contains("\"auth-login\"", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RateLimiter_Should_Define_AuthRegister_Policy()
+    {
+        var content = ReadApiFile("ExtensionMethods/ApiServiceCollectionExtensions.cs");
+
+        Assert.Contains("\"auth-register\"", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AuthEndpoints_Should_Apply_AuthLogin_RateLimitPolicy()
+    {
+        var content = ReadApiFile("Endpoints/Auth/AuthEndpoints.cs");
+
+        Assert.Contains("auth-login", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AuthEndpoints_Should_Apply_AuthRegister_RateLimitPolicy()
+    {
+        var content = ReadApiFile("Endpoints/Auth/AuthEndpoints.cs");
+
+        Assert.Contains("auth-register", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RateLimiter_Should_Return_429_On_Rejection()
+    {
+        var content = ReadApiFile("ExtensionMethods/ApiServiceCollectionExtensions.cs");
+
+        Assert.Contains("Status429TooManyRequests", content, StringComparison.Ordinal);
+    }
+
     private static string ReadApiFile(string relativePath)
     {
         var fullPath = Path.Combine(ApiProjectRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));

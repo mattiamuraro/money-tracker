@@ -1,25 +1,16 @@
-using Microsoft.AspNetCore.Http.HttpResults;
-using MoneyTracker.Api.Resources;
-
 namespace MoneyTracker.Api.ExtensionMethods;
 
 internal static class AuthEndpointConventions
 {
-    private const long AuthRequestBodySizeLimitBytes = 4 * 1024;
-
     internal static RouteHandlerBuilder RequireAuthRequestSizeLimit(this RouteHandlerBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
         return builder.AddEndpointFilter(async (context, next) =>
         {
-            var request = context.HttpContext.Request;
-            if (request.ContentLength is > AuthRequestBodySizeLimitBytes)
-            {
-                return Results.Problem(
-                    ErrorMessageResources.RequestPayloadTooLarge,
-                    statusCode: StatusCodes.Status413PayloadTooLarge);
-            }
+            var limitResult = AuthRequestSizeLimit.CheckLimit(context.HttpContext.Request.ContentLength);
+            if (limitResult is not null)
+                return limitResult;
 
             return await next(context);
         });
@@ -32,10 +23,7 @@ internal static class AuthEndpointConventions
         return builder.AddEndpointFilter(async (context, next) =>
         {
             var result = await next(context);
-            var response = context.HttpContext.Response;
-            response.Headers.CacheControl = "no-store, no-cache, max-age=0";
-            response.Headers.Pragma = "no-cache";
-            response.Headers.Expires = "0";
+            NoStoreResponseHeaders.Apply(context.HttpContext.Response);
             return result;
         });
     }

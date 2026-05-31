@@ -7,7 +7,6 @@ using MoneyTracker.Data;
 using MoneyTracker.Data.EntityFramework;
 using System.Security.Cryptography;
 using System.Text;
-
 namespace MoneyTracker.BusinessLogic.Tests.Features.Auth.ChangeToken;
 
 public class RefreshTokenCommandHandlerTests
@@ -106,5 +105,32 @@ public class RefreshTokenCommandHandlerTests
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             handler.Handle(new RefreshTokenCommand { RefreshToken = "missing-token" }, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Handle_WithRevokedRefreshToken_ThrowsUnauthorizedAccessException()
+    {
+        // Arrange — seed a valid token then revoke it
+        using var db = CreateDbContext();
+        var user = new User { Id = Guid.NewGuid(), Username = "user1", PasswordHash = "hash" };
+        var rawToken = "token-to-revoke";
+        db.Users.Add(user);
+        db.UserRefreshTokens.Add(new UserRefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TokenHash = ComputeTokenHash(rawToken),
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(7)
+        });
+        await db.SaveChangesAsync();
+
+        var revokeHandler = new RevokeRefreshTokenCommandHandler(new RevokeRefreshTokenCommandValidator(), db);
+        await revokeHandler.Handle(new RevokeRefreshTokenCommand { RefreshToken = rawToken }, CancellationToken.None);
+
+        // Act & Assert — revoked token must not produce a new access token
+        var refreshHandler = CreateHandler(db);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            refreshHandler.Handle(new RefreshTokenCommand { RefreshToken = rawToken }, CancellationToken.None));
     }
 }
