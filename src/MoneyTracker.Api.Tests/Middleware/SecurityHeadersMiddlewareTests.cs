@@ -34,4 +34,35 @@ public class SecurityHeadersMiddlewareTests
         Assert.True(context.Response.Headers.TryGetValue("Content-Security-Policy", out StringValues csp));
         Assert.Equal("default-src 'none'; frame-ancestors 'none'; base-uri 'none'", csp.ToString());
     }
+
+    [Fact]
+    public async Task InvokeAsync_CallsNext_Delegate()
+    {
+        // Arrange
+        var called = false;
+        var middleware = new SecurityHeadersMiddleware(_ => { called = true; return Task.CompletedTask; });
+        var context = new DefaultHttpContext();
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        Assert.True(called);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_DoesNotOverwrite_ExistingSecurityHeader()
+    {
+        // Arrange – a previous middleware already set X-Frame-Options to SAMEORIGIN
+        var middleware = new SecurityHeadersMiddleware(_ => Task.CompletedTask);
+        var context = new DefaultHttpContext();
+        context.Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert – TryAdd must not replace the pre-existing value
+        Assert.True(context.Response.Headers.TryGetValue("X-Frame-Options", out StringValues value));
+        Assert.Equal("SAMEORIGIN", value.ToString());
+    }
 }

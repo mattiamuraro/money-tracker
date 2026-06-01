@@ -7,6 +7,7 @@ using MoneyTracker.Api.Options;
 using MoneyTracker.BusinessLogic.Common.Exceptions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -57,6 +58,28 @@ public class GlobalExceptionHandlingMiddlewareTests
         var sanitizer = new ExceptionDetailSanitizer();
         var middleware = new GlobalExceptionHandlingMiddleware(next ?? (_ => Task.CompletedTask), logger, env, options, sanitizer);
         return (middleware, logger);
+    }
+
+    // Creates a context whose Response.HasStarted is already true via a fake response feature.
+    private static DefaultHttpContext CreateStartedResponseContext()
+    {
+        var context = new DefaultHttpContext();
+        var responseFeature = new StartedHttpResponseFeature();
+        context.Features.Set<IHttpResponseFeature>(responseFeature);
+        context.Response.Body = new MemoryStream();
+        return context;
+    }
+
+    private sealed class StartedHttpResponseFeature : IHttpResponseFeature
+    {
+        public Stream Body { get; set; } = new MemoryStream();
+        public bool HasStarted => true;
+        public IHeaderDictionary Headers { get; set; } = new HeaderDictionary();
+        public string? ReasonPhrase { get; set; }
+        public int StatusCode { get; set; } = 200;
+
+        public void OnCompleted(Func<object, Task> callback, object state) { }
+        public void OnStarting(Func<object, Task> callback, object state) { }
     }
 
     [Fact]
@@ -413,6 +436,166 @@ public class GlobalExceptionHandlingMiddlewareTests
         Assert.Equal(StatusCodes.Status500InternalServerError, context.Response.StatusCode);
         Assert.Equal("INTERNAL_SERVER_ERROR", doc.RootElement.GetProperty("code").GetString());
         Assert.Equal("INTERNAL_SERVER_ERROR", doc.RootElement.GetProperty("subCode").GetString());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Skip_Writing_And_Log_Warning_When_Response_Has_Started_And_Exception_Occurs()
+    {
+        // Arrange – context.Response.HasStarted is already true
+        var (middleware, logger) = CreateMiddleware(_ => throw new Exception("late exception"));
+        var context = CreateStartedResponseContext();
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert – middleware logs a warning about the already-started response
+        Assert.Contains(logger.Entries, e =>
+            e.Level == LogLevel.Warning &&
+            e.Message.Contains("response has already started", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Skip_Writing_And_Log_Warning_When_Response_Has_Started_And_Request_Canceled()
+    {
+        // Arrange
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var (middleware, logger) = CreateMiddleware(_ => throw new OperationCanceledException(cts.Token));
+        var context = CreateStartedResponseContext();
+        context.RequestAborted = cts.Token;
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        Assert.Contains(logger.Entries, e =>
+            e.Level == LogLevel.Warning &&
+            e.Message.Contains("response has already started", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Return_InternalServerError_When_OperationCanceledException_And_Request_Not_Aborted()
+    {
+        // Arrange – cancellation token is not the request-abort token, so it should be treated as unhandled
+        var otherCts = new CancellationTokenSource();
+        otherCts.Cancel();
+
+        var (middleware, logger) = CreateMiddleware(_ => throw new OperationCanceledException(otherCts.Token));
+        var context = new DefaultHttpContext();
+        // RequestAborted is NOT canceled
+        context.Response.Body = new MemoryStream();
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert – must be a 500, not a 408
+        Assert.Equal(StatusCodes.Status500InternalServerError, context.Response.StatusCode);
+        Assert.Contains(logger.Entries, e => e.Level == LogLevel.Error);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Map_TimeoutException_To_ServiceUnavailable()
+    {
+        // Arrange
+        var (middleware, _) = CreateMiddleware(_ => throw new TimeoutException("The operation timed out."));
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        Assert.Equal(StatusCodes.Status503ServiceUnavailable, context.Response.StatusCode);
+        Assert.Equal("TRANSIENT_FAILURE", doc.RootElement.GetProperty("code").GetString());
+        Assert.Equal("TRANSIENT_FAILURE", doc.RootElement.GetProperty("subCode").GetString());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Include_Metadata_Extensions_For_ConflictException_With_Custom_ErrorCode()
+    {
+        // Arrange
+        var exception = new ConflictException(
+            "Category already exists",
+            errorCode: "CATEGORY_ALREADY_EXISTS",
+            entityName: "Category",
+            entityId: "42");
+
+        var (middleware, _) = CreateMiddleware(_ => throw exception);
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        Assert.Equal(StatusCodes.Status409Conflict, context.Response.StatusCode);
+        Assert.Equal("CATEGORY_ALREADY_EXISTS", doc.RootElement.GetProperty("subCode").GetString());
+        Assert.Equal("Category", doc.RootElement.GetProperty("entityName").GetString());
+        Assert.Equal("42", doc.RootElement.GetProperty("entityId").GetString());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Include_Metadata_Extensions_For_BadRequestException_With_Custom_ErrorCode()
+    {
+        // Arrange
+        var exception = new BadRequestException(
+            "Invalid date range",
+            errorCode: "INVALID_DATE_RANGE",
+            entityName: "Budget",
+            entityId: "99");
+
+        var (middleware, _) = CreateMiddleware(_ => throw exception);
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        Assert.Equal("INVALID_DATE_RANGE", doc.RootElement.GetProperty("subCode").GetString());
+        Assert.Equal("Budget", doc.RootElement.GetProperty("entityName").GetString());
+        Assert.Equal("99", doc.RootElement.GetProperty("entityId").GetString());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Return_ValidationProblemDetails_With_Multiple_Fields_Grouped_By_Property()
+    {
+        // Arrange – two failures on the same field and one on another
+        var validationException = new ValidationException([
+            new ValidationFailure("Amount", "Amount must be positive"),
+            new ValidationFailure("Amount", "Amount must not exceed 1000000"),
+            new ValidationFailure("Date", "Date is required")
+        ]);
+
+        var (middleware, _) = CreateMiddleware(_ => throw validationException);
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        context.Response.Body.Position = 0;
+        using var doc = await JsonDocument.ParseAsync(context.Response.Body);
+
+        Assert.Equal(StatusCodes.Status400BadRequest, context.Response.StatusCode);
+        Assert.Equal("VALIDATION_ERROR", doc.RootElement.GetProperty("code").GetString());
+
+        var errors = doc.RootElement.GetProperty("errors");
+        Assert.True(errors.TryGetProperty("Amount", out var amountErrors));
+        Assert.Equal(2, amountErrors.GetArrayLength());
+        Assert.True(errors.TryGetProperty("Date", out _));
     }
 }
 

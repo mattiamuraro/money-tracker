@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using MoneyTracker.BusinessLogic.Features.Auth.ChangeToken;
 using MoneyTracker.BusinessLogic.Features.Auth.Options;
 using MoneyTracker.Data;
@@ -26,10 +27,11 @@ public class RefreshTokenCommandHandlerTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options, null);
 
-    private static RefreshTokenCommandHandler CreateHandler(MoneyTrackerDbContext db) =>
+    private static RefreshTokenCommandHandler CreateHandler(MoneyTrackerDbContext db, TimeProvider? timeProvider = null) =>
         new(new RefreshTokenCommandValidator(),
             Options.Create(DefaultJwtOptions),
             Options.Create(new RefreshTokenOptions { ExpiryDays = 14 }),
+            timeProvider ?? TimeProvider.System,
             db);
 
     [Fact]
@@ -132,5 +134,37 @@ public class RefreshTokenCommandHandlerTests
         var refreshHandler = CreateHandler(db);
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             refreshHandler.Handle(new RefreshTokenCommand { RefreshToken = rawToken }, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Handle_WithTokenExpiredByTimeProvider_ThrowsUnauthorizedAccessException()
+    {
+        // Arrange — seed a token whose ExpiresAt is "now" according to a fake clock
+        var fakeNow = new DateTimeOffset(2025, 1, 1, 12, 0, 0, TimeSpan.Zero);
+        var fakeTimeProvider = new FakeTimeProvider(fakeNow);
+
+        using var db = CreateDbContext();
+        var user = new User { Id = Guid.NewGuid(), Username = "user1", PasswordHash = "hash" };
+        var rawToken = "future-expired-token";
+        db.Users.Add(user);
+        db.UserRefreshTokens.Add(new UserRefreshToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TokenHash = ComputeTokenHash(rawToken),
+            CreatedAt = fakeNow.UtcDateTime,
+            // Expires in 7 days from seed time
+            ExpiresAt = fakeNow.UtcDateTime.AddDays(7)
+        });
+        await db.SaveChangesAsync();
+
+        // Advance the clock past the expiry
+        fakeTimeProvider.Advance(TimeSpan.FromDays(8));
+
+        var handler = CreateHandler(db, fakeTimeProvider);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            handler.Handle(new RefreshTokenCommand { RefreshToken = rawToken }, CancellationToken.None));
     }
 }

@@ -362,4 +362,28 @@ public class ExceptionDetailSanitizerTests
         Assert.Contains("User authentication failed", result);
         Assert.Contains("abc123", result);
     }
+
+    [Fact]
+    public void Sanitize_Should_Redact_Adjacent_Json_Secret_Keys_In_Same_Object()
+    {
+        var input = "{\"password\":\"firstsecret\",\"secret\":\"secondsecret\"}";
+
+        var result = CreateSanitizer().Sanitize(input);
+
+        Assert.NotNull(result);
+        Assert.DoesNotContain("firstsecret", result);
+        Assert.DoesNotContain("secondsecret", result);
+    }
+
+    [Fact]
+    public void Sanitize_Should_Redact_ConnectionString_KeyValue_Pair()
+    {
+        var input = "connectionstring=Server=myserver;Database=mydb;Password=hunter2";
+
+        var result = CreateSanitizer().Sanitize(input);
+
+        Assert.NotNull(result);
+        Assert.DoesNotContain("hunter2", result);
+        Assert.Contains("[REDACTED]", result);
+    }
 }

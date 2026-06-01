@@ -98,4 +98,46 @@ public class RequestObservabilityMiddlewareTests
         Assert.NotNull(result);
         Assert.IsAssignableFrom<IApplicationBuilder>(result);
     }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Not_Throw_When_No_Activity_Is_Active()
+    {
+        // Ensure Activity.Current is null — no ambient activity
+        Activity.Current = null;
+
+        var (middleware, logger) = CreateMiddleware();
+        var context = new DefaultHttpContext();
+        context.Request.Method = HttpMethods.Get;
+        context.Request.Path = "/api/v1/test";
+
+        var exception = await Record.ExceptionAsync(() => middleware.InvokeAsync(context, logger));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Not_Throw_When_CorrelationId_Is_Absent_From_Context_Items()
+    {
+        var (middleware, logger) = CreateMiddleware();
+        var context = new DefaultHttpContext();
+        // Deliberately omit CorrelationId from context.Items
+
+        var exception = await Record.ExceptionAsync(() => middleware.InvokeAsync(context, logger));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Log_StatusCode_In_Completion_Message()
+    {
+        var (middleware, logger) = CreateMiddleware();
+        var context = new DefaultHttpContext();
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+
+        await middleware.InvokeAsync(context, logger);
+
+        Assert.Contains(logger.Entries, e =>
+            e.Level == LogLevel.Information
+            && e.Message.Contains("404", StringComparison.Ordinal));
+    }
 }

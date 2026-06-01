@@ -212,4 +212,32 @@ public class CorrelationIdMiddlewareTests
         Assert.NotNull(result);
         Assert.IsAssignableFrom<IApplicationBuilder>(result);
     }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Accept_CorrelationId_At_Exact_MaxLength()
+    {
+        // 128 characters — exactly at the allowed boundary
+        var (middleware, _) = CreateMiddleware();
+        var context = new DefaultHttpContext();
+        var exactMax = new string('a', 128);
+        context.Request.Headers["X-Correlation-ID"] = exactMax;
+
+        await middleware.InvokeAsync(context);
+
+        Assert.Equal(exactMax, context.Items["CorrelationId"]?.ToString());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Reject_CorrelationId_One_Over_MaxLength()
+    {
+        // 129 characters — one over the limit
+        var (middleware, _) = CreateMiddleware();
+        var context = new DefaultHttpContext();
+        context.Request.Headers["X-Correlation-ID"] = new string('a', 129);
+
+        await middleware.InvokeAsync(context);
+
+        var correlationId = context.Items["CorrelationId"]?.ToString();
+        Assert.True(Guid.TryParse(correlationId, out _), "Expected a generated GUID for an oversized header");
+    }
 }

@@ -13,6 +13,7 @@ public class RefreshTokenCommandHandler(
     IValidator<RefreshTokenCommand> validator,
     IOptions<JwtOptions> jwtOptions,
     IOptions<RefreshTokenOptions> refreshTokenOptions,
+    TimeProvider timeProvider,
     MoneyTrackerDbContext dbContext)
     : IHandler<RefreshTokenCommand, RefreshAuthTokenDto>
 {
@@ -26,7 +27,7 @@ public class RefreshTokenCommandHandler(
             throw new ValidationException(validationResult.Errors);
 
         var tokenHash = RefreshTokenHelper.ComputeTokenHash(command.RefreshToken);
-        var now = DateTime.UtcNow;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
 
         var refreshToken = await dbContext.UserRefreshTokens
             .Include(x => x.User)

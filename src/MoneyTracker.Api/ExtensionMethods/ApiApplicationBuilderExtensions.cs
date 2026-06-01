@@ -21,10 +21,13 @@ internal static class ApiApplicationBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(app);
 
+        // ForwardedHeaders must run before HSTS so that Request.IsHttps is set
+        // correctly from X-Forwarded-Proto before HSTS checks it.
+        app.UseForwardedHeaders();
+
         if (!app.Environment.IsDevelopment())
             app.UseHsts();
 
-        app.UseForwardedHeaders();
         app.UseHttpsRedirection();
         app.UseCorrelationId();
         app.UseRequestObservability();
