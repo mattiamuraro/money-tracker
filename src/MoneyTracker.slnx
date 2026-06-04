@@ -1,0 +1,21 @@
+<Solution>
+  <Project Path="MoneyTracker.Api.Tests/MoneyTracker.Api.Tests.csproj" Id="0ead0553-e5a9-452e-9d86-e63ebfd47f04" />
+  <Project Path="MoneyTracker.Api/MoneyTracker.Api.csproj" />
+  <Project Path="MoneyTracker.AppHost/MoneyTracker.AppHost.csproj" />
+  <Project Path="MoneyTracker.BusinessLogic.Tests/MoneyTracker.BusinessLogic.Tests.csproj" Id="4320e6db-8848-4f10-bd90-1d2b71560bb3" />
+  <Project Path="MoneyTracker.BusinessLogic/MoneyTracker.BusinessLogic.csproj" />
+  <Project Path="MoneyTracker.Data.EntityFramework.Tests/MoneyTracker.Data.EntityFramework.Tests.csproj" />
+  <Project Path="MoneyTracker.Data.EntityFramework/MoneyTracker.Data.EntityFramework.csproj" Id="2206f31d-5708-4794-a96a-5a3bd87b7c6b" />
+  <Project Path="MoneyTracker.Data.MigrationService.UnitTests/MoneyTracker.Data.MigrationService.UnitTests.csproj" />
+  <Project Path="MoneyTracker.Data.MigrationService/MoneyTracker.Data.MigrationService.csproj" />
+  <Project Path="MoneyTracker.Data.Tests/MoneyTracker.Data.Tests.csproj" />
+  <Project Path="MoneyTracker.Data/MoneyTracker.Data.csproj" />
+  <Project Path="MoneyTracker.Frontend/MoneyTracker.Frontend.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="MoneyTracker.ReconciliationWorker.UnitTests/MoneyTracker.ReconciliationWorker.UnitTests.csproj" />
+  <Project Path="MoneyTracker.ReconciliationWorker/MoneyTracker.ReconciliationWorker.csproj" />
+  <Project Path="MoneyTracker.ServiceDefaults.UnitTests/MoneyTracker.ServiceDefaults.UnitTests.csproj" />
+  <Project Path="MoneyTracker.ServiceDefaults/MoneyTracker.ServiceDefaults.csproj" />
+</Solution>

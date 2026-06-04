@@ -1,0 +1,67 @@
+using Xunit;
+
+namespace MoneyTracker.Data.Tests;
+
+public class ForecastRecurrenceRuleTests
+{
+    [Fact]
+    public void GetRecurrences_Should_Return_Only_Start_Date_When_Interval_Is_Null()
+    {
+        var actorId = Guid.NewGuid();
+
+        var ruleType = new ForecastRecurrenceRuleType
+        {
+            Id = Guid.NewGuid(),
+            Name = "Day",
+            Code = ForecastRecurrenceRuleType.Day
+        };
+
+        var forecast = new ForecastExpense
+        {
+            Id = Guid.NewGuid(),
+            Description = "No interval",
+            Amount = 10m,
+            RecurrenceStart = new DateOnly(2026, 4, 1),
+            Interval = null,
+            ForecastRecurrenceRuleTypeId = ruleType.Id,
+            ForecastRecurrenceRuleType = ruleType
+        };
+
+        var result = forecast.GetRecurrences(new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 30));
+
+        Assert.Equal(new List<DateOnly> { new(2026, 4, 1) }, result);
+    }
+
+    [Fact]
+    public void GetRecurrences_Should_Add_Interval_When_Type_Is_Day()
+    {
+        var actorId = Guid.NewGuid();
+
+        var ruleType = new ForecastRecurrenceRuleType
+        {
+            Id = Guid.NewGuid(),
+            Name = "Day",
+            Code = ForecastRecurrenceRuleType.Day
+        };
+
+        var forecast = new ForecastExpense
+        {
+            Id = Guid.NewGuid(),
+            Description = "Daily",
+            Amount = 10m,
+            RecurrenceStart = new DateOnly(2026, 4, 1),
+            Interval = 7,
+            ForecastRecurrenceRuleTypeId = ruleType.Id,
+            ForecastRecurrenceRuleType = ruleType
+        };
+
+        var result = forecast.GetRecurrences(new DateOnly(2026, 4, 1), new DateOnly(2026, 4, 20));
+
+        Assert.Equal(new List<DateOnly>
+        {
+            new(2026, 4, 1),
+            new(2026, 4, 8),
+            new(2026, 4, 15)
+        }, result);
+    }
+}

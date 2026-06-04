@@ -1,0 +1,21 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.2.0">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>b3f09247-3ead-42f4-9338-4a84c3c12549</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.SqlServer" Version="13.2.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MoneyTracker.Api\MoneyTracker.Api.csproj" />
+    <ProjectReference Include="..\MoneyTracker.Data.MigrationService\MoneyTracker.Data.MigrationService.csproj" />
+    <ProjectReference Include="..\MoneyTracker.ReconciliationWorker\MoneyTracker.ReconciliationWorker.csproj" />
+  </ItemGroup>
+
+</Project>

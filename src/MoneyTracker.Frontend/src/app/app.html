@@ -1,0 +1,57 @@
+<ng-container *ngIf="isLoginRoute; else mainLayout">
+  <router-outlet></router-outlet>
+</ng-container>
+
+<ng-template #mainLayout>
+  <div class="app-shell">
+
+    <nav class="app-nav">
+      <a class="nav-brand" routerLink="/">
+        <span class="nav-brand-icon">MT</span>
+        <span class="nav-brand-name">Money Tracker</span>
+      </a>
+
+      <div class="nav-links">
+        <a class="nav-link" routerLink="/" routerLinkActive="nav-link-active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+        <a class="nav-link" routerLink="/payments" routerLinkActive="nav-link-active">Payments</a>
+        <a class="nav-link" routerLink="/forecasts" routerLinkActive="nav-link-active">Forecasts</a>
+        <a class="nav-link" routerLink="/admin/categories" routerLinkActive="nav-link-active">Admin</a>
+      </div>
+
+      <div class="nav-actions">
+        <button
+          class="nav-theme-btn"
+          type="button"
+          (click)="toggleTheme()"
+          [title]="isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'"
+          [attr.aria-label]="isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'"
+        >{{ isDarkTheme ? '☀️' : '🌙' }}</button>
+
+        <button
+          class="nav-refresh-btn"
+          type="button"
+          (click)="reloadDashboard()"
+          title="Refresh data"
+        >&#x21BB;</button>
+
+        <button class="nav-signout-btn" type="button" (click)="logout()">
+          Sign out
+        </button>
+      </div>
+    </nav>
+
+    <router-outlet></router-outlet>
+
+  </div>
+
+  <app-confirmation-dialog
+    [title]="dialogState.options.title || 'Confirm Action'"
+    [message]="dialogState.options.message"
+    [confirmButtonText]="dialogState.options.confirmButtonText || 'Confirm'"
+    [cancelButtonText]="dialogState.options.cancelButtonText || 'Cancel'"
+    [isDangerous]="dialogState.options.isDangerous || false"
+    [isVisible]="dialogState.isVisible"
+    (confirmed)="onDialogConfirmed()"
+    (cancelled)="onDialogCancelled()">
+  </app-confirmation-dialog>
+</ng-template>
