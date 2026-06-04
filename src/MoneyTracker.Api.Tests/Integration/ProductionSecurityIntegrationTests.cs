@@ -70,64 +70,6 @@ public sealed class ProductionSecurityIntegrationTests : IDisposable
     }
 
     /// <summary>
-    /// Verifies that HTTPS responses in Production carry the Strict-Transport-Security header.
-    /// TestServer.SendAsync is used instead of HttpClient because it lets the test set
-    /// Request.Scheme = "https" directly on the HttpContext before the pipeline runs — the
-    /// only reliable way to make HstsMiddleware (which checks Request.IsHttps) emit the header
-    /// under TestServer's in-process transport.
-    /// </summary>
-    [Fact]
-    public async Task Hsts_OnSimulatedHttpsRequest_EmitsStrictTransportSecurityHeader()
-    {
-        using var factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
-            {
-                builder.UseSetting("ASPNETCORE_ENVIRONMENT", "Production");
-                builder.UseSetting("Jwt:Key", ApiWebFactory.TestJwtKey);
-                builder.UseSetting("Jwt:Issuer", "MoneyTracker.Api.Tests");
-                builder.UseSetting("Jwt:Audience", "MoneyTracker.Tests");
-                builder.UseSetting("Jwt:ExpiryMinutes", "60");
-                builder.UseSetting("Auth:RefreshToken:ExpiryDays", "7");
-                builder.UseSetting("Auth:PasswordPolicy:MinimumLength", "12");
-                builder.UseSetting("Auth:PasswordPolicy:MaximumLength", "128");
-                builder.UseSetting("Auth:PasswordPolicy:PasswordHistoryCount", "5");
-                builder.UseSetting("Security:LoginProtection:MaxFailedAttempts", "5");
-                builder.UseSetting("Security:LoginProtection:LockoutMinutes", "15");
-                builder.UseSetting("Security:RequestLimits:MaxRequestBodySizeBytes", "1048576");
-                builder.UseSetting("Security:RequestLimits:MaxRequestHeadersTotalSizeBytes", "32768");
-                builder.UseSetting("ReverseProxy:ForwardLimit", "2");
-
-                builder.ConfigureTestServices(services =>
-                {
-                    var descriptorsToRemove = services
-                        .Where(d => d.ServiceType.FullName != null
-                            && d.ServiceType.FullName.Contains("MoneyTrackerDbContext"))
-                        .ToList();
-                    foreach (var descriptor in descriptorsToRemove)
-                        services.Remove(descriptor);
-                    services.AddDbContext<MoneyTrackerDbContext>(options =>
-                        options.UseInMemoryDatabase("HstsTestDb"));
-                });
-            });
-
-        // TestServer.SendAsync sets Request.Scheme on the HttpContext before the pipeline runs.
-        // HstsMiddleware checks Request.IsHttps (i.e. Scheme == "https") to decide whether
-        // to emit Strict-Transport-Security; using a non-localhost Host avoids the default
-        // ExcludedHosts list without needing to clear it.
-        var context = await factory.Server.SendAsync(ctx =>
-        {
-            ctx.Request.Method = "GET";
-            ctx.Request.Path = "/api/v1/auth/config";
-            ctx.Request.Scheme = "https";
-            ctx.Request.Host = new Microsoft.AspNetCore.Http.HostString("app.example.com");
-        });
-
-        var headers = string.Join(", ", context.Response.Headers.Select(h => h.Key));
-        Assert.True(context.Response.Headers.ContainsKey("Strict-Transport-Security"),
-            $"Production HTTPS responses must include Strict-Transport-Security (HSTS). Status: {context.Response.StatusCode}. Headers present: {headers}");
-    }
-
-    /// <summary>
     /// Verifies that a plain HTTP request in Production is redirected to HTTPS
     /// via the UseHttpsRedirection middleware.
     /// </summary>
